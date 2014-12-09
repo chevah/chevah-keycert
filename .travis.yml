@@ -12,6 +12,7 @@ script:
 deploy:
   provider: pypi
   user: chevah-robot
-  password: ...
+  password:
+    secure: FpLpYeTSwUTKCfsAE1tXtEfN2/xBlFKnUUwxsIGXZvWhEwT6ghS1ci5YddFLxiBvgeDHLdGangmkF2wh3eUF8zZG4NYo/2lcy+vzNydLIQ3qIvHw4xDE2pqJ/1TLfyuN6gR2iB2YuvEXHDBceNxg5yXeQIZjGRdYpqprpeKBELo=
   on:
     tags: true
