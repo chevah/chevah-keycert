@@ -6,5 +6,12 @@ install:
   - pip install -i http://chevah.com/pypi/simple -e .[dev]
 
 script:
-  - nose_runner.py - chevah/keycert/tests
+  - python `which nose_runner.py` - chevah/keycert/tests
   - pocketlint chevah/keycert
+
+deploy:
+  provider: pypi
+  user: chevah-robot
+  password: ...
+  on:
+    tags: true
