@@ -63,16 +63,10 @@ def generate_ssh_key(options, key=None, open_method=None):
     message = ''
     try:
         key_size = options.key_size
-
-        if options.key_type.lower() == u'rsa':
-            key_type = crypto.TYPE_RSA
-        elif options.key_type.lower() == u'dsa':
-            key_type = crypto.TYPE_DSA
-        else:
-            key_type = options.key_type
+        key_type = options.key_type.lower()
 
         if not hasattr(options, 'key_file') or options.key_file is None:
-            options.key_file = 'id_%s' % (options.key_type.lower())
+            options.key_file = 'id_%s' % (key_type)
 
         private_file = options.key_file
 
@@ -104,7 +98,7 @@ def generate_ssh_key(options, key=None, open_method=None):
         message = (
             u'SSH key of type "%s" and length "%d" generated as '
             u'public key file "%s" and private key file "%s" %s.') % (
-            options.key_type,
+            key_type,
             key_size,
             public_file,
             private_file,
@@ -155,12 +149,21 @@ class Key(ConchSSHKey):
         super(Key, self).__init__(keyObject)
 
     def generate(self, key_type=DEFAULT_KEY_TYPE, key_size=DEFAULT_KEY_SIZE):
-        '''Create the key data.'''
-        if key_type not in [crypto.TYPE_RSA, crypto.TYPE_DSA]:
+        """
+        Create the new key data
+        """
+        if not key_type:
+            key_type = 'not-specified'
+        key_type = key_type.lower()
+
+        if key_type == u'rsa':
+            key_class = RSA
+        elif key_type == u'dsa':
+            key_class = DSA
+        else:
             raise KeyCertException('Unknown key type "%s".' % (key_type))
 
         key = None
-        key_class = KEY_CLASSES[key_type]
         try:
             key = key_class.generate(bits=key_size, randfunc=rand.bytes)
         except ValueError, error:
@@ -243,7 +246,10 @@ class Key(ConchSSHKey):
             return 'public_sshcom'
         elif data.startswith('---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----'):
             return 'private_sshcom'
-        elif data.startswith('-----BEGIN'):
+        elif (
+            data.startswith('-----BEGIN RSA') or
+            data.startswith('-----BEGIN DSA')
+                ):
             return 'private_openssh'
         elif data.startswith('PuTTY-User-Key-File-2'):
             return 'private_putty'
@@ -261,6 +267,24 @@ class Key(ConchSSHKey):
                 return 'agentv3'
             else:
                 return 'blob'
+
+    @classmethod
+    def getKeyFormat(cls, data):
+        """
+        Return a type of key.
+        """
+        key_type = cls._guessStringType(data)
+        human_readable = {
+            'public_openssh': 'OpenSSH Public',
+            'private_openssh': 'OpenSSH Private',
+            'public_sshcom': 'SSH.com Public',
+            'private_sshcom': 'SSH.com Private',
+            'private_putty': 'PuTTY Private',
+            'public_lsh': 'LSH Public',
+            'private_lsh': 'LSH Private',
+            }
+
+        return human_readable.get(key_type, 'Unknown format')
 
     @staticmethod
     def _getSSHCOMKeyContent(data):
@@ -763,7 +787,7 @@ class Key(ConchSSHKey):
         aes_block_size = 16
         lines = []
         key_type = self.sshType()
-        comment = 'Exported by Twisted.'
+        comment = 'Exported by chevah-keycert.'
         data = self.data()
 
         hmac_key = PUTTY_HMAC_KEY

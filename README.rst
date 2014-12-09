@@ -22,5 +22,7 @@ It provides the following functionalities:
 * Generate RSA/DSA keys
 * Convert OpenSSH, SSH.com, Putty, LSH
 
+Release is done automatically for each tag, using Travis-CI.
+
 .. image:: https://travis-ci.org/chevah/chevah-keycert.svg?branch=master
     :target: https://travis-ci.org/chevah/chevah-keycert

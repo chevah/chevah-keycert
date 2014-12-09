@@ -232,30 +232,51 @@ class TestKey(EmpiricalTestCase):
         """
         An error is raised when generating a key with unknow type.
         """
+        key = Key()
+
         with self.assertRaises(KeyCertException) as context:
-            key = Key(None)
-            key.generate(key_type=0)
-        self.assertEqual('Unknown key type "0".', context.exception.message)
+            key.generate(key_type='bad-type')
+
+        self.assertEqual(
+            'Unknown key type "bad-type".', context.exception.message)
 
     @attr('slow')
-    def test_init_rsa(self):
+    def test_generate_rsa(self):
         """
-        Check generation of an RSA key.
+        Check generation of an RSA key with a case insensitive type name.
         """
         key = Key()
-        key.generate(key_type=crypto.TYPE_RSA, key_size=1024)
+
+        key.generate(key_type='rSA', key_size=1024)
+
         self.assertEqual('RSA', key.type())
         self.assertEqual(1024, key.size)
 
     @attr('slow')
-    def test_init_dsa(self):
+    def test_generate_dsa(self):
         """
-        Check generation of a DSA key.
+        Check generation of a DSA key with a case insensitive type name.
         """
         key = Key()
-        key.generate(key_type=crypto.TYPE_DSA, key_size=1024)
+
+        key.generate(key_type='dSA', key_size=1024)
+
         self.assertEqual('DSA', key.type())
         self.assertEqual(1024, key.size)
+
+    def test_generate_failed(self):
+        """
+        A ServerError is raised when it fails to generate the key.
+        """
+        sut = Key()
+
+        with self.assertRaises(KeyCertException) as context:
+            sut.generate(key_type='dSa', key_size=2048)
+
+        self.assertEqual(
+            u'Wrong key size "2048". Number of bits in p must be a multiple '
+            'of 64 between 512 and 1024, not 2048 bits.',
+            context.exception.message)
 
     def test_key_store_rsa(self):
         """
@@ -326,13 +347,38 @@ class TestKey(EmpiricalTestCase):
 
         self.assertIsNone(result)
 
-    def test_guessStringType_private_OpenSSH(self):
+    def test_guessStringType_PEM_certificate(self):
         """
-        Can recognize an OpenSSH private key.
+        None is returned when reading PEM certificates.
+        """
+        sut = Key()
+        content = (
+            '-----BEGIN CERTIFICATE-----\n'
+            'CONTENT\n'
+            '-----END CERTIFICATE-----\n'
+            )
+
+        result = sut._guessStringType(content)
+
+        self.assertIsNone(result)
+
+    def test_guessStringType_private_OpenSSH_RSA(self):
+        """
+        Can recognize an OpenSSH RSA private key.
         """
         sut = Key()
 
         result = sut._guessStringType(OPENSSH_RSA_PRIVATE)
+
+        self.assertEqual('private_openssh', result)
+
+    def test_guessStringType_private_OpenSSH_DSA(self):
+        """
+        Can recognize an OpenSSH DSA private key.
+        """
+        sut = Key()
+
+        result = sut._guessStringType(OPENSSH_DSA_PRIVATE)
 
         self.assertEqual('private_openssh', result)
 
@@ -375,6 +421,26 @@ class TestKey(EmpiricalTestCase):
         result = sut._guessStringType(PUTTY_RSA_PRIVATE_NO_PASSWORD)
 
         self.assertEqual('private_putty', result)
+
+    def test_getKeyFormat_unknown(self):
+        """
+        Inform using a human readable text that format is not known.
+        """
+        sut = Key()
+
+        result = sut.getKeyFormat('no-such-format')
+
+        self.assertEqual('Unknown format', result)
+
+    def test_getKeyFormat_known(self):
+        """
+        Return the human readable description of key format.
+        """
+        sut = Key()
+
+        result = sut.getKeyFormat(SSHCOM_RSA_PUBLIC)
+
+        self.assertEqual('SSH.com Public', result)
 
     def test_public_get(self):
         """
@@ -1036,7 +1102,7 @@ class TestCryptoHelpers(EmpiricalTestCase):
 
         # Key is generated with requested type and length.
         key.generate.assert_called_once_with(
-            key_type=crypto.TYPE_DSA, key_size=2048)
+            key_type='dsa', key_size=2048)
         # Both keys are stored. The public key has the specified comment.
         self.assertEqual(2, key.store.call_count)
         key.store.assert_has_calls([
@@ -1050,7 +1116,7 @@ class TestCryptoHelpers(EmpiricalTestCase):
         self.assertEqual(
             {'path': 'test_file.pub', 'mode': 'wb'}, open_method.calls[1])
         self.assertEqual(
-            u'SSH key of type "DSA" and length "2048" generated as public '
+            u'SSH key of type "dsa" and length "2048" generated as public '
             u'key file "test_file.pub" and private key file "test_file" '
             u'having comment "this is a comment".',
             message,
@@ -1085,7 +1151,7 @@ class TestCryptoHelpers(EmpiricalTestCase):
             {'path': 'id_rsa.pub', 'mode': 'wb'}, open_method.calls[1])
         # Message informs what default values were used.
         self.assertEqual(
-            u'SSH key of type "RSA" and length "1024" generated as public '
+            u'SSH key of type "rsa" and length "1024" generated as public '
             u'key file "id_rsa.pub" and private key file "id_rsa" without '
             u'a comment.',
             message,

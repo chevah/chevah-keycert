@@ -33,4 +33,6 @@ dist-clean: clean
 
 test:
 	@$(BASE_PATH)/python build/venv/bin/nose_runner.py - chevah/keycert/tests
+	@echo -n "Running linter..."
 	@$(BASE_PATH)/pocketlint chevah/keycert/
+	@echo "All good."
