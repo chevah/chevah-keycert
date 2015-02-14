@@ -3,6 +3,8 @@
 """
 SSL keys and certificates.
 """
+from socket import gethostname
+
 from OpenSSL import crypto
 
 

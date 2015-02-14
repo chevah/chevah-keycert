@@ -16,6 +16,11 @@ Default virtual environment is created in build/venv.
 This SSH key handling is based on twisted.conch.ssh.key but it was forked
 to not depend on Twisted.
 
+It still depends on these C modules:
+
+* pyCrypto
+* pyOpenSSL
+
 It provides the following functionalities:
 
 * Generate self signed SSL certificate.

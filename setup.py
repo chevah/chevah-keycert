@@ -38,21 +38,22 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
 
     install_requires=[
-        'twisted >=12.1.0',
         'pyopenssl ==0.13',
         'pyCrypto ==2.6.1',
         'pyasn1 ==0.1.7',
         'chevah-compat ==0.25.2',
         ],
 
-    extras_require = {
+    extras_require={
         'dev': [
-            'chevah-empirical ==0.31.2',
-            'pyflakes ==0.7.3',
+            'twisted >=12.1.0',
+            'chevah-empirical ==0.32.2',
+            'pyflakes ==0.8.1',
             'pocketlint ==1.4.4.c9',
             'nose',
             'mock',
             'bunch',
             ],
         },
+    test_suite='chevah.keycert.tests',
     )

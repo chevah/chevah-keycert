@@ -31,8 +31,14 @@ dist-clean: clean
 	@rm -rf __pycache__
 
 
+lint:
+	@echo -n "Running linter..."
+	@$(BASE_PATH)/pocketlint chevah/keycert/
+	@echo "All good."
+
 test:
 	@$(BASE_PATH)/python build/venv/bin/nose_runner.py - chevah/keycert/tests
 	@echo -n "Running linter..."
-	@$(BASE_PATH)/pocketlint chevah/keycert/
+	pyflakes chevah/keycert/
+	pep8 --hang-closing chevah/keycert/
 	@echo "All good."
