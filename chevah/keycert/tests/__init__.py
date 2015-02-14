@@ -1,5 +1,6 @@
 from chevah.empirical import mk
 
+
 def setup_package():
     """
     Called before running all tests.

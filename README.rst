@@ -27,6 +27,9 @@ It provides the following functionalities:
 * Generate RSA/DSA keys
 * Convert OpenSSH, SSH.com, Putty, LSH
 
+SSH key handling is based on Twisted code, but project no longer depend
+on Twisted.
+
 Release is done automatically for each tag, using Travis-CI.
 
 .. image:: https://travis-ci.org/chevah/chevah-keycert.svg?branch=master

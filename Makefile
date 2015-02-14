@@ -39,6 +39,6 @@ lint:
 test:
 	@$(BASE_PATH)/python build/venv/bin/nose_runner.py - chevah/keycert/tests
 	@echo -n "Running linter..."
-	pyflakes chevah/keycert/
-	pep8 --hang-closing chevah/keycert/
+	@$(BASE_PATH)/pyflakes chevah/keycert/
+	@$(BASE_PATH)/pep8 --hang-closing chevah/keycert/
 	@echo "All good."

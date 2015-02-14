@@ -86,7 +86,7 @@ def generate_ssh_key(options, open_method=None):
 
         skip = _skip_key_generation(options, private_file, public_file)
         if skip:
-            return (0, u'Key already exists.')
+            return (0, u'Key already exists.', key)
 
         key = Key.generate(key_type=key_type, key_size=key_size)
 
@@ -122,7 +122,7 @@ def generate_ssh_key(options, open_method=None):
         exit_code = 1
         message = error.message
 
-    return (exit_code, message)
+    return (exit_code, message, key)
 
 
 def _store_OpenSSH(key, public_file=None, private_file=None, comment=None):
@@ -177,7 +177,9 @@ class Key(object):
         operations are performed with.
     """
 
-    secureRandom = rand.bytes
+    @staticmethod
+    def secureRandom(n):
+        return rand.bytes(n)
 
     def __init__(self, keyObject):
         """
@@ -319,7 +321,7 @@ class Key(object):
 
         key = None
         try:
-            key = key_class.generate(bits=key_size, randfunc=cls.secureRandom)
+            key = key_class.generate(bits=key_size)
         except ValueError, error:
             raise KeyCertException(
                 u'Wrong key size "%d". %s.' % (key_size, error))

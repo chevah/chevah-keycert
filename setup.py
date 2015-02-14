@@ -50,6 +50,7 @@ setup(
             'chevah-empirical ==0.32.2',
             'pyflakes ==0.8.1',
             'pocketlint ==1.4.4.c9',
+            'pep8 ==1.6.1',
             'nose',
             'mock',
             'bunch',
