@@ -1,8 +1,54 @@
-from setuptools import setup, find_packages
+import sys
 from codecs import open
 from os import path
+from setuptools import setup, find_packages
+from setuptools.command.test import test as TestCommand
 
 VERSION = '1.0.1'
+
+
+class NoseTestCommand(TestCommand):
+
+    def run_tests(self):
+        """
+        Run nose with default arguments.
+        """
+        import nose
+        from pocketlint.formatcheck import main as pocket_main
+
+        nose_args = ['nosetests']
+        if self.verbose:
+            nose_args.append('-v')
+        else:
+            nose_args.append('-q')
+
+        module = self.test_suite
+        if self.test_module:
+            module = self.test_module
+
+        nose_args.extend([
+            '--with-coverage',
+            '--cover-package=' + module,
+            '--cover-erase',
+            '--cover-test',
+            module.replace('.', '/'),
+            ])
+
+        pocket_args = [
+            'chevah/keycert',
+            'README.rst',
+            'setup.py',
+            ]
+
+        nose_code = nose.run(argv=nose_args)
+        if nose_code:
+            nose_code = 0
+        else:
+            nose_code = 1
+
+        pocket_code = pocket_main(pocket_args)
+        sys.exit(pocket_code or nose_code)
+
 
 here = path.abspath(path.dirname(__file__))
 
@@ -41,20 +87,22 @@ setup(
         'pyopenssl ==0.13',
         'pyCrypto ==2.6.1',
         'pyasn1 ==0.1.7',
-        'chevah-compat ==0.25.2',
+        'chevah-compat ==0.27.1',
         ],
 
     extras_require={
         'dev': [
-            'twisted >=12.1.0',
-            'chevah-empirical ==0.32.2',
+            'chevah-empirical ==0.33.1',
             'pyflakes ==0.8.1',
-            'pocketlint ==1.4.4.c9',
+            'pocketlint ==1.4.4.c10',
             'pep8 ==1.6.1',
             'nose',
             'mock',
             'bunch',
+            'coverage',
+            'coveralls',
             ],
         },
-    test_suite='chevah.keycert.tests',
+    cmdclass={'test': NoseTestCommand},
+    test_suite='chevah.keycert',
     )
