@@ -16,13 +16,13 @@ class NoseTestCommand(TestCommand):
         import nose
         from pocketlint.formatcheck import main as pocket_main
 
-        module = 'chevah.keycert'
         nose_args = ['nosetests']
         if self.verbose:
             nose_args.append('-v')
         else:
             nose_args.append('-q')
 
+        module = self.test_suite
         if self.test_module:
             module = self.test_module
 
@@ -87,12 +87,12 @@ setup(
         'pyopenssl ==0.13',
         'pyCrypto ==2.6.1',
         'pyasn1 ==0.1.7',
-        'chevah-compat ==0.27.0',
+        'chevah-compat ==0.27.1',
         ],
 
     extras_require={
         'dev': [
-            'chevah-empirical ==0.33.0',
+            'chevah-empirical ==0.33.1',
             'pyflakes ==0.8.1',
             'pocketlint ==1.4.4.c10',
             'pep8 ==1.6.1',
@@ -104,5 +104,5 @@ setup(
             ],
         },
     cmdclass={'test': NoseTestCommand},
-    test_suite='chevah.keycert.tests',
+    test_suite='chevah.keycert',
     )

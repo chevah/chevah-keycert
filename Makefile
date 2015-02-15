@@ -1,7 +1,7 @@
 #
 # Makefile for Chevah KeyCert project.
 #
-PYPI_INDEX='http://chevah.com/pypi/simple'
+EXTRA_PYPI_INDEX='http://chevah.com/pypi/simple'
 UNAME=`uname`
 ifeq "$(UNAME)" "mingw"
        BASE_PATH='build/venv/Scripts/'
@@ -18,7 +18,7 @@ env:
 
 deps: env
 	@$(BASE_PATH)/pip install \
-		--extra-index-url ${PYPI_INDEX}\
+		--extra-index-url ${EXTRA_PYPI_INDEX}\
 		--download-cache __pycache__\
 		-e .[dev]
 
