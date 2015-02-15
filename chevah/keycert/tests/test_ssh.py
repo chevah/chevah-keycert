@@ -711,11 +711,35 @@ class TestKey(EmpiricalTestCase):
 
         self.assertEqual('private_openssh', result)
 
+    def test_guessStringType_private_OpenSSH_ECDSA(self):
+        """
+        Can recognize an OpenSSH ECDSA private key.
+        """
+        result = Key._guessStringType(keydata.privateECDSA_256_openssh)
+
+        self.assertEqual('private_openssh', result)
+
     def test_guessStringType_public_OpenSSH(self):
         """
         Can recognize an OpenSSH public key.
         """
         result = Key._guessStringType(OPENSSH_RSA_PUBLIC)
+
+        self.assertEqual('public_openssh', result)
+
+    def test_guessStringType_public_OpenSSH_ECDSA(self):
+        """
+        Can recognize an OpenSSH public key.
+        """
+        result = Key._guessStringType(keydata.publicECDSA_256_openssh)
+
+        self.assertEqual('public_openssh', result)
+
+        result = Key._guessStringType(keydata.publicECDSA_384_openssh)
+
+        self.assertEqual('public_openssh', result)
+
+        result = Key._guessStringType(keydata.publicECDSA_521_openssh)
 
         self.assertEqual('public_openssh', result)
 
@@ -1382,6 +1406,15 @@ AAAAB3NzaC1yc2EA
 
         self.checkParsedDSAPrivate1024(sut)
 
+    def test_fromString_PRIVATE_OPENSSH_ECDSA(self):
+        """
+        Can not load a private OPENSSH ECDSA.
+        """
+        self.assertBadKey(
+            keydata.privateECDSA_256_openssh,
+            'Key type EC not supported.'
+            )
+
     def test_fromString_PRIVATE_OPENSSH_short(self):
         """
         Raise an error when private OpenSSH key is too short.
@@ -1734,7 +1767,7 @@ IGNORED
         self.assertRaises(
             keys.BadKeyError,
             keys.Key.fromString,
-            data='{'+base64.encodestring(sexp)+'}')
+            data='{' + base64.encodestring(sexp) + '}')
 
         sexp = sexpy.pack([['private-key', ['bad-key', ['p', '2']]]])
         self.assertRaises(
@@ -1773,7 +1806,7 @@ IGNORED
         self.assertRaises(
             keys.BadKeyError,
             keys.Key.fromString,
-            '\x00\x00\x00\x07ssh-foo'+'\x00\x00\x00\x01\x01'*5)
+            '\x00\x00\x00\x07ssh-foo' + '\x00\x00\x00\x01\x01' * 5)
 
     def test_sign(self):
         """

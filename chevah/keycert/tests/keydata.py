@@ -123,6 +123,49 @@ CfI51GQLw7pUPeO2WNt6yZO/YkzZrqvTj5FEwybkUyBv7L0gkqu9wjfDdUw0fVHE
 xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
 -----END RSA PRIVATE KEY-----"""
 
+publicECDSA_256_openssh = (
+    'ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBB'
+    'OjYtJiozMWSwCHHuy45Pz0kSmMnKtcEk25JDxejWstEfOylLKJlDDL3fgDwOmwUROShOQAOIH'
+    '/OdOZb2Ra9PwE='
+    )
+
+privateECDSA_256_openssh = """\
+-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIFmPW4WLKcDp6VobtNvI7tuiQAPVceeiqRdO2jqH5DFPoAoGCCqGSM49
+AwEHoUQDQgAE6Ni0mKjMxZLAIce7Ljk/PSRKYycq1wSTbkkPF6Nay0R87KUsomUM
+Mvd+APA6bBRE5KE5AA4gf8505lvZFr0/AQ==
+-----END EC PRIVATE KEY-----"""
+
+publicECDSA_384_openssh = (
+    'ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhB'
+    'NOGQOVM5kkTGgWN6q9L2bRrH6z9mQm9wGBoD5tCdslcxASbBqj2qTBHCvmhOTAicWPMdyznO5'
+    '7YhPfhmz1Io41NL4atvupVdfE9VZWh41E2fgKOuMaCvQKozYOH453avg=='
+    )
+
+privateECDSA_384_openssh = """\
+-----BEGIN EC PRIVATE KEY-----
+MIGkAgEBBDAa1OmNBtHBS9OePf7SasIXd4jfTC1u3GV/GRKiAy0+cB0mInLat3iW
+iJ9IuQxNWHigBwYFK4EEACKhZANiAATThkDlTOZJExoFjeqvS9m0ax+s/ZkJvcBg
+aA+bQnbJXMQEmwao9qkwRwr5oTkwInFjzHcs5zue2IT34Zs9SKONTS+Grb7qVXXx
+PVWVoeNRNn4CjrjGgr0CqM2Dh+Od2r4=
+-----END EC PRIVATE KEY-----"""
+
+publicECDSA_521_openssh = (
+    'ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFB'
+    'ACZW5+0ETwFP7RB1LExhorCGs3943r7jqb8iVU9pReaUwHmGQ+JAxR0MXwFUUDKcEKCa+Jx1C'
+    'z7o1CFeB3vl6J+2QFLT+ZLC9KjMlkgQki6PQQyi8UySk8ErW6JB8XLU6AA1RYZfcyqv3lcg/4'
+    'YgxI4ngMvyxOdZSB2LiIjfRqNam6U5w=='
+    )
+
+privateECDSA_521_openssh = """\
+-----BEGIN EC PRIVATE KEY-----
+MIHbAgEBBEH3+zGR/FmfnxV/KNTK79rbn8+p0pj1alib1mZ6dqrCzPUWuFfTAPyL
+1j+Zw+lFFrf3a/V883JaX3iycsFoyeGaa6AHBgUrgQQAI6GBiQOBhgAEAJlbn7QR
+PAU/tEHUsTGGisIazf3jevuOpvyJVT2lF5pTAeYZD4kDFHQxfAVRQMpwQoJr4nHU
+LPujUIV4He+Xon7ZAUtP5ksL0qMyWSBCSLo9BDKLxTJKTwStbokHxctToADVFhl9
+zKq/eVyD/hiDEjieAy/LE51lIHYuIiN9Go1qbpTn
+-----END EC PRIVATE KEY-----"""
+
 publicRSA_lsh = (
     "{KDEwOnB1YmxpYy1rZXkoMTQ6cnNhLXBrY3MxLXNoYTEoMTpuOTc6AK8yc"
     "fDmDpyZs3+LXwRLy4vA1T6yd/3PZNiPwM+uH8Yx3/YpskSW4sbUIZR/ZXzY1CMfuC5qyR+UD"
@@ -218,10 +261,3 @@ privateDSA_agentv3 = (
     "\x16\x84,O\x97\x1d\xfa\xb6l\xcf_r@\xf1\xd8R\xceH\x82s\xcb\xcd\xd5\x99"
     "\x00\x00\x00\x15\x00\x97T\xeavi@\x1b\xf6\xf8\x9eu\\\x84h\x8e\xf6\xc3\x0b"
     "\xf0\xc3")
-
-__all__ = [
-    'DSAData', 'RSAData', 'privateDSA_agentv3', 'privateDSA_lsh',
-    'privateDSA_openssh', 'privateRSA_agentv3', 'privateRSA_lsh',
-    'privateRSA_openssh', 'publicDSA_lsh', 'publicDSA_openssh',
-    'publicRSA_lsh', 'publicRSA_openssh', 'privateRSA_openssh_alternate',
-    ]
