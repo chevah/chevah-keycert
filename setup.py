@@ -5,7 +5,7 @@ from codecs import open
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.0.1'
+VERSION = '1.1.0'
 
 
 class NoseTestCommand(TestCommand):
@@ -37,6 +37,7 @@ class NoseTestCommand(TestCommand):
 
         pocket_args = [
             'README.rst',
+            'release-notes.rst',
             'setup.py',
             ]
         for root, dirs, files in os.walk('chevah/keycert', topdown=False):
