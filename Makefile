@@ -18,7 +18,7 @@ env:
 
 deps: env
 	@$(BASE_PATH)/pip install \
-		-i ${PYPI_INDEX}\
+		--extra-index-url ${PYPI_INDEX}\
 		--download-cache __pycache__\
 		-e .[dev]
 
@@ -37,7 +37,7 @@ lint:
 	@echo "All good."
 
 test:
-	@$(BASE_PATH)/python build/venv/bin/nose_runner.py - chevah/keycert/tests
+	@$(BASE_PATH)/nosetests --with-coverage --cover-package=chevah.keycert --cover-erase --cover-test
 	@echo -n "Running linter..."
 	@$(BASE_PATH)/pyflakes chevah/keycert/
 	@$(BASE_PATH)/pep8 --hang-closing chevah/keycert/

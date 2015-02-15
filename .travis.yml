@@ -6,8 +6,10 @@ install:
   - pip install --extra-index-url http://chevah.com/pypi/simple -e .[dev]
 
 script:
-  - python `which nose_runner.py` - chevah/keycert/tests
-  - pocketlint chevah/keycert
+  - python setup.py test -q
+
+after_success:
+  - coveralls
 
 deploy:
   provider: pypi

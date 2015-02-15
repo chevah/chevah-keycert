@@ -3,13 +3,14 @@ chevah-keycert
 
 SSH Keys and SSL certificates handling.
 
-Build development environment::
+Build development environment and activate it::
 
     make deps
+    . build/venv/bin/activate
 
-Run tests::
+Run default tests::
 
-    make test
+    python setup.py test
 
 Default virtual environment is created in build/venv.
 
@@ -30,7 +31,16 @@ It provides the following functionalities:
 SSH key handling is based on Twisted code, but project no longer depend
 on Twisted.
 
+MIT License.
+
 Release is done automatically for each tag, using Travis-CI.
+
+.. image:: https://pypip.in/version/chevah-keycert/badge.svg
+    :target: https://pypi.python.org/pypi/chevah-keycert/
+    :alt: Latest Version
 
 .. image:: https://travis-ci.org/chevah/chevah-keycert.svg?branch=master
     :target: https://travis-ci.org/chevah/chevah-keycert
+
+.. image:: https://img.shields.io/coveralls/chevah/chevah-keycert/master.svg
+    :target: https://coveralls.io/r/chevah/chevah-keycert?branch=master
