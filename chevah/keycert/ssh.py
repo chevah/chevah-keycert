@@ -334,7 +334,7 @@ class Key(object):
 
         The types map to _fromString_* methods.
         """
-        if data.startswith('ssh-'):
+        if data.startswith('ssh-') or data.startswith('ecdsa-sha2-nistp'):
             return 'public_openssh'
         elif data.startswith('---- BEGIN SSH2 PUBLIC KEY ----'):
             return 'public_sshcom'
@@ -342,7 +342,8 @@ class Key(object):
             return 'private_sshcom'
         elif (
             data.startswith('-----BEGIN RSA') or
-            data.startswith('-----BEGIN DSA')
+            data.startswith('-----BEGIN DSA') or
+            data.startswith('-----BEGIN EC')
                 ):
             return 'private_openssh'
         elif data.startswith('PuTTY-User-Key-File-2'):
@@ -696,7 +697,7 @@ class Key(object):
             * a passphrase is not provided for an encrypted key
         """
         lines = data.strip().split('\n')
-        kind = lines[0][11:14]
+        kind = lines[0].split(' ')[1]
         if lines[1].startswith('Proc-Type: 4,ENCRYPTED'):  # encrypted key
             if not passphrase:
                 raise EncryptedKeyError('Passphrase must be provided '
@@ -758,6 +759,8 @@ class Key(object):
             if len(decodedKey) < 6:
                 raise BadKeyError('DSA key failed to decode properly')
             return cls(DSA.construct((y, g, p, q, x)))
+        else:
+            raise BadKeyError('Key type %s not supported.' % (kind))
 
     def _toString_OPENSSH(self, extra):
         """

@@ -25,7 +25,7 @@ def getNS(s, count=1):
     ns = []
     c = 0
     for i in range(count):
-        l, = struct.unpack('!L', s[c:c+4])
+        l, = struct.unpack('!L', s[c:c + 4])
         ns.append(s[c + 4:4 + l + c])
         c += 4 + l
     return tuple(ns) + (s[c:],)

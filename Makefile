@@ -31,14 +31,5 @@ dist-clean: clean
 	@rm -rf __pycache__
 
 
-lint:
-	@echo -n "Running linter..."
-	@$(BASE_PATH)/pocketlint chevah/keycert/
-	@echo "All good."
-
 test:
-	@$(BASE_PATH)/nosetests --with-coverage --cover-package=chevah.keycert --cover-erase --cover-test
-	@echo -n "Running linter..."
-	@$(BASE_PATH)/pyflakes chevah/keycert/
-	@$(BASE_PATH)/pep8 --hang-closing chevah/keycert/
-	@echo "All good."
+	@$(BASE_PATH)/python setup.py test

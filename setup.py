@@ -1,6 +1,7 @@
+from __future__ import print_function
+import os
 import sys
 from codecs import open
-from os import path
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
@@ -35,10 +36,12 @@ class NoseTestCommand(TestCommand):
             ])
 
         pocket_args = [
-            'chevah/keycert',
             'README.rst',
             'setup.py',
             ]
+        for root, dirs, files in os.walk('chevah/keycert', topdown=False):
+            for name in files:
+                pocket_args.append(os.path.join(root, name))
 
         nose_code = nose.run(argv=nose_args)
         if nose_code:
@@ -47,12 +50,15 @@ class NoseTestCommand(TestCommand):
             nose_code = 1
 
         pocket_code = pocket_main(pocket_args)
+        if not pocket_code:
+            print('Linter OK')
+
         sys.exit(pocket_code or nose_code)
 
 
-here = path.abspath(path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
 
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
