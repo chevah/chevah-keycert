@@ -1765,7 +1765,7 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase, CommandLineMixin):
             sys.stdout = self.stdout
             sys.stderr = self.stderr
             return self.parser.parse_args(args)
-        except SystemExit as error:
+        except SystemExit as error:  # pragma: no cover
             raise AssertionError(
                 'Fail to parse %s\n-- stdout --\n%s\n-- stderr --\n%s' % (
                     error.code,
