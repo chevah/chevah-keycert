@@ -232,7 +232,33 @@ class DummyOpenContext(object):
         return False
 
 
-class TestHelpers(EmpiricalTestCase):
+class CommandLineMixin(object):
+    """
+    Helper to test command line tools.
+    """
+    def parseArguments(self, args):
+        """
+        Parse arguments and capture stdout.
+        """
+        self.stdout = StringIO()
+        self.stderr = StringIO()
+        try:
+            sys.stdout = self.stdout
+            sys.stderr = self.stderr
+            return self.parser.parse_args(args)
+        except SystemExit as error:
+            raise AssertionError(
+                'Fail to parse %s\n-- stdout --\n%s\n-- stderr --\n%s' % (
+                    error.code,
+                    self.stdout.getvalue(),
+                    self.stderr.getvalue(),
+                    ))
+        finally:
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
+
+
+class TestHelpers(EmpiricalTestCase, CommandLineMixin):
     """
     Unit tests for helper methods from this module.
     """
@@ -246,158 +272,6 @@ class TestHelpers(EmpiricalTestCase):
         Key.secureRandom = self._secureRandom
         self._secureRandom = None
         super(TestHelpers, self).tearDown()
-
-    def test_generate_ssh_key_custom_values(self):
-        """
-        When custom values are provided, the key is generated using those
-        values.
-        """
-        options = self.Bunch(
-            migrate=False,
-            key_size=512,
-            key_type=u'DSA',
-            key_file=u'test_file',
-            key_comment=u'this is a comment',
-            )
-        open_method = DummyOpenContext()
-
-        exit_code, message, key = generate_ssh_key(
-            options, open_method=open_method)
-
-        self.assertEqual('DSA', key.type())
-        self.assertEqual(512, key.size)
-
-        # First it writes the private key.
-        first_file = open_method.calls.pop(0)
-        self.assertEqual('test_file', first_file['path'])
-        self.assertEqual('wb', first_file['mode'])
-        self.assertEqual(
-            key.toString('openssh'), first_file['stream'].getvalue())
-
-        # Second it writes the public key.
-        second_file = open_method.calls.pop(0)
-        self.assertEqual('test_file.pub', second_file['path'])
-        self.assertEqual('wb', second_file['mode'])
-        self.assertEqual(
-            key.public().toString('openssh', 'this is a comment'),
-            second_file['stream'].getvalue())
-
-        self.assertEqual(
-            u'SSH key of type "dsa" and length "512" generated as public '
-            u'key file "test_file.pub" and private key file "test_file" '
-            u'having comment "this is a comment".',
-            message,
-            )
-        self.assertEqual(0, exit_code)
-
-    def test_generate_ssh_key_default_values(self):
-        """
-        When no path and no comment are provided, it will use default
-        values.
-        """
-        options = self.Bunch(
-            migrate=False,
-            key_size=1024,
-            key_type=u'RSA'
-            )
-        open_method = DummyOpenContext()
-
-        exit_code, message, key = generate_ssh_key(
-            options, open_method=open_method)
-
-        self.assertEqual('RSA', key.type())
-        self.assertEqual(1024, key.size)
-
-        # First it writes the private key.
-        first_file = open_method.calls.pop(0)
-        self.assertEqual('id_rsa', first_file['path'])
-        self.assertEqual('wb', first_file['mode'])
-        self.assertEqual(
-            key.toString('openssh'), first_file['stream'].getvalue())
-
-        # Second it writes the public key.
-        second_file = open_method.calls.pop(0)
-        self.assertEqual('id_rsa.pub', second_file['path'])
-        self.assertEqual('wb', second_file['mode'])
-        self.assertEqual(
-            key.public().toString('openssh'), second_file['stream'].getvalue())
-
-        # Message informs what default values were used.
-        self.assertEqual(
-            u'SSH key of type "rsa" and length "1024" generated as public '
-            u'key file "id_rsa.pub" and private key file "id_rsa" without '
-            u'a comment.',
-            message,
-            )
-
-    def test_generate_ssh_key_private_exist_no_migration(self):
-        """
-        When no migration is done it will not generate the key,
-        if private file already exists and exit with error.
-        """
-        self.test_segments = mk.fs.createFileInTemp()
-        path = mk.fs.getRealPathFromSegments(self.test_segments)
-        options = self.Bunch(
-            migrate=False,
-            key_type=u'RSA',
-            key_size=2048,
-            key_file=path,
-            )
-        open_method = DummyOpenContext()
-
-        exit_code, message, key = generate_ssh_key(
-            options, open_method=open_method)
-
-        self.assertEqual(1, exit_code)
-        self.assertEqual(u'Private key already exists. %s' % path, message)
-        # Open is not called.
-        self.assertIsEmpty(open_method.calls)
-
-    def test_generate_ssh_key_private_exist_migrate(self):
-        """
-        On migration, will not generate the key, if private file already
-        exists and exit without error.
-        """
-        self.test_segments = mk.fs.createFileInTemp()
-        path = mk.fs.getRealPathFromSegments(self.test_segments)
-        options = self.Bunch(
-            migrate=True,
-            key_type=u'RSA',
-            key_size=2048,
-            key_file=path,
-            )
-        open_method = DummyOpenContext()
-
-        exit_code, message, key = generate_ssh_key(
-            options, open_method=open_method)
-
-        self.assertEqual(0, exit_code)
-        self.assertEqual(u'Key already exists.', message)
-        # Open is not called.
-        self.assertIsEmpty(open_method.calls)
-
-    def test_generate_ssh_key_public_exist(self):
-        """
-        Will not generate the key, if public file already exists.
-        """
-        self.test_segments = mk.fs.createFileInTemp(suffix='.pub')
-        path = mk.fs.getRealPathFromSegments(self.test_segments)
-        options = self.Bunch(
-            migrate=False,
-            key_type=u'RSA',
-            key_size=2048,
-            # path is for public key, but we pass the private path.
-            key_file=path[:-4],
-            )
-        open_method = DummyOpenContext()
-
-        exit_code, message, key = generate_ssh_key(
-            options, open_method=open_method)
-
-        self.assertEqual(1, exit_code)
-        self.assertEqual(u'Public key already exists. %s' % path, message)
-        # Open is not called.
-        self.assertIsEmpty(open_method.calls)
 
     def test_pkcs1(self):
         """
@@ -1863,7 +1737,7 @@ attr u:
 \t04>""")
 
 
-class Test_generate_ssh_key_subparser(EmpiricalTestCase):
+class Test_generate_ssh_key_subparser(EmpiricalTestCase, CommandLineMixin):
     """
     Unit tests for generate_ssh_key_subparser.
     """
@@ -1873,8 +1747,6 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase):
         self.parser = ArgumentParser(prog='test-command')
         self.subparser = self.parser.add_subparsers(
             help='Available sub-commands', dest='sub_command')
-        self.stdout = StringIO()
-        self.stderr = StringIO()
 
     def assertNamespaceEqual(self, expected, actual):
         """
@@ -1887,6 +1759,8 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase):
         """
         Parse arguments and capture stdout.
         """
+        self.stdout = StringIO()
+        self.stderr = StringIO()
         try:
             sys.stdout = self.stdout
             sys.stderr = self.stderr
@@ -1916,6 +1790,7 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase):
             'key_file': None,
             'key_size': 2048,
             'key_type': 'rsa',
+            'key_skip': False,
             }, options)
 
     def test_value(self):
@@ -1930,14 +1805,16 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase):
             '--key-file=id_dsa',
             '--key-size', '1024',
             '--key-type', 'dsa',
+            '--key-skip',
             ])
 
         self.assertNamespaceEqual({
             'sub_command': 'key-gen',
             'key_comment': 'some comment',
             'key_file': 'id_dsa',
-            'key_size': '1024',
+            'key_size': 1024,
             'key_type': 'dsa',
+            'key_skip': True,
             }, options)
 
     def test_default_overwrite(self):
@@ -1958,4 +1835,172 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase):
             'key_file': None,
             'key_size': 1024,
             'key_type': 'dsa',
+            'key_skip': False,
             }, options)
+
+
+class Testgenerate_ssh_key(EmpiricalTestCase, CommandLineMixin):
+    """
+    Tests for generate_ssh_key.
+    """
+
+    def setUp(self):
+        super(Testgenerate_ssh_key, self).setUp()
+        self.parser = ArgumentParser(prog='test-command')
+        self.sub_command_name = 'gen-ssh-key'
+        subparser = self.parser.add_subparsers(
+            help='Available sub-commands', dest='sub_command')
+        generate_ssh_key_subparser(subparser, self.sub_command_name)
+
+    def test_generate_ssh_key_custom_values(self):
+        """
+        When custom values are provided, the key is generated using those
+        values.
+        """
+        options = self.parseArguments([
+            self.sub_command_name,
+            '--key-size=512',
+            '--key-type=DSA',
+            '--key-file=test_file',
+            '--key-comment=this is a comment',
+            ])
+        open_method = DummyOpenContext()
+
+        exit_code, message, key = generate_ssh_key(
+            options, open_method=open_method)
+
+        self.assertEqual('DSA', key.type())
+        self.assertEqual(512, key.size)
+
+        # First it writes the private key.
+        first_file = open_method.calls.pop(0)
+        self.assertEqual('test_file', first_file['path'])
+        self.assertEqual('wb', first_file['mode'])
+        self.assertEqual(
+            key.toString('openssh'), first_file['stream'].getvalue())
+
+        # Second it writes the public key.
+        second_file = open_method.calls.pop(0)
+        self.assertEqual('test_file.pub', second_file['path'])
+        self.assertEqual('wb', second_file['mode'])
+        self.assertEqual(
+            key.public().toString('openssh', 'this is a comment'),
+            second_file['stream'].getvalue())
+
+        self.assertEqual(
+            u'SSH key of type "dsa" and length "512" generated as public '
+            u'key file "test_file.pub" and private key file "test_file" '
+            u'having comment "this is a comment".',
+            message,
+            )
+        self.assertEqual(0, exit_code)
+
+    def test_generate_ssh_key_default_values(self):
+        """
+        When no path and no comment are provided, it will use default
+        values.
+        """
+        options = self.parseArguments([
+            self.sub_command_name,
+            '--key-size=1024',
+            '--key-type=RSA',
+            ])
+        open_method = DummyOpenContext()
+
+        exit_code, message, key = generate_ssh_key(
+            options, open_method=open_method)
+
+        self.assertEqual('RSA', key.type())
+        self.assertEqual(1024, key.size)
+
+        # First it writes the private key.
+        first_file = open_method.calls.pop(0)
+        self.assertEqual('id_rsa', first_file['path'])
+        self.assertEqual('wb', first_file['mode'])
+        self.assertEqual(
+            key.toString('openssh'), first_file['stream'].getvalue())
+
+        # Second it writes the public key.
+        second_file = open_method.calls.pop(0)
+        self.assertEqual('id_rsa.pub', second_file['path'])
+        self.assertEqual('wb', second_file['mode'])
+        self.assertEqual(
+            key.public().toString('openssh'), second_file['stream'].getvalue())
+
+        # Message informs what default values were used.
+        self.assertEqual(
+            u'SSH key of type "rsa" and length "1024" generated as public '
+            u'key file "id_rsa.pub" and private key file "id_rsa" without '
+            u'a comment.',
+            message,
+            )
+
+    def test_generate_ssh_key_private_exist_no_migration(self):
+        """
+        When no migration is done it will not generate the key,
+        if private file already exists and exit with error.
+        """
+        self.test_segments = mk.fs.createFileInTemp()
+        path = mk.fs.getRealPathFromSegments(self.test_segments)
+        options = self.parseArguments([
+            self.sub_command_name,
+            '--key-type=RSA',
+            '--key-size=2048',
+            '--key-file', path,
+            ])
+        open_method = DummyOpenContext()
+
+        exit_code, message, key = generate_ssh_key(
+            options, open_method=open_method)
+
+        self.assertEqual(1, exit_code)
+        self.assertEqual(u'Private key already exists. %s' % path, message)
+        # Open is not called.
+        self.assertIsEmpty(open_method.calls)
+
+    def test_generate_ssh_key_private_exist_skip(self):
+        """
+        On skip, will not generate the key if private file already
+        exists and exit without error.
+        """
+        self.test_segments = mk.fs.createFileInTemp()
+        path = mk.fs.getRealPathFromSegments(self.test_segments)
+        options = self.parseArguments([
+            self.sub_command_name,
+            '--key-skip',
+            '--key-type=RSA',
+            '--key-size=2048',
+            '--key-file', path,
+            ])
+        open_method = DummyOpenContext()
+
+        exit_code, message, key = generate_ssh_key(
+            options, open_method=open_method)
+
+        self.assertEqual(0, exit_code)
+        self.assertEqual(u'Key already exists.', message)
+        # Open is not called.
+        self.assertIsEmpty(open_method.calls)
+
+    def test_generate_ssh_key_public_exist(self):
+        """
+        Will not generate the key, if public file already exists.
+        """
+        self.test_segments = mk.fs.createFileInTemp(suffix='.pub')
+        path = mk.fs.getRealPathFromSegments(self.test_segments)
+        options = self.parseArguments([
+            self.sub_command_name,
+            '--key-type=RSA',
+            '--key-size=2048',
+            # path is for public key, but we pass the private path.
+            '--key-file', path[:-4],
+            ])
+        open_method = DummyOpenContext()
+
+        exit_code, message, key = generate_ssh_key(
+            options, open_method=open_method)
+
+        self.assertEqual(1, exit_code)
+        self.assertEqual(u'Public key already exists. %s' % path, message)
+        # Open is not called.
+        self.assertIsEmpty(open_method.calls)

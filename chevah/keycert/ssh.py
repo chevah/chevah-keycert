@@ -72,7 +72,7 @@ def generate_ssh_key_subparser(
         )
     generate_ssh_key.add_argument(
         '--key-size',
-        metavar="SIZE", default=default_key_size,
+        type=int, metavar="SIZE", default=default_key_size,
         help='Generate a RSA or DSA key of size SIZE. Default %(default)s',
         )
     generate_ssh_key.add_argument(
@@ -86,6 +86,12 @@ def generate_ssh_key_subparser(
         help=(
             'Generate the public key using this comment. Default no comment.'),
         )
+    generate_ssh_key.add_argument(
+        '--key-skip',
+        action='store_true', default=False,
+        help='Do not create a new key if a key file already exists.',
+        )
+
 
 
 def generate_ssh_key(options, open_method=None):
@@ -94,7 +100,7 @@ def generate_ssh_key(options, open_method=None):
 
     `options` is an argparse namespace. See `generate_ssh_key_subparser`.
 
-    Return a pair of (exit_code, operation_message).
+    Return a tupple of (exit_code, operation_message, key).
 
     For success, exit_code is 0.
 
@@ -189,7 +195,7 @@ def _skip_key_generation(options, private_file, public_file):
     """
     private_segments = local_filesystem.getSegmentsFromRealPath(private_file)
     if local_filesystem.exists(private_segments):
-        if options.migrate:
+        if options.key_skip:
             return True
         else:
             raise KeyCertException(
@@ -198,6 +204,7 @@ def _skip_key_generation(options, private_file, public_file):
     public_segments = local_filesystem.getSegmentsFromRealPath(public_file)
     if local_filesystem.exists(public_segments):
         raise KeyCertException(u'Public key already exists. %s' % public_file)
+    return False
 
 
 class Key(object):

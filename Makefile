@@ -20,6 +20,7 @@ env:
 deps: env
 	@$(BASE_PATH)/pip install \
 		--extra-index-url ${EXTRA_PYPI_INDEX}\
+		--trusted-host chevah.com \
 		-e .[dev]
 
 
