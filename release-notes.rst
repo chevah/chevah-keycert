@@ -2,6 +2,12 @@ Relese notes for Chevah KeyCert
 ###############################
 
 
+1.2.0 - 03/04/2015
+==================
+
+* Add helper to populate argparse sub-command for ssh key generation.
+
+
 1.1.0 - 15/02/2015
 ==================
 

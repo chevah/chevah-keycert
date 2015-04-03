@@ -4,9 +4,11 @@
 """
 Test for SSH keys management.
 """
+from argparse import ArgumentParser, Namespace
 from hashlib import sha1
 from StringIO import StringIO
 import base64
+import sys
 import textwrap
 
 from chevah.empirical import mk, EmpiricalTestCase
@@ -21,6 +23,7 @@ from chevah.keycert.ssh import (
     EncryptedKeyError,
     Key,
     generate_ssh_key,
+    generate_ssh_key_subparser,
     )
 from chevah.keycert.tests import keydata
 
@@ -1086,6 +1089,14 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         """
         self.assertKeyIsTooShort('ssh-rsa')
 
+    def test_fromString_PUBLIC_OPENSSH_DSA(self):
+        """
+        Can load a public OpenSSH in DSA format.
+        """
+        sut = Key.fromString(OPENSSH_DSA_PUBLIC)
+
+        self.checkParsedDSAPublic1024(sut)
+
     def test_fromString_OpenSSH(self):
         """
         Test that keys are correctly generated from OpenSSH strings.
@@ -1316,14 +1327,6 @@ SUrCyZXsNh6VXwjs3gKQ
         self.assertTrue(sut.isPublic())
         data = sut.data()
         self.assertEqual(65537L, data['e'])
-
-    def test_fromString_PUBLIC_OPENSSH_DSA(self):
-        """
-        Can load a public OpenSSH in DSA format.
-        """
-        sut = Key.fromString(OPENSSH_DSA_PUBLIC)
-
-        self.checkParsedDSAPublic1024(sut)
 
     def test_fromString_PUBLIC_SSHCOM_DSA(self):
         """
@@ -1858,3 +1861,101 @@ attr q:
 \t05
 attr u:
 \t04>""")
+
+
+class Test_generate_ssh_key_subparser(EmpiricalTestCase):
+    """
+    Unit tests for generate_ssh_key_subparser.
+    """
+
+    def setUp(self):
+        super(Test_generate_ssh_key_subparser, self).setUp()
+        self.parser = ArgumentParser(prog='test-command')
+        self.subparser = self.parser.add_subparsers(
+            help='Available sub-commands', dest='sub_command')
+        self.stdout = StringIO()
+        self.stderr = StringIO()
+
+    def assertNamespaceEqual(self, expected, actual):
+        """
+        Check that namespaces are equal.
+        """
+        namespace = Namespace(**expected)
+        self.assertEqual(namespace, actual)
+
+    def parseArguments(self, args):
+        """
+        Parse arguments and capture stdout.
+        """
+        try:
+            sys.stdout = self.stdout
+            sys.stderr = self.stderr
+            return self.parser.parse_args(args)
+        except SystemExit as error:
+            raise AssertionError(
+                'Fail to parse %s\n-- stdout --\n%s\n-- stderr --\n%s' % (
+                    error.code,
+                    self.stdout.getvalue(),
+                    self.stderr.getvalue(),
+                    ))
+        finally:
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
+
+    def test_default(self):
+        """
+        It only need a subparser and sub-command name.
+        """
+        generate_ssh_key_subparser(self.subparser, 'key-gen')
+
+        options = self.parseArguments(['key-gen'])
+
+        self.assertNamespaceEqual({
+            'sub_command': 'key-gen',
+            'key_comment': None,
+            'key_file': None,
+            'key_size': 2048,
+            'key_type': 'rsa',
+            }, options)
+
+    def test_value(self):
+        """
+        Options are parsed form command line.
+        """
+        generate_ssh_key_subparser(self.subparser, 'key-gen')
+
+        options = self.parseArguments([
+            'key-gen',
+            '--key-comment', 'some comment',
+            '--key-file=id_dsa',
+            '--key-size', '1024',
+            '--key-type', 'dsa',
+            ])
+
+        self.assertNamespaceEqual({
+            'sub_command': 'key-gen',
+            'key_comment': 'some comment',
+            'key_file': 'id_dsa',
+            'key_size': '1024',
+            'key_type': 'dsa',
+            }, options)
+
+    def test_default_overwrite(self):
+        """
+        You can change default values.
+        """
+        generate_ssh_key_subparser(
+            self.subparser, 'key-gen',
+            default_key_size=1024,
+            default_key_type='dsa',
+            )
+
+        options = self.parseArguments(['key-gen'])
+
+        self.assertNamespaceEqual({
+            'sub_command': 'key-gen',
+            'key_comment': None,
+            'key_file': None,
+            'key_size': 1024,
+            'key_type': 'dsa',
+            }, options)

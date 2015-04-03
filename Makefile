@@ -14,12 +14,12 @@ all: test
 
 env:
 	@if [ ! -d "build/venv" ]; then virtualenv build/venv; fi
+	@$(BASE_PATH)/pip install -U pip
 
 
 deps: env
 	@$(BASE_PATH)/pip install \
 		--extra-index-url ${EXTRA_PYPI_INDEX}\
-		--download-cache __pycache__\
 		-e .[dev]
 
 
@@ -27,9 +27,7 @@ clean:
 	@rm -rf build
 
 
-dist-clean: clean
-	@rm -rf __pycache__
-
-
 test:
-	@$(BASE_PATH)/python setup.py test
+	@$(BASE_PATH)/python setup.py test -q
+	@echo "See HTML coverate in build/cover"
+	@coverage html -d build/cover/

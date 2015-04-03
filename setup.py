@@ -5,7 +5,7 @@ from codecs import open
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.1.0'
+VERSION = '1.2.0'
 
 
 class NoseTestCommand(TestCommand):

@@ -1,23 +1,12 @@
 chevah-keycert
 ==============
 
-SSH Keys and SSL certificates handling.
+SSH Keys and SSL key/csr/certificates handling.
 
-Build development environment and activate it::
+The functions are designed to integrate with command line tools but also with
+other user interfaces (for example from a web based control panel).
 
-    make deps
-    . build/venv/bin/activate
-
-Run default tests::
-
-    python setup.py test
-
-Default virtual environment is created in build/venv.
-
-This SSH key handling is based on twisted.conch.ssh.key but it was forked
-to not depend on Twisted.
-
-It still depends on these C modules:
+It depends on these C modules:
 
 * pyCrypto
 * pyOpenSSL
@@ -25,11 +14,12 @@ It still depends on these C modules:
 It provides the following functionalities:
 
 * Generate self signed SSL certificate.
-* Generate RSA/DSA keys
-* Convert OpenSSH, SSH.com, Putty, LSH
+* Generate RSA/DSA keys.
+* Convert OpenSSH, SSH.com, Putty, LSH.
+* Populate an argparser subparser with command line options.
 
-SSH key handling is based on Twisted code, but project no longer depend
-on Twisted.
+The SSH key handling was forked from Twisted code, but project no longer
+depends on Twisted.
 
 MIT License.
 
