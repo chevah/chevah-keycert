@@ -93,7 +93,6 @@ def generate_ssh_key_subparser(
         )
 
 
-
 def generate_ssh_key(options, open_method=None):
     """
     Generate a SSH RSA or DSA key and store it on disk.
