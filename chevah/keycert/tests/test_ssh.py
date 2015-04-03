@@ -246,7 +246,7 @@ class CommandLineMixin(object):
             sys.stdout = self.stdout
             sys.stderr = self.stderr
             return self.parser.parse_args(args)
-        except SystemExit as error:
+        except SystemExit as error:  # pragma: no cover
             raise AssertionError(
                 'Fail to parse %s\n-- stdout --\n%s\n-- stderr --\n%s' % (
                     error.code,
@@ -1754,27 +1754,6 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase, CommandLineMixin):
         """
         namespace = Namespace(**expected)
         self.assertEqual(namespace, actual)
-
-    def parseArguments(self, args):
-        """
-        Parse arguments and capture stdout.
-        """
-        self.stdout = StringIO()
-        self.stderr = StringIO()
-        try:
-            sys.stdout = self.stdout
-            sys.stderr = self.stderr
-            return self.parser.parse_args(args)
-        except SystemExit as error:  # pragma: no cover
-            raise AssertionError(
-                'Fail to parse %s\n-- stdout --\n%s\n-- stderr --\n%s' % (
-                    error.code,
-                    self.stdout.getvalue(),
-                    self.stderr.getvalue(),
-                    ))
-        finally:
-            sys.stdout = sys.__stdout__
-            sys.stderr = sys.__stderr__
 
     def test_default(self):
         """
