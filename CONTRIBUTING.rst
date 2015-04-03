@@ -1,15 +1,18 @@
 Create issues and send pull requests.
 
+All changes need to have tests.
+All test code need to have 100% coverage.
+
 Build development environment and activate it::
 
     make deps
     . build/venv/bin/activate
 
-Run default tests, linters and coverage::
+Run checks exceuted on Travis-CI: test, linters and coverage::
 
     python setup.py test
 
-To also get HTML coverage report use::
+To get HTML coverage report use::
 
     make test
 
