@@ -2,10 +2,11 @@ from __future__ import print_function
 import os
 import sys
 from codecs import open
+from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.1.0'
+VERSION = '1.2.0'
 
 
 class NoseTestCommand(TestCommand):
@@ -54,7 +55,17 @@ class NoseTestCommand(TestCommand):
         if not pocket_code:
             print('Linter OK')
 
-        sys.exit(pocket_code or nose_code)
+        coverage_args = [
+            'report',
+            '--include=chevah/keycert/tests/*',
+            '--fail-under=100',
+            ]
+        covergate_code = load_entry_point(
+            'coverage', 'console_scripts', 'coverage')(argv=coverage_args)
+        if not covergate_code:
+            print('Tests coverage OK')
+
+        sys.exit(pocket_code or nose_code or covergate_code)
 
 
 here = os.path.abspath(os.path.dirname(__file__))

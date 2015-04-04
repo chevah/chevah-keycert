@@ -11,6 +11,12 @@ script:
 after_success:
   - coveralls
 
+# Only run test when committing to master branch.
+# PR tests will still be executed.
+branches:
+  only:
+    - master
+
 deploy:
   provider: pypi
   user: chevah-robot

@@ -55,11 +55,51 @@ class KeyCertException(Exception):
     """
 
 
+def generate_ssh_key_subparser(
+        subparsers, name, default_key_size=2048, default_key_type='rsa'):
+    """
+    Create an argparse sub-command with `name` attached to `subparsers`.
+    """
+    generate_ssh_key = subparsers.add_parser(
+        name,
+        help='Create a SSH public and private key pair.',
+        )
+    generate_ssh_key.add_argument(
+        '--key-file',
+        metavar='FILE',
+        help=(
+            'Store the keys pair in FILE and FILE.pub. Default id_TYPE.'),
+        )
+    generate_ssh_key.add_argument(
+        '--key-size',
+        type=int, metavar="SIZE", default=default_key_size,
+        help='Generate a RSA or DSA key of size SIZE. Default %(default)s',
+        )
+    generate_ssh_key.add_argument(
+        '--key-type',
+        metavar="[rsa|dsa]", default=default_key_type,
+        help='Generate a DSA or RSA key. Default %(default)s.',
+        )
+    generate_ssh_key.add_argument(
+        '--key-comment',
+        metavar="COMMENT_TEXT",
+        help=(
+            'Generate the public key using this comment. Default no comment.'),
+        )
+    generate_ssh_key.add_argument(
+        '--key-skip',
+        action='store_true', default=False,
+        help='Do not create a new key if a key file already exists.',
+        )
+
+
 def generate_ssh_key(options, open_method=None):
     """
     Generate a SSH RSA or DSA key and store it on disk.
 
-    Return a pair of (exit_code, operation_message).
+    `options` is an argparse namespace. See `generate_ssh_key_subparser`.
+
+    Return a tuple of (exit_code, operation_message, key).
 
     For success, exit_code is 0.
 
@@ -67,7 +107,7 @@ def generate_ssh_key(options, open_method=None):
     """
     key = None
 
-    if open_method is None:
+    if open_method is None:  # pragma: no cover
         open_method = open
 
     exit_code = 0
@@ -154,7 +194,7 @@ def _skip_key_generation(options, private_file, public_file):
     """
     private_segments = local_filesystem.getSegmentsFromRealPath(private_file)
     if local_filesystem.exists(private_segments):
-        if options.migrate:
+        if options.key_skip:
             return True
         else:
             raise KeyCertException(
@@ -163,6 +203,7 @@ def _skip_key_generation(options, private_file, public_file):
     public_segments = local_filesystem.getSegmentsFromRealPath(public_file)
     if local_filesystem.exists(public_segments):
         raise KeyCertException(u'Public key already exists. %s' % public_file)
+    return False
 
 
 class Key(object):
@@ -178,7 +219,7 @@ class Key(object):
     """
 
     @staticmethod
-    def secureRandom(n):
+    def secureRandom(n):  # pragma: no cover
         return rand.bytes(n)
 
     def __init__(self, keyObject):
