@@ -26,6 +26,7 @@ from chevah.keycert.ssh import (
     generate_ssh_key_subparser,
     )
 from chevah.keycert.tests import keydata
+from chevah.keycert.tests.helpers import CommandLineMixin
 
 PUBLIC_RSA_ARMOR_START = u'-----BEGIN PUBLIC KEY-----\n'
 PUBLIC_RSA_ARMOR_END = u'\n-----END PUBLIC KEY-----\n'
@@ -230,32 +231,6 @@ class DummyOpenContext(object):
 
     def __exit__(self, exc_type, exc_value, tb):
         return False
-
-
-class CommandLineMixin(object):
-    """
-    Helper to test command line tools.
-    """
-    def parseArguments(self, args):
-        """
-        Parse arguments and capture stdout.
-        """
-        self.stdout = StringIO()
-        self.stderr = StringIO()
-        try:
-            sys.stdout = self.stdout
-            sys.stderr = self.stderr
-            return self.parser.parse_args(args)
-        except SystemExit as error:  # pragma: no cover
-            raise AssertionError(
-                'Fail to parse %s\n-- stdout --\n%s\n-- stderr --\n%s' % (
-                    error.code,
-                    self.stdout.getvalue(),
-                    self.stderr.getvalue(),
-                    ))
-        finally:
-            sys.stdout = sys.__stdout__
-            sys.stderr = sys.__stderr__
 
 
 class TestHelpers(EmpiricalTestCase, CommandLineMixin):
@@ -1747,13 +1722,6 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase, CommandLineMixin):
         self.parser = ArgumentParser(prog='test-command')
         self.subparser = self.parser.add_subparsers(
             help='Available sub-commands', dest='sub_command')
-
-    def assertNamespaceEqual(self, expected, actual):
-        """
-        Check that namespaces are equal.
-        """
-        namespace = Namespace(**expected)
-        self.assertEqual(namespace, actual)
 
     def test_default(self):
         """

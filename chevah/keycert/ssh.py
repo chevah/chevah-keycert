@@ -91,6 +91,7 @@ def generate_ssh_key_subparser(
         action='store_true', default=False,
         help='Do not create a new key if a key file already exists.',
         )
+    return generate_ssh_key
 
 
 def generate_ssh_key(options, open_method=None):
