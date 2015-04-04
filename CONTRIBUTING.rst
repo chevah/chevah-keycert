@@ -8,7 +8,7 @@ Build development environment and activate it::
     make deps
     . build/venv/bin/activate
 
-Run checks exceuted on Travis-CI: test, linters and coverage::
+Run checks executed on Travis-CI: test, linters and coverage::
 
     python setup.py test
 

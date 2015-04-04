@@ -99,7 +99,7 @@ def generate_ssh_key(options, open_method=None):
 
     `options` is an argparse namespace. See `generate_ssh_key_subparser`.
 
-    Return a tupple of (exit_code, operation_message, key).
+    Return a tuple of (exit_code, operation_message, key).
 
     For success, exit_code is 0.
 
