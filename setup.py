@@ -33,6 +33,7 @@ class NoseTestCommand(TestCommand):
             '--cover-package=' + module,
             '--cover-erase',
             '--cover-test',
+            '--with-timer',
             module.replace('.', '/'),
             ])
 
@@ -100,6 +101,12 @@ setup(
     keywords='twisted ssh ssl tls pki ca',
 
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+
+    entry_points={
+        'nose.plugins.0.10': [
+            'timer = chevah.empirical.nose_test_timer:TestTimer'
+            ]
+        },
 
     install_requires=[
         'pyopenssl ==0.13',
