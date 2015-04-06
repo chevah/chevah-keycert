@@ -15,8 +15,8 @@ from chevah.keycert.ssh import (
     generate_ssh_key_subparser,
     )
 from chevah.keycert.ssl import (
-    generate_ssl_key_certificate_signing_request,
-    generate_ssl_key_certificate_signing_request_subparser,
+    generate_csr_parser,
+    generate_and_store_csr,
     )
 
 parser = argparse.ArgumentParser(prog='PROG', prefix_chars='-+')
@@ -26,16 +26,14 @@ subparser = parser.add_subparsers(
 sub = generate_ssh_key_subparser(subparser, 'ssh-gen-key')
 sub.set_defaults(handler=generate_ssh_key)
 
-sub = generate_ssl_key_certificate_signing_request_subparser(
-    subparser, 'ssl-gen-key')
-sub.set_defaults(handler=generate_ssl_key_certificate_signing_request)
-
+sub = generate_csr_parser(subparser, 'ssl-gen-key')
+sub.set_defaults(handler=generate_and_store_csr)
 
 options = parser.parse_args()
 
 try:
-    result = options.handler(options)
-    print(result)
+    options.handler(options)
+    print('command succeed')
 except KeyCertException as error:
     print(error)
     sys.exit(1)

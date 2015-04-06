@@ -4,11 +4,10 @@
 """
 Test for SSH keys management.
 """
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser
 from hashlib import sha1
 from StringIO import StringIO
 import base64
-import sys
 import textwrap
 
 from chevah.empirical import mk, EmpiricalTestCase

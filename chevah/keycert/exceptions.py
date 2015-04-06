@@ -4,6 +4,7 @@
 Public exceptions raised by this package.
 """
 
+
 class KeyCertException(Exception):
     """
     Generic exception raised by the package.
@@ -12,4 +13,4 @@ class KeyCertException(Exception):
         self.message = message
 
     def __str__(self):
-        return self.message
+        return self.message.encode('utf-8')

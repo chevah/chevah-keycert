@@ -4,12 +4,13 @@
 SSL keys and certificates.
 """
 from socket import gethostname
+import os
 
 from OpenSSL import crypto
 
-_DEFAULT_SSL_KEY_CYPHER = b'aes-256-cbc'
-
 from chevah.keycert.exceptions import KeyCertException
+
+_DEFAULT_SSL_KEY_CYPHER = b'aes-256-cbc'
 
 
 def generate_ssl_self_signed_certificate():
@@ -41,7 +42,7 @@ def generate_ssl_self_signed_certificate():
     return (certificate_pem, key_pem)
 
 
-def generate_ssl_key_certificate_signing_request_subparser(
+def generate_csr_parser(
         subparsers, name, default_key_size=2048, default_key_type='rsa'):
     """
     Create an argparse sub-command for generating CSR options with
@@ -132,9 +133,9 @@ def generate_csr(options):
         return _generate_csr(options)
     except crypto.Error as error:
         try:
-            message = 'Error: %s' % (error[0][0][2],)
-        except IndexError:
-            message = 'Error: no error details.'
+            message = error[0][0][2]
+        except IndexError:  # pragma: no cover
+            message = 'no error details.'
         raise KeyCertException(message)
 
 
@@ -149,7 +150,7 @@ def _generate_csr(options):
     elif key_type == 'rsa':
         key_type = crypto.TYPE_RSA
     else:
-        key_type = 'not-suppored'
+        raise KeyCertException('Unknown key type.')
 
     csr = crypto.X509Req()
     subject = csr.get_subject()
@@ -173,7 +174,8 @@ def _generate_csr(options):
         subject.countryName = options.country
 
     if options.email:
-        subject.emailAddress = options.email.encode('idna')
+        address, domain = options.email.split('@', 1)
+        subject.emailAddress = u'%s@%s' % (address, domain.encode('idna'))
 
     # We create a CSR which can not be used as a CA, but designated to be
     # used as server certificate.
@@ -209,7 +211,7 @@ def _generate_csr(options):
 
     return {
         'csr_pem': csr_pem,
-        'csr_key': key_pem,
+        'key_pem': key_pem,
         'csr': csr,
         'key': key,
         }
@@ -218,33 +220,19 @@ def _generate_csr(options):
 def generate_and_store_csr(options):
     """
     Generate a key/csr and try to store it on disk.
+
+    Raise KeyCertException when failing to create the key or csr.
     """
-    key_segments = local_filesystem.getSegmentsFromRealPath(options.key_file)
-    name, _ = os.path.splitext(key_segments[-1])
+    name, _ = os.path.splitext(options.key_file)
     csr_name = u'%s.csr' % name
-    csr_segments = key_segments[:-1]
-    csr_segments.append(csr_name)
 
-    if local_filesystem.exists(key_segments):
-        return (1, 'Key file already exists')
+    if os.path.exists(options.key_file):
+        raise KeyCertException('Key file already exists.')
 
-    try:
-        csr, key = generate_csr(options)
-    except KeyCertException as error:
-        return (1, error.message)
+    result = generate_csr(options)
 
-    store_file = None
-    try:
-        store_file = local_filesystem.openFileForWriting(key_segments)
-        store_file.write(key)
-    finally:
-        if store_file:
-            store_file.close()
-    store_file = None
-    try:
-        store_file = local_filesystem.openFileForWriting(csr_segments)
-        store_file.write(csr)
-    finally:
-        if store_file:
-            store_file.close()
-    return (0, 'Key and CSR successfully created.')
+    with open(options.key_file, 'wb') as store_file:
+        store_file.write(result['key_pem'])
+
+    with open(csr_name, 'wb') as store_file:
+        store_file.write(result['csr_pem'])
