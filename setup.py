@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.2.0'
+VERSION = '1.3.0'
 
 
 class NoseTestCommand(TestCommand):
@@ -33,6 +33,7 @@ class NoseTestCommand(TestCommand):
             '--cover-package=' + module,
             '--cover-erase',
             '--cover-test',
+            '--with-timer',
             module.replace('.', '/'),
             ])
 
@@ -101,10 +102,16 @@ setup(
 
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
 
+    entry_points={
+        'nose.plugins.0.10': [
+            'timer = chevah.empirical.nose_test_timer:TestTimer'
+            ]
+        },
+
     install_requires=[
-        'pyopenssl ==0.13',
-        'pyCrypto ==2.6.1',
-        'pyasn1 ==0.1.7',
+        'pyopenssl >=0.13',
+        'pyCrypto >=2.6',
+        'pyasn1 >=0.1.7',
         'chevah-compat ==0.27.1',
         ],
 

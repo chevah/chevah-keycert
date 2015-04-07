@@ -33,7 +33,7 @@ def parse(s):
         data = s[i + 1:i + 1 + length]
         expr[-1].append(data)
         s = s[i + 1 + length:]
-    assert 0, "this should not happen"
+    assert 0, "this should not happen"   # pragma: no cover
 
 
 def pack(sexp):
