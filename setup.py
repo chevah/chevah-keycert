@@ -109,9 +109,9 @@ setup(
         },
 
     install_requires=[
-        'pyopenssl ==0.13',
-        'pyCrypto ==2.6.1',
-        'pyasn1 ==0.1.7',
+        'pyopenssl >=0.13',
+        'pyCrypto >=2.6',
+        'pyasn1 >=0.1.7',
         'chevah-compat ==0.27.1',
         ],
 
