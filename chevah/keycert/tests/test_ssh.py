@@ -1741,7 +1741,7 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase, CommandLineMixin):
 
     def test_value(self):
         """
-        Options are parsed form command line.
+        Options are parsed from the command line.
         """
         generate_ssh_key_subparser(self.subparser, 'key-gen')
 

@@ -82,7 +82,7 @@ class Test_generate_csr_parser(
 
     def test_default(self):
         """
-        It can be initiaized with only a subparser and sub-command name.
+        It can be initialized with only a subparser and sub-command name.
         """
         generate_csr_parser(self.subparser, 'key-gen')
 
@@ -213,7 +213,7 @@ class Test_generate_csr(CommandLineTestBase):
 
         self.assertEqual('key size too small', context.exception.message)
 
-    def test_bad_county_long(self):
+    def test_bad_country_long(self):
         """
         Raise an exception when country code is not correct.
         """
@@ -228,7 +228,7 @@ class Test_generate_csr(CommandLineTestBase):
 
         self.assertEqual('string too long', context.exception.message)
 
-    def test_bad_county_short(self):
+    def test_bad_country_short(self):
         """
         Raise an exception when country code is not correct.
         """
@@ -276,7 +276,7 @@ class Test_generate_csr(CommandLineTestBase):
 
     def test_gen_unicode(self):
         """
-        Domains are encoded using IDNA and names using unicode.
+        Domains are encoded using IDNA and names using Unicode.
         """
         options = self.parseArguments([
             self.command_name,
@@ -309,7 +309,7 @@ class Test_generate_csr(CommandLineTestBase):
 
     def test_encrypted_key(self):
         """
-        When asked it serialized the key with a password.
+        When asked it will serialize the key with a password.
         """
         options = self.parseArguments([
             self.command_name,
