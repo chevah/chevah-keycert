@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.3.0'
+VERSION = '1.3.1'
 
 
 class NoseTestCommand(TestCommand):
@@ -112,7 +112,7 @@ setup(
         'pyopenssl >=0.13',
         'pyCrypto >=2.6',
         'pyasn1 >=0.1.7',
-        'chevah-compat ==0.27.1',
+        'chevah-compat >=0.27.1',
         ],
 
     extras_require={
