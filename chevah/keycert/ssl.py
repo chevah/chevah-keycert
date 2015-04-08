@@ -8,6 +8,7 @@ import os
 
 from OpenSSL import crypto
 
+from chevah.keycert import _path
 from chevah.keycert.exceptions import KeyCertException
 
 _DEFAULT_SSL_KEY_CYPHER = b'aes-256-cbc'
@@ -217,7 +218,7 @@ def _generate_csr(options):
         }
 
 
-def generate_and_store_csr(options):
+def generate_and_store_csr(options, encoding='utf-8'):
     """
     Generate a key/csr and try to store it on disk.
 
@@ -226,13 +227,13 @@ def generate_and_store_csr(options):
     name, _ = os.path.splitext(options.key_file)
     csr_name = u'%s.csr' % name
 
-    if os.path.exists(options.key_file):
+    if os.path.exists(_path(options.key_file, encoding)):
         raise KeyCertException('Key file already exists.')
 
     result = generate_csr(options)
 
-    with open(options.key_file, 'wb') as store_file:
+    with open(_path(options.key_file, encoding), 'wb') as store_file:
         store_file.write(result['key_pem'])
 
-    with open(csr_name, 'wb') as store_file:
+    with open(_path(csr_name, encoding), 'wb') as store_file:
         store_file.write(result['csr_pem'])

@@ -2,6 +2,13 @@ Relese notes for Chevah KeyCert
 ###############################
 
 
+1.3.1 - 08/04/2015
+==================
+
+* On Unix/Linux ignore sys.getfilesystemencoding() and force a specific
+  encoding. UTF-8 by default.
+
+
 1.3.0 - 07/04/2015
 ==================
 

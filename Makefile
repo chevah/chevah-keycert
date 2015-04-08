@@ -31,4 +31,4 @@ clean:
 test:
 	@$(BASE_PATH)/python setup.py test -q
 	@echo "See HTML coverate in build/cover"
-	@coverage html -d build/cover/
+	@$(BASE_PATH)/coverage html -d build/cover/
