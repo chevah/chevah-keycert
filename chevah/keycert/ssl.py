@@ -151,7 +151,7 @@ def _generate_csr(options):
     elif key_type == 'rsa':
         key_type = crypto.TYPE_RSA
     else:
-        raise KeyCertException('Unknown key type.')
+        raise KeyCertException(u'Unknown key type: %s' % (key_type,))
 
     csr = crypto.X509Req()
     subject = csr.get_subject()

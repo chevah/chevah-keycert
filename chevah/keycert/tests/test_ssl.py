@@ -195,7 +195,8 @@ class Test_generate_csr(CommandLineTestBase):
         with self.assertRaises(KeyCertException) as context:
             generate_csr(options)
 
-        self.assertEqual('Unknown key type.', context.exception.message)
+        self.assertEqual(
+            u'Unknown key type: no-such-type', context.exception.message)
 
     def test_bad_size(self):
         """
