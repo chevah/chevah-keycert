@@ -7,6 +7,8 @@ Relese notes for Chevah KeyCert
 
 * Update error message to show name for unknown key type.
 * Fix handling of Unicode path on Unix/Linux.
+* Remove support for generating SSL DSA keys.
+* Rename generate_ssh_key_subparser to generate_ssh_key_parser
 
 
 1.3.1 - 08/04/2015

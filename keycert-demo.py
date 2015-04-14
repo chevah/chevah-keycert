@@ -12,7 +12,7 @@ import sys
 from chevah.keycert.exceptions import KeyCertException
 from chevah.keycert.ssh import (
     generate_ssh_key,
-    generate_ssh_key_subparser,
+    generate_ssh_key_parser,
     )
 from chevah.keycert.ssl import (
     generate_csr_parser,
@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser(prog='PROG', prefix_chars='-+')
 subparser = parser.add_subparsers(
             help='Available sub-commands', dest='sub_command')
 
-sub = generate_ssh_key_subparser(subparser, 'ssh-gen-key')
+sub = generate_ssh_key_parser(subparser, 'ssh-gen-key')
 sub.set_defaults(handler=generate_ssh_key)
 
 sub = generate_csr_parser(subparser, 'ssl-gen-key')

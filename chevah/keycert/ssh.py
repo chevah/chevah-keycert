@@ -56,7 +56,7 @@ class KeyCertException(Exception):
     """
 
 
-def generate_ssh_key_subparser(
+def generate_ssh_key_parser(
         subparsers, name, default_key_size=2048, default_key_type='rsa'):
     """
     Create an argparse sub-command with `name` attached to `subparsers`.
