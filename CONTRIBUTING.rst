@@ -21,3 +21,11 @@ To get HTML coverage report use::
 Default virtual environment is created in build/venv.
 
 Use nosetests for TDD.
+
+Linux, OS X and Windows tests executed on private buildbot server as Travis CI
+is Linux only::
+
+    # See available builders
+    make test_remote
+    # Trigger a builder
+    make test_remote TARGET=keycert-win-2008

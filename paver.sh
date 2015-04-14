@@ -337,7 +337,7 @@ distributable_python() {
     mv ${PYTHON_VERSION}-${OS}-${ARCH} $destination
 
     pushd $destination
-        execute wget https://bootstrap.pypa.io/get-pip.py
+        execute wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py
         execute $python_bin get-pip.py
     popd
 }

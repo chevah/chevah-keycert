@@ -2,12 +2,17 @@
 # Makefile for Chevah KeyCert project.
 #
 EXTRA_PYPI_INDEX='http://chevah.com/pypi/simple'
-UNAME=`uname`
-ifeq "$(UNAME)" "mingw"
-       BASE_PATH='build/venv/Scripts/'
+
+ifeq "$(MSYSTEM)" "MINGW32"
+       BASE_PATH='build/venv/lib/Scripts'
 else
-       BASE_PATH='build/venv/bin/'
+       BASE_PATH='build/venv/bin'
 endif
+
+BUILDBOT_TRY=$(BASE_PATH)/buildbot try \
+		--connect=pb --username=chevah_buildbot --passwd=chevah_password \
+		--master=build.chevah.com:10087 --vc=git
+
 
 all: test
 	
@@ -46,9 +51,20 @@ ci_env:
 
 
 ci_test:
-	ifeq "$(TEST_TYPE)" "os-independent"
-	    @$(BASE_PATH)/pyflakes chevah
-	    @$(BASE_PATH)/pep8 chevah
-	else
-	    @$(BASE_PATH)/nosetests
-	endif
+ifeq "$(TEST_TYPE)" "os-independent"
+	@$(BASE_PATH)/pyflakes chevah
+	@$(BASE_PATH)/pep8 chevah
+else
+	@$(BASE_PATH)/nosetests
+endif
+
+
+dev_deps:
+	@$(BASE_PATH)/pip install buildbot
+
+test_remote:
+ifeq "$(TARGET)" ""
+	$(BUILDBOT_TRY) --get-builder-names | grep keycert
+else
+	$(BUILDBOT_TRY) -b $(TARGET)
+endif
