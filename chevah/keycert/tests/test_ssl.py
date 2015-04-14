@@ -95,7 +95,6 @@ class Test_generate_csr_parser(
             'sub_command': 'key-gen',
             'key_file': 'server.key',
             'key_size': 2048,
-            'key_type': 'rsa',
             'key_password': None,
             'common_name': 'domain.com',
             'alternative_name': None,
@@ -118,7 +117,6 @@ class Test_generate_csr_parser(
             '--common-name', 'sub.domain.com',
             '--key-file=my_server.pem',
             '--key-size', '1024',
-            '--key-type', 'dsa',
             '--key-password', u'valu\u20ac',
             '--alternative-name', 'DNS:www.domain.com,IP:127.0.0.1',
             '--email', 'admin@domain.com',
@@ -133,7 +131,6 @@ class Test_generate_csr_parser(
             'sub_command': 'key-gen',
             'key_file': 'my_server.pem',
             'key_size': 1024,
-            'key_type': 'dsa',
             'key_password': u'valu\u20ac',
             'common_name': 'sub.domain.com',
             'alternative_name': 'DNS:www.domain.com,IP:127.0.0.1',
@@ -152,7 +149,6 @@ class Test_generate_csr_parser(
         generate_csr_parser(
             self.subparser, 'key-gen',
             default_key_size=1024,
-            default_key_type='dsa',
             )
 
         options = self.parseArguments([
@@ -164,7 +160,6 @@ class Test_generate_csr_parser(
             'sub_command': 'key-gen',
             'key_file': 'server.key',
             'key_size': 1024,
-            'key_type': 'dsa',
             'key_password': None,
             'common_name': 'domain.com',
             'alternative_name': None,
@@ -182,22 +177,6 @@ class Test_generate_csr(CommandLineTestBase):
     Unit tests for generate_csr.
     """
 
-    def test_unknown_key(self):
-        """
-        Raise an exception when requested to generate a key with unknown type.
-        """
-        options = self.parseArguments([
-            self.command_name,
-            '--common-name=domain.com',
-            '--key-type=no-such-type',
-            ])
-
-        with self.assertRaises(KeyCertException) as context:
-            generate_csr(options)
-
-        self.assertEqual(
-            u'Unknown key type: no-such-type', context.exception.message)
-
     def test_bad_size(self):
         """
         Raise an exception when failing to generate the key.
@@ -205,7 +184,6 @@ class Test_generate_csr(CommandLineTestBase):
         options = self.parseArguments([
             self.command_name,
             '--common-name=domain.com',
-            '--key-type=rsa',
             '--key-size=12',
             ])
 
@@ -283,7 +261,6 @@ class Test_generate_csr(CommandLineTestBase):
             self.command_name,
             u'--common-name=domain-\u20acuro.com',
             u'--key-size=512',
-            u'--key-type=rsa',
             u'--alternative-name=DNS:www.domain-\u20acuro.com,IP:127.0.0.1',
             u'--email=name@domain-\u20acuro.com',
             u'--organization=OU Nam\u20acuro',
@@ -330,21 +307,6 @@ class Test_generate_csr(CommandLineTestBase):
             crypto.dump_privatekey(crypto.FILETYPE_PEM, key),
             crypto.dump_privatekey(crypto.FILETYPE_PEM, result['key']),
             )
-
-    def test_dsa_key(self):
-        """
-        It can also generate key as DSA.
-        """
-        options = self.parseArguments([
-            self.command_name,
-            u'--common-name=domain.com',
-            u'--key-size=512',
-            u'--key-type=dsa',
-            ])
-
-        result = generate_csr(options)
-
-        self.assertEqual(crypto.TYPE_DSA, result['key'].type())
 
 
 class Test_generate_and_store_csr(CommandLineTestBase):
