@@ -25,6 +25,8 @@ Use nosetests for TDD.
 Linux, OS X and Windows tests executed on private buildbot server as Travis CI
 is Linux only::
 
+    # Install dev dependencies
+    make dev_deps
     # See available builders
     make test_remote
     # Trigger a builder
