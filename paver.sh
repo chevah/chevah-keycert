@@ -322,7 +322,7 @@ distributable_python() {
     local pip_package="pip-$PIP_VERSION"
 
     if [ "${OS}" = "windows" ] ; then
-        local python_bin="lib/python.exe"
+        local python_bin="python.exe"
     else
         local python_bin="bin/python"
     fi
@@ -334,7 +334,9 @@ distributable_python() {
 
     get_tar_tz ${PYTHON_VERSION}-${OS}-${ARCH} "$BINARY_DIST_URI/python"
     echo "Bootstraping ${PYTHON_VERSION} environment to $destination..."
-    mv ${PYTHON_VERSION}-${OS}-${ARCH} $destination
+    # Our Windows python-package has the venv in lib folder.
+    mv ${PYTHON_VERSION}-${OS}-${ARCH}/lib $destination
+    rm -rf ${PYTHON_VERSION}-${OS}-${ARCH}
 
     pushd $destination
         execute wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py

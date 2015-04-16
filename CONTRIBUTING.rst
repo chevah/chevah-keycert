@@ -31,3 +31,5 @@ is Linux only::
     make test_remote
     # Trigger a builder
     make test_remote TARGET=keycert-win-2008
+    # Trigger a builder with running the clean step
+    make test_remote_with_clean TARGET=keycert-win-2008

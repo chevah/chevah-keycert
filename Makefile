@@ -4,7 +4,7 @@
 EXTRA_PYPI_INDEX='http://chevah.com/pypi/simple'
 
 ifeq "$(MSYSTEM)" "MINGW32"
-       BASE_PATH='build/venv/lib/Scripts'
+       BASE_PATH='build/venv/Scripts'
 else
        BASE_PATH='build/venv/bin'
 endif
@@ -68,3 +68,6 @@ ifeq "$(TARGET)" ""
 else
 	$(BUILDBOT_TRY) -b $(TARGET)
 endif
+
+test_remote_with_clean:
+	$(BUILDBOT_TRY) -b $(TARGET) --properties=force_clean=yes
