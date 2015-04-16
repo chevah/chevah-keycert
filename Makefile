@@ -2,22 +2,30 @@
 # Makefile for Chevah KeyCert project.
 #
 EXTRA_PYPI_INDEX='http://chevah.com/pypi/simple'
-UNAME=`uname`
-ifeq "$(UNAME)" "mingw"
-       BASE_PATH='build/venv/Scripts/'
+
+ifeq "$(MSYSTEM)" "MINGW32"
+       BASE_PATH='build/venv/Scripts'
 else
-       BASE_PATH='build/venv/bin/'
+       BASE_PATH='build/venv/bin'
 endif
+
+BUILDBOT_TRY=$(BASE_PATH)/buildbot try \
+		--connect=pb --username=chevah_buildbot --passwd=chevah_password \
+		--master=build.chevah.com:10087 --vc=git
+
 
 all: test
 	
 
-env:
+local_env:
 	@if [ ! -d "build/venv" ]; then virtualenv build/venv; fi
 	@$(BASE_PATH)/pip install -U pip
 
 
-deps: env
+deps: local_env deps_base
+
+
+deps_base:
 	@$(BASE_PATH)/pip install \
 		--extra-index-url ${EXTRA_PYPI_INDEX}\
 		--trusted-host chevah.com \
@@ -32,3 +40,34 @@ test:
 	@$(BASE_PATH)/python setup.py test -q
 	@echo "See HTML coverate in build/cover"
 	@$(BASE_PATH)/coverage html -d build/cover/
+
+
+ci_deps: ci_env deps_base
+
+
+ci_env:
+	@mkdir -p build
+	./paver.sh distributable_python build/venv
+
+
+ci_test:
+ifeq "$(TEST_TYPE)" "os-independent"
+	@$(BASE_PATH)/pyflakes chevah
+	@$(BASE_PATH)/pep8 chevah
+else
+	@$(BASE_PATH)/nosetests
+endif
+
+
+dev_deps:
+	@$(BASE_PATH)/pip install buildbot
+
+test_remote:
+ifeq "$(TARGET)" ""
+	$(BUILDBOT_TRY) --get-builder-names | grep keycert
+else
+	$(BUILDBOT_TRY) -b $(TARGET)
+endif
+
+test_remote_with_clean:
+	$(BUILDBOT_TRY) -b $(TARGET) --properties=force_clean=yes

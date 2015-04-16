@@ -22,7 +22,7 @@ from chevah.keycert.ssh import (
     EncryptedKeyError,
     Key,
     generate_ssh_key,
-    generate_ssh_key_subparser,
+    generate_ssh_key_parser,
     )
 from chevah.keycert.tests import keydata
 from chevah.keycert.tests.helpers import CommandLineMixin
@@ -1711,13 +1711,13 @@ attr u:
 \t04>""")
 
 
-class Test_generate_ssh_key_subparser(EmpiricalTestCase, CommandLineMixin):
+class Test_generate_ssh_key_parser(EmpiricalTestCase, CommandLineMixin):
     """
-    Unit tests for generate_ssh_key_subparser.
+    Unit tests for generate_ssh_key_parser.
     """
 
     def setUp(self):
-        super(Test_generate_ssh_key_subparser, self).setUp()
+        super(Test_generate_ssh_key_parser, self).setUp()
         self.parser = ArgumentParser(prog='test-command')
         self.subparser = self.parser.add_subparsers(
             help='Available sub-commands', dest='sub_command')
@@ -1726,7 +1726,7 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase, CommandLineMixin):
         """
         It only need a subparser and sub-command name.
         """
-        generate_ssh_key_subparser(self.subparser, 'key-gen')
+        generate_ssh_key_parser(self.subparser, 'key-gen')
 
         options = self.parseArguments(['key-gen'])
 
@@ -1743,7 +1743,7 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase, CommandLineMixin):
         """
         Options are parsed from the command line.
         """
-        generate_ssh_key_subparser(self.subparser, 'key-gen')
+        generate_ssh_key_parser(self.subparser, 'key-gen')
 
         options = self.parseArguments([
             'key-gen',
@@ -1767,7 +1767,7 @@ class Test_generate_ssh_key_subparser(EmpiricalTestCase, CommandLineMixin):
         """
         You can change default values.
         """
-        generate_ssh_key_subparser(
+        generate_ssh_key_parser(
             self.subparser, 'key-gen',
             default_key_size=1024,
             default_key_type='dsa',
@@ -1796,7 +1796,7 @@ class Testgenerate_ssh_key(EmpiricalTestCase, CommandLineMixin):
         self.sub_command_name = 'gen-ssh-key'
         subparser = self.parser.add_subparsers(
             help='Available sub-commands', dest='sub_command')
-        generate_ssh_key_subparser(subparser, self.sub_command_name)
+        generate_ssh_key_parser(subparser, self.sub_command_name)
 
     def test_generate_ssh_key_custom_values(self):
         """

@@ -23,6 +23,7 @@ from pyasn1.type import univ
 
 from chevah.compat import local_filesystem
 
+from chevah.keycert import _path
 from chevah.keycert import common, sexpy
 
 
@@ -55,7 +56,7 @@ class KeyCertException(Exception):
     """
 
 
-def generate_ssh_key_subparser(
+def generate_ssh_key_parser(
         subparsers, name, default_key_size=2048, default_key_type='rsa'):
     """
     Create an argparse sub-command with `name` attached to `subparsers`.
@@ -275,12 +276,12 @@ class Key(object):
         return '\n'.join(lines)
 
     @classmethod
-    def fromFile(cls, filename, type=None, passphrase=None):
+    def fromFile(cls, filename, type=None, passphrase=None, encoding='utf-8'):
         """
         Return a Key object corresponding to the data in filename.  type
         and passphrase function as they do in fromString.
         """
-        with open(filename, 'rb') as file:
+        with open(_path(filename, encoding), 'rb') as file:
             return cls.fromString(file.read(), type, passphrase)
 
     @classmethod

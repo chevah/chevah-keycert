@@ -43,8 +43,7 @@ def generate_ssl_self_signed_certificate():
     return (certificate_pem, key_pem)
 
 
-def generate_csr_parser(
-        subparsers, name, default_key_size=2048, default_key_type='rsa'):
+def generate_csr_parser(subparsers, name, default_key_size=2048):
     """
     Create an argparse sub-command for generating CSR options with
     `name` attached to `subparsers`.
@@ -73,13 +72,9 @@ def generate_csr_parser(
     sub_command.add_argument(
         '--key-size',
         type=int, metavar="SIZE", default=default_key_size,
-        help='Generate a RSA or DSA key of size SIZE. Default %(default)s',
+        help='Size of the generate RSA private key. Default %(default)s',
         )
-    sub_command.add_argument(
-        '--key-type',
-        metavar="[rsa|dsa]", default=default_key_type,
-        help='Generate a DSA or RSA key. Default %(default)s.',
-        )
+
     sub_command.add_argument(
         '--key-password',
         metavar="PASSPHRASE",
@@ -106,13 +101,13 @@ def generate_csr_parser(
         )
     sub_command.add_argument(
         '--locality',
-        help='Full name location associated with the generated CSR.',
+        help='Full name of the locality associated with the generated CSR.',
         )
     sub_command.add_argument(
         '--state',
         help=(
-            'Full name of the state/county/region associated with the '
-            'generated CSR.'),
+            'Full name of the state/county/region/province associated with the'
+            ' generated CSR.'),
         )
     sub_command.add_argument(
         '--country',
@@ -144,14 +139,7 @@ def _generate_csr(options):
     """
     Helper to catch all crypto errors and reduce indentation.
     """
-    key_type = options.key_type.lower()
-
-    if key_type == 'dsa':
-        key_type = crypto.TYPE_DSA
-    elif key_type == 'rsa':
-        key_type = crypto.TYPE_RSA
-    else:
-        raise KeyCertException('Unknown key type.')
+    key_type = crypto.TYPE_RSA
 
     csr = crypto.X509Req()
     subject = csr.get_subject()
