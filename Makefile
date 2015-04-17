@@ -5,8 +5,10 @@ EXTRA_PYPI_INDEX='http://chevah.com/pypi/simple'
 
 ifeq "$(MSYSTEM)" "MINGW32"
        BASE_PATH='build/venv/Scripts'
+       PYTHON='build/venv/python.exe'
 else
        BASE_PATH='build/venv/bin'
+       PYTHON='build/venv/bin/python'
 endif
 
 BUILDBOT_TRY=$(BASE_PATH)/buildbot try \
@@ -37,7 +39,7 @@ clean:
 
 
 test:
-	@$(BASE_PATH)/python setup.py test -q
+	@$(PYTHON) setup.py test -q
 	@echo "See HTML coverate in build/cover"
 	@$(BASE_PATH)/coverage html -d build/cover/
 
