@@ -119,7 +119,7 @@ def generate_ssh_key(options, open_method=None):
         key_type = options.key_type.lower()
 
         if not hasattr(options, 'key_file') or options.key_file is None:
-            options.key_file = 'id_%s' % (key_type)
+            options.key_file = u'id_%s' % (key_type)
 
         private_file = options.key_file
 

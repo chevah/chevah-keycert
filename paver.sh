@@ -323,8 +323,10 @@ distributable_python() {
 
     if [ "${OS}" = "windows" ] ; then
         local python_bin="python.exe"
+        local venv_path=${PYTHON_VERSION}-${OS}-${ARCH}/lib
     else
         local python_bin="bin/python"
+        local venv_path=${PYTHON_VERSION}-${OS}-${ARCH}
     fi
 
     # Check that python dist was installed
@@ -335,7 +337,7 @@ distributable_python() {
     get_tar_tz ${PYTHON_VERSION}-${OS}-${ARCH} "$BINARY_DIST_URI/python"
     echo "Bootstraping ${PYTHON_VERSION} environment to $destination..."
     # Our Windows python-package has the venv in lib folder.
-    mv ${PYTHON_VERSION}-${OS}-${ARCH}/lib $destination
+    mv ${venv_path} $destination
     rm -rf ${PYTHON_VERSION}-${OS}-${ARCH}
 
     pushd $destination

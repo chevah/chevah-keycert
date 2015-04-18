@@ -193,7 +193,7 @@ def _generate_csr(options):
         csr.sign(key, 'sha256')
     except ValueError:
         # If SHA256 is not supported, fallback to sha1.
-        cert.sign(key, 'sha1')
+        csr.sign(key, 'sha1')
 
     csr_pem = crypto.dump_certificate_request(crypto.FILETYPE_PEM, csr)
     if options.key_password:
