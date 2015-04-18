@@ -73,3 +73,6 @@ endif
 
 test_remote_with_clean:
 	$(BUILDBOT_TRY) -b $(TARGET) --properties=force_clean=yes
+
+test_remote_with_wait:
+	$(BUILDBOT_TRY) -b $(TARGET) --wait
