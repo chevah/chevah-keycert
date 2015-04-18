@@ -13,8 +13,8 @@ It depends on these C modules:
 
 It provides the following functionalities:
 
-* Generate SSL key and self signed SSL certificate.
-* Generate SSL key and CSR.
+* Generate SSL key and self signed SSL certificate signed with SHA1.
+* Generate SSL key and CSR. Signed with SHA256 or fall back to SHA1.
 * Generate RSA/DSA keys.
 * Convert OpenSSH, SSH.com, Putty, LSH.
 * Populate an argparser subparser with command line options.
