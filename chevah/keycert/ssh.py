@@ -132,10 +132,7 @@ def generate_ssh_key(options, open_method=None):
 
         key = Key.generate(key_type=key_type, key_size=key_size)
 
-        private_file_path = local_filesystem.getEncodedPath(private_file)
-        public_file_path = local_filesystem.getEncodedPath(public_file)
-
-        with open_method(private_file_path, 'wb') as file_handler:
+        with open_method(_path(private_file), 'wb') as file_handler:
             _store_OpenSSH(key, private_file=file_handler)
 
         key_comment = None
@@ -145,7 +142,7 @@ def generate_ssh_key(options, open_method=None):
         else:
             message_comment = u'without a comment'
 
-        with open_method(public_file_path, 'wb') as file_handler:
+        with open_method(_path(public_file), 'wb') as file_handler:
             _store_OpenSSH(key, public_file=file_handler, comment=key_comment)
 
         message = (
