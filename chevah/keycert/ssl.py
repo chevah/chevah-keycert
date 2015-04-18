@@ -194,7 +194,7 @@ def _generate_csr(options):
 
     try:
         csr.sign(key, 'sha256')
-    except ValueError:
+    except ValueError:  # pragma: no cover
         # If SHA256 is not supported, fallback to sha1.
         csr.sign(key, 'sha1')
 
