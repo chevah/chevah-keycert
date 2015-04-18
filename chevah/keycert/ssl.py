@@ -139,6 +139,9 @@ def _generate_csr(options):
     """
     Helper to catch all crypto errors and reduce indentation.
     """
+    if options.key_size < 512:
+        raise KeyCertException('Key size must be greater than 512.')
+
     key_type = crypto.TYPE_RSA
 
     csr = crypto.X509Req()

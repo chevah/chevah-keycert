@@ -38,7 +38,7 @@ export LC_ALL='C'
 export LC_CTYPE='C'
 export LC_COLLATE='C'
 export LC_MESSAGES='C'
-export PATH=$PATH:'/sbin:/usr/sbin:/usr/local/bin'
+export PATH=$PATH:'/sbin:/usr/sbin:/usr/local/bin:/opt/csw/bin/'
 
 #
 # Global variables.
@@ -221,8 +221,16 @@ distributable_python() {
     rm -rf ${PYTHON_VERSION}-${OS}-${ARCH}
 
     pushd $destination
+
+        execute wget \
+            --no-check-certificate https://bootstrap.pypa.io/ez_setup.py \
+            -O ez_setup.py
+        execute $python_bin ez_setup.py
+
         execute wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py
-        execute $python_bin get-pip.py
+        execute $python_bin get-pip.py \
+            --index-url=http://chevah.com/pypi/simple/ \
+            --trusted-host=chevah.com
     popd
 }
 
@@ -384,12 +392,22 @@ detect_os() {
     fi
 }
 
-if [ $OS = "ubuntu1204" -a $ARCH = "x86" ]; then
+detect_os
+update_path_variables
+
+if [ "$OS" = "ubuntu1204" -a "$ARCH" = "x86" ]; then
     OS='linux'
 fi
 
-detect_os
-update_path_variables
+case $OS in
+    solaris*|aix*|hpux*)
+        MAKE=gmake
+        ;;
+    *)
+        MAKE=make
+        ;;
+esac
+
 
 if [ "$COMMAND" = "clean" ] ; then
     clean_build
@@ -397,12 +415,12 @@ if [ "$COMMAND" = "clean" ] ; then
 fi
 
 if [ "$COMMAND" = "ci_deps" ] ; then
-    make ci_deps
+    $MAKE ci_deps
     exit $?
 fi
 
 if [ "$COMMAND" = "ci_test" ] ; then
-    make ci_test
+    $MAKE ci_test
     exit $?
 fi
 
