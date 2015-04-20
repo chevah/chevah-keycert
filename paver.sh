@@ -38,7 +38,7 @@ export LC_ALL='C'
 export LC_CTYPE='C'
 export LC_COLLATE='C'
 export LC_MESSAGES='C'
-export PATH=$PATH:'/sbin:/usr/sbin:/usr/local/bin:/opt/csw/bin/'
+export PATH=$PATH:'/sbin:/usr/sbin:/usr/local/bin'
 
 #
 # Global variables.
@@ -49,7 +49,7 @@ WAS_PYTHON_JUST_INSTALLED=0
 DIST_FOLDER='dist'
 
 # Path global variables.
-BUILD_FOLDER="build"
+BUILD_FOLDER=""
 CACHE_FOLDER="cache"
 PYTHON_BIN=""
 PYTHON_LIB=""
@@ -153,6 +153,7 @@ update_path_variables() {
         PYTHON_LIB="/lib/${PYTHON_VERSION}/"
     fi
 
+    BUILD_FOLDER="build-${OS}-${ARCH}"
     PYTHON_BIN="${BUILD_FOLDER}${PYTHON_BIN}"
     PYTHON_LIB="${BUILD_FOLDER}${PYTHON_LIB}"
 
@@ -161,6 +162,59 @@ update_path_variables() {
     export PYTHONPATH=${BUILD_FOLDER}
 }
 
+
+write_default_values() {
+    echo ${BUILD_FOLDER} ${PYTHON_VERSION} ${OS} ${ARCH} > DEFAULT_VALUES
+}
+
+
+#
+# Install brink package.
+#
+install_brink() {
+    if [ "$BRINK_VERSION" = "skip" ]; then
+        echo "Skipping brink installation."
+        return
+    fi
+
+    echo "Installing version: chevah-brink==$BRINK_VERSION of brink..."
+
+    pip install "chevah-brink==$BRINK_VERSION"
+}
+
+
+#
+# Wrapper for python pip command.
+# * $1 - command name
+# * $2 - package_name and optional version.
+#
+pip() {
+    set +e
+    ${PYTHON_BIN} -m \
+        pip.__init__ $1 $2 \
+            --index-url=$PIP_INDEX/simple \
+            --download-cache=${CACHE_FOLDER} \
+            --find-links=file://${CACHE_FOLDER} \
+            --upgrade
+
+    exit_code=$?
+    set -e
+    if [ $exit_code -ne 0 ]; then
+        echo "Failed to install brink."
+        exit 1
+    fi
+}
+
+
+#
+# Download and extract a binary distribution in cache folder.
+#
+get_binary_dist() {
+    mkdir -p ${CACHE_FOLDER}
+    pushd ${CACHE_FOLDER}
+        get_tar_tz $1 $2
+    popd
+}
 
 
 #
@@ -189,6 +243,72 @@ get_tar_tz() {
 
 
 #
+# Copy python to build folder from binary distribution.
+#
+copy_python() {
+
+    local python_distributable="${CACHE_FOLDER}/${PYTHON_VERSION}-${OS}-${ARCH}"
+    local pip_package="pip-$PIP_VERSION"
+    local setuptools_package="setuptools-$SETUPTOOLS_VERSION"
+
+    # Check that python dist was installed
+    if [ ! -s ${PYTHON_BIN} ]; then
+        # Install python-dist since everything else depends on it.
+        echo "Bootstraping ${PYTHON_VERSION} environment to ${BUILD_FOLDER}..."
+        mkdir -p ${BUILD_FOLDER}
+
+        # If we don't have a cached python distributable,
+        # get one together with default build system.
+        if [ ! -d ${python_distributable} ]; then
+            echo "No ${PYTHON_VERSION} environment. Start downloading it..."
+            get_binary_dist \
+                ${PYTHON_VERSION}-${OS}-${ARCH} "$BINARY_DIST_URI/python"
+        fi
+        echo "Copying bootstraping files... "
+        cp -R ${python_distributable}/* ${BUILD_FOLDER}
+
+        # Backwards compatibility with python 2.5 build.
+        if [[ "$PYTHON_VERSION" = "python2.5" ]]; then
+            # Copy include files.
+            if [ -d ${BUILD_FOLDER}/lib/config/include ]; then
+                cp -r ${BUILD_FOLDER}/lib/config/include ${BUILD_FOLDER}
+            fi
+
+            # Copy pywintypes25.dll as it is required by paver on windows.
+            if [ "$OS" = "windows" ]; then
+                cp -R ${BUILD_FOLDER}/lib/pywintypes25.dll . || true
+            fi
+        fi
+
+        if [ ! -d ${CACHE_FOLDER}/$pip_package ]; then
+            echo "No ${pip_package}. Start downloading it..."
+            get_binary_dist "$pip_package" "$PIP_INDEX/packages"
+        fi
+        cp -RL "${CACHE_FOLDER}/$pip_package/pip" ${PYTHON_LIB}/site-packages/
+
+        if [ ! -d ${CACHE_FOLDER}/$setuptools_package ]; then
+            echo "No ${setuptools_package}. Start downloading it..."
+            get_binary_dist "$setuptools_package" "$PIP_INDEX/packages"
+        fi
+        cp -RL "${CACHE_FOLDER}/$setuptools_package/setuptools" \
+            ${PYTHON_LIB}/site-packages/
+        cp -RL "${CACHE_FOLDER}/$setuptools_package/setuptools.egg-info" \
+            ${PYTHON_LIB}/site-packages/
+        cp "${CACHE_FOLDER}/$setuptools_package/pkg_resources.py" \
+            ${PYTHON_LIB}/site-packages/
+        cp "${CACHE_FOLDER}/$setuptools_package/easy_install.py" \
+            ${PYTHON_LIB}/site-package
+
+        # Once we have pip, we can use it.
+        pip install "paver==$PAVER_VERSION"
+
+        WAS_PYTHON_JUST_INSTALLED=1
+    fi
+
+}
+
+
+#
 # Make sure a python environment is available at path.
 #
 distributable_python() {
@@ -203,10 +323,8 @@ distributable_python() {
 
     if [ "${OS}" = "windows" ] ; then
         local python_bin="python.exe"
-        local venv_path=${PYTHON_VERSION}-${OS}-${ARCH}/lib
     else
         local python_bin="bin/python"
-        local venv_path=${PYTHON_VERSION}-${OS}-${ARCH}
     fi
 
     # Check that python dist was installed
@@ -217,21 +335,49 @@ distributable_python() {
     get_tar_tz ${PYTHON_VERSION}-${OS}-${ARCH} "$BINARY_DIST_URI/python"
     echo "Bootstraping ${PYTHON_VERSION} environment to $destination..."
     # Our Windows python-package has the venv in lib folder.
-    mv ${venv_path} $destination
+    mv ${PYTHON_VERSION}-${OS}-${ARCH}/lib $destination
     rm -rf ${PYTHON_VERSION}-${OS}-${ARCH}
 
     pushd $destination
-
-        execute wget \
-            --no-check-certificate https://bootstrap.pypa.io/ez_setup.py \
-            -O ez_setup.py
-        execute $python_bin ez_setup.py
-
         execute wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py
-        execute $python_bin get-pip.py \
-            --index-url=http://chevah.com/pypi/simple/ \
-            --trusted-host=chevah.com
+        execute $python_bin get-pip.py
     popd
+}
+
+#
+# Install dependencies after python was just installed.
+#
+install_dependencies(){
+
+    if [ $WAS_PYTHON_JUST_INSTALLED -ne 1 ]; then
+        return
+    fi
+
+    install_brink
+
+    set +e
+    ${PYTHON_BIN} -c 'from paver.tasks import main; main()' deps
+    exit_code=$?
+    set -e
+    if [ $exit_code -ne 0 ]; then
+        echo 'Failed to run the initial "paver deps" command.'
+        exit 1
+    fi
+}
+
+
+#
+# Check that we have a pavement.py in the current dir.
+# otherwise it means we are out of the source folder and paver can not be
+# used there.
+#
+check_source_folder() {
+
+    if [ ! -e pavement.py ]; then
+        echo 'No pavement.py file found in current folder.'
+        echo 'Make sure you are running paver from a source folder.'
+        exit 1
+    fi
 }
 
 
@@ -395,36 +541,46 @@ detect_os() {
 detect_os
 update_path_variables
 
-if [ "$OS" = "ubuntu1204" -a "$ARCH" = "x86" ]; then
-    OS='linux'
-fi
-
-case $OS in
-    solaris*|aix*|hpux*)
-        MAKE=gmake
-        ;;
-    *)
-        MAKE=make
-        ;;
-esac
-
-
 if [ "$COMMAND" = "clean" ] ; then
     clean_build
     exit 0
 fi
 
-if [ "$COMMAND" = "ci_deps" ] ; then
-    $MAKE ci_deps
-    exit $?
+if [ "$COMMAND" = "detect_os" ] ; then
+    write_default_values
+    exit 0
 fi
 
-if [ "$COMMAND" = "ci_test" ] ; then
-    $MAKE ci_test
-    exit $?
+if [ "$COMMAND" = "get_python" ] ; then
+    get_binary_dist $2 "$BINARY_DIST_URI/python"
+    exit 0
+fi
+
+if [ "$COMMAND" = "get_agent" ] ; then
+    get_binary_dist $2 "$BINARY_DIST_URI/agent"
+    exit 0
 fi
 
 if [ "$COMMAND" = "distributable_python" ] ; then
     distributable_python $2
     exit $?
 fi
+
+check_source_folder
+write_default_values
+copy_python
+install_dependencies
+
+# Always update brink when running buildbot tasks.
+for paver_task in "deps" "test_os_dependent" "test_os_independent"; do
+    if [ "$COMMAND" == "$paver_task" ] ; then
+        install_brink
+    fi
+done
+
+# Now that we have Python and Paver, let's call Paver from Python :)
+set +e
+${PYTHON_BIN} -c 'from paver.tasks import main; main()' "$@"
+exit_code=$?
+set -e
+exit $exit_code

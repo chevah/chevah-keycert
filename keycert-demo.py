@@ -19,7 +19,7 @@ from chevah.keycert.ssl import (
     generate_and_store_csr,
     )
 
-parser = argparse.ArgumentParser(prog='PROG')
+parser = argparse.ArgumentParser(prog='PROG', prefix_chars='-+')
 subparser = parser.add_subparsers(
             help='Available sub-commands', dest='sub_command')
 

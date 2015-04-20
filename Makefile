@@ -64,19 +64,12 @@ endif
 dev_deps:
 	@$(BASE_PATH)/pip install buildbot
 
-git_push:
-	@echo 'Sending commited changes before sending patch'
-	@git push
-
-test_remote: git_push
+test_remote:
 ifeq "$(TARGET)" ""
 	$(BUILDBOT_TRY) --get-builder-names | grep keycert
 else
 	$(BUILDBOT_TRY) -b $(TARGET)
 endif
 
-test_remote_with_clean: git_push
+test_remote_with_clean:
 	$(BUILDBOT_TRY) -b $(TARGET) --properties=force_clean=yes
-
-test_remote_with_wait: git_push
-	$(BUILDBOT_TRY) -b $(TARGET) --wait

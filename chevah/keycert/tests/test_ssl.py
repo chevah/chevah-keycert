@@ -190,8 +190,7 @@ class Test_generate_csr(CommandLineTestBase):
         with self.assertRaises(KeyCertException) as context:
             generate_csr(options)
 
-        self.assertEqual(
-            'Key size must be greater than 512.', context.exception.message)
+        self.assertEqual('key size too small', context.exception.message)
 
     def test_bad_country_long(self):
         """
