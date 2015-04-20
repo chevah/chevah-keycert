@@ -1798,16 +1798,26 @@ class Testgenerate_ssh_key(EmpiricalTestCase, CommandLineMixin):
             help='Available sub-commands', dest='sub_command')
         generate_ssh_key_parser(subparser, self.sub_command_name)
 
+    def assertPathEqual(self, expected, actual):
+        """
+        Check that pats are equal.
+        """
+        if self.os_family == 'posix':
+            expected = expected.encode('utf-8')
+        self.assertEqual(expected, actual)
+
     def test_generate_ssh_key_custom_values(self):
         """
         When custom values are provided, the key is generated using those
         values.
         """
+        file_name = mk.string()
+        file_name_pub = file_name + u'.pub'
         options = self.parseArguments([
             self.sub_command_name,
             '--key-size=512',
             '--key-type=DSA',
-            '--key-file=test_file',
+            u'--key-file=' + file_name,
             '--key-comment=this is a comment',
             ])
         open_method = DummyOpenContext()
@@ -1820,14 +1830,14 @@ class Testgenerate_ssh_key(EmpiricalTestCase, CommandLineMixin):
 
         # First it writes the private key.
         first_file = open_method.calls.pop(0)
-        self.assertEqual('test_file', first_file['path'])
+        self.assertPathEqual(file_name, first_file['path'])
         self.assertEqual('wb', first_file['mode'])
         self.assertEqual(
             key.toString('openssh'), first_file['stream'].getvalue())
 
         # Second it writes the public key.
         second_file = open_method.calls.pop(0)
-        self.assertEqual('test_file.pub', second_file['path'])
+        self.assertPathEqual(file_name_pub, second_file['path'])
         self.assertEqual('wb', second_file['mode'])
         self.assertEqual(
             key.public().toString('openssh', 'this is a comment'),
@@ -1835,8 +1845,9 @@ class Testgenerate_ssh_key(EmpiricalTestCase, CommandLineMixin):
 
         self.assertEqual(
             u'SSH key of type "dsa" and length "512" generated as public '
-            u'key file "test_file.pub" and private key file "test_file" '
-            u'having comment "this is a comment".',
+            u'key file "%s" and private key file "%s" '
+            u'having comment "this is a comment".' % (
+                file_name_pub, file_name),
             message,
             )
         self.assertEqual(0, exit_code)
@@ -1861,14 +1872,14 @@ class Testgenerate_ssh_key(EmpiricalTestCase, CommandLineMixin):
 
         # First it writes the private key.
         first_file = open_method.calls.pop(0)
-        self.assertEqual('id_rsa', first_file['path'])
+        self.assertPathEqual(u'id_rsa', first_file['path'])
         self.assertEqual('wb', first_file['mode'])
         self.assertEqual(
             key.toString('openssh'), first_file['stream'].getvalue())
 
         # Second it writes the public key.
         second_file = open_method.calls.pop(0)
-        self.assertEqual('id_rsa.pub', second_file['path'])
+        self.assertPathEqual(u'id_rsa.pub', second_file['path'])
         self.assertEqual('wb', second_file['mode'])
         self.assertEqual(
             key.public().toString('openssh'), second_file['stream'].getvalue())

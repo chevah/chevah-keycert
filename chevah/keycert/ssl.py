@@ -139,6 +139,9 @@ def _generate_csr(options):
     """
     Helper to catch all crypto errors and reduce indentation.
     """
+    if options.key_size < 512:
+        raise KeyCertException('Key size must be greater or equal to 512.')
+
     key_type = crypto.TYPE_RSA
 
     csr = crypto.X509Req()
@@ -188,7 +191,12 @@ def _generate_csr(options):
 
     csr.add_extensions(extensions)
     csr.set_pubkey(key)
-    csr.sign(key, 'sha256')
+
+    try:
+        csr.sign(key, 'sha256')
+    except ValueError:  # pragma: no cover
+        # If SHA256 is not supported, fallback to sha1.
+        csr.sign(key, 'sha1')
 
     csr_pem = crypto.dump_certificate_request(crypto.FILETYPE_PEM, csr)
     if options.key_password:
