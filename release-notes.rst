@@ -2,6 +2,13 @@ Relese notes for Chevah KeyCert
 ###############################
 
 
+1.3.3 - 17/04/2015
+==================
+
+* Fall back to sha1 when sha256 is not available on OS to sign CSR.
+* Don't allow creating RSA keys less than 512.
+
+
 1.3.2 - 14/04/2015
 ==================
 

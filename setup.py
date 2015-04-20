@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.3.2'
+VERSION = '1.3.3'
 
 
 class NoseTestCommand(TestCommand):
@@ -120,7 +120,7 @@ setup(
             'chevah-empirical ==0.33.1',
             'pyflakes ==0.8.1',
             'pocketlint ==1.4.4.c10',
-            'pep8 ==1.6.1',
+            'pep8 ==1.6.2',
             'nose',
             'mock',
             'bunch',
