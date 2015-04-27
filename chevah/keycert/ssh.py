@@ -157,9 +157,9 @@ def generate_ssh_key(options, open_method=None):
 
         exit_code = 0
 
-    except KeyCertException, error:
+    except Exception as error:
         exit_code = 1
-        message = error.message
+        message = str(error)
 
     return (exit_code, message, key)
 

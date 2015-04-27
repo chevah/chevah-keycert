@@ -2,6 +2,12 @@ Relese notes for Chevah KeyCert
 ###############################
 
 
+1.3.5 - 27/04/2015
+==================
+
+* Handle all errors when writing files on disk.
+
+
 1.3.4 - 20/04/2015
 ==================
 

@@ -228,8 +228,11 @@ def generate_and_store_csr(options, encoding='utf-8'):
 
     result = generate_csr(options)
 
-    with open(_path(options.key_file, encoding), 'wb') as store_file:
-        store_file.write(result['key_pem'])
+    try:
+        with open(_path(options.key_file, encoding), 'wb') as store_file:
+            store_file.write(result['key_pem'])
 
-    with open(_path(csr_name, encoding), 'wb') as store_file:
-        store_file.write(result['csr_pem'])
+        with open(_path(csr_name, encoding), 'wb') as store_file:
+            store_file.write(result['csr_pem'])
+    except Exception, error:
+        raise KeyCertException(str(error))
