@@ -16,10 +16,12 @@ import Crypto
 
 # Twisted test compatibility.
 from chevah.keycert import ssh as keys, common, sexpy
-from chevah.keycert.ssh import (
+from chevah.keycert.exceptions import (
     BadKeyError,
     KeyCertException,
     EncryptedKeyError,
+    )
+from chevah.keycert.ssh import (
     Key,
     generate_ssh_key,
     generate_ssh_key_parser,
@@ -1961,3 +1963,21 @@ class Testgenerate_ssh_key(EmpiricalTestCase, CommandLineMixin):
         self.assertEqual(u'Public key already exists. %s' % path, message)
         # Open is not called.
         self.assertIsEmpty(open_method.calls)
+
+    def test_generate_ssh_key_fail_to_write(self):
+        """
+        Will return an error when failing to write the key.
+        """
+        options = self.parseArguments([
+            self.sub_command_name,
+            '--key-type=RSA',
+            '--key-size=1024',
+            '--key-file', 'no-such-parent/ssh.key',
+            ])
+
+        exit_code, message, key = generate_ssh_key(options)
+
+        self.assertEqual(1, exit_code)
+        self.assertEqual(
+            "[Errno 2] No such file or directory: 'no-such-parent/ssh.key'",
+            message)
