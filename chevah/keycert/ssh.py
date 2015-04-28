@@ -23,9 +23,12 @@ from pyasn1.type import univ
 
 from chevah.compat import local_filesystem
 
-from chevah.keycert import _path
-from chevah.keycert import common, sexpy
-
+from chevah.keycert import common, sexpy, _path
+from chevah.keycert.exceptions import (
+    BadKeyError,
+    EncryptedKeyError,
+    KeyCertException,
+    )
 
 DEFAULT_PUBLIC_KEY_EXTENSION = u'.pub'
 DEFAULT_KEY_SIZE = 1024
@@ -33,27 +36,6 @@ DEFAULT_KEY_TYPE = 'rsa'
 SSHCOM_MAGIC_NUMBER = int('3f6ff9eb', base=16)
 PUTTY_HMAC_KEY = 'putty-private-key-file-mac-key'
 ID_SHA1 = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
-
-
-class BadKeyError(Exception):
-    """
-    Raised when a key isn't what we expected from it.
-
-    XXX: we really need to check for bad keys
-    """
-
-
-class EncryptedKeyError(Exception):
-    """
-    Raised when an encrypted key is presented to fromString/fromFile without
-    a password.
-    """
-
-
-class KeyCertException(Exception):
-    """
-    General exception raised by this module.
-    """
 
 
 def generate_ssh_key_parser(
@@ -157,9 +139,12 @@ def generate_ssh_key(options, open_method=None):
 
         exit_code = 0
 
-    except KeyCertException, error:
+    except KeyCertException as error:
         exit_code = 1
         message = error.message
+    except Exception as error:
+        exit_code = 1
+        message = str(error)
 
     return (exit_code, message, key)
 
@@ -1607,7 +1592,7 @@ def objectType(obj):
     try:
         return keyDataMapping[tuple(obj.keydata)]
     except (KeyError, AttributeError):
-        raise BadKeyError("invalid key object", obj)
+        raise BadKeyError("invalid key object")
 
 
 def pkcs1Pad(data, messageLength):

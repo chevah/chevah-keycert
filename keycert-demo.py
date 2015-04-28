@@ -32,8 +32,8 @@ sub.set_defaults(handler=generate_and_store_csr)
 options = parser.parse_args()
 
 try:
-    options.handler(options)
-    print('command succeed')
+    result = options.handler(options)
+    print(result)
 except KeyCertException as error:
     print(error)
     sys.exit(1)

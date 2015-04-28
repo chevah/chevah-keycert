@@ -358,3 +358,21 @@ class Test_generate_and_store_csr(CommandLineTestBase):
         csr_content = mk.fs.getFileContent(csr_segments)
         csr = crypto.load_certificate_request(crypto.FILETYPE_PEM, csr_content)
         self.assertEqual(u'domain.com', csr.get_subject().CN)
+
+    def test_store_error(self):
+        """
+        Raise an exception when failing to write the file.
+        """
+        options = self.parseArguments([
+            self.command_name,
+            '--common-name=domain.com',
+            '--key-file', 'no-such/parent/key.file',
+            '--key-size=512',
+            ])
+
+        with self.assertRaises(KeyCertException) as context:
+            generate_and_store_csr(options)
+
+        self.assertEqual(
+            "[Errno 2] No such file or directory: 'no-such/parent/key.file'",
+            context.exception.message)
