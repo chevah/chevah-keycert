@@ -117,6 +117,8 @@ setup(
 
     extras_require={
         'dev': [
+            'zope.interface',
+            'future',
             'chevah-empirical ==0.33.1',
             'pyflakes ==0.8.1',
             'pocketlint ==1.4.4.c10',
