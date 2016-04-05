@@ -849,7 +849,7 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         self.assertRaises(
             keys.BadKeyError, keys.Key(self.rsaObj).toString, 'bad_type')
 
-    def test_fromBlob(self):
+    def test_fromString_BLOB(self):
         """
         Test that a public key is correctly generated from a public key blob.
         """
@@ -864,8 +864,7 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         self.assertEqual(rsaKey.data(), {'e': 2L, 'n': 3L})
         self.assertTrue(dsaKey.isPublic())
         self.assertEqual(dsaKey.data(), {'p': 2L, 'q': 3L, 'g': 4L, 'y': 5L})
-        self.assertRaises(
-            keys.BadKeyError, keys.Key.fromString, badBlob)
+        self.assertBadKey(badBlob, "Unknown blob type: ssh-bad.")
 
     def test_fromString_PRIVATE_BLOB(self):
         """
@@ -1204,6 +1203,13 @@ SUrCyZXsNh6VXwjs3gKQ
         """
         content = """---- BEGIN SSH2 PUBLIC KEY ----
 AAAAB3NzaC1yc2EA
+---- END SSH2 PUBLIC KEY ----"""
+
+        self.assertKeyParseError(content)
+
+        # This will parse without errors but the blob is invalid
+        content = """---- BEGIN SSH2 PUBLIC KEY ----
+Th5wpEcw1o9yIr1kTGs
 ---- END SSH2 PUBLIC KEY ----"""
 
         self.assertKeyParseError(content)

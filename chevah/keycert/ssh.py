@@ -299,7 +299,7 @@ class Key(object):
             # Most probably some parts are missing from the key, so
             # we consider it too short.
             raise BadKeyError('Key is too short.')
-        except (struct.error,  binascii.Error, TypeError):
+        except (struct.error,  binascii.Error, TypeError, AssertionError):
             raise BadKeyError('Fail to parse key content.')
 
     def toString(self, type, extra=None):
@@ -636,7 +636,7 @@ class Key(object):
             p, q, g, y, rest = common.getMP(rest, 4)
             return cls(DSA.construct((y, g, p, q)))
         else:
-            raise BadKeyError('unknown blob type: %s' % keyType)
+            raise BadKeyError('Unknown blob type: %s.' % keyType)
 
     @classmethod
     def _fromString_PRIVATE_BLOB(cls, blob):
@@ -676,7 +676,7 @@ class Key(object):
             dsakey = cls(DSA.construct((y, g, p, q, x)))
             return dsakey
         else:
-            raise BadKeyError('unknown blob type: %s' % keyType)
+            raise BadKeyError('Unknown blob type: %s.' % keyType)
 
     @classmethod
     def _fromString_PUBLIC_OPENSSH(cls, data):
@@ -690,6 +690,7 @@ class Key(object):
         @raises BadKeyError: if the blob type is unknown.
         """
         blob = base64.decodestring(data.split()[1])
+        assert cls._guessStringType(blob) == 'blob'
         return cls._fromString_BLOB(blob)
 
     @classmethod
@@ -1074,6 +1075,7 @@ class Key(object):
         @raises BadKeyError: if the blob type is unknown.
         """
         blob = cls._getSSHCOMKeyContent(data)
+        assert cls._guessStringType(blob) == 'blob'
         return cls._fromString_BLOB(blob)
 
     @classmethod
