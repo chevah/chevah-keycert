@@ -859,14 +859,23 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
             common.NS('ssh-dss') + common.MP(2) + common.MP(3) +
             common.MP(4) + common.MP(5))
         dsaKey = keys.Key.fromString(dsaBlob)
-        badBlob = common.NS('ssh-\xbd\xbd\xbd')
         badKey = common.NS('ssh-bad')
         self.assertTrue(rsaKey.isPublic())
         self.assertEqual(rsaKey.data(), {'e': 2L, 'n': 3L})
         self.assertTrue(dsaKey.isPublic())
         self.assertEqual(dsaKey.data(), {'p': 2L, 'q': 3L, 'g': 4L, 'y': 5L})
-        self.assertBadKey(badBlob, 'Invalid non-ascii blob type.')
         self.assertBadKey(badKey, 'Unknown blob type: \'ssh-bad\'')
+
+    def test_fromString_BLOB_blob_type_non_ascii(self):
+        """
+        Raise with printable information for the bad type,
+        even if blob type has non-ascii data.
+        """
+        badBlob = common.NS('ssh-\xbd\xbd\xbd')
+        self.assertBadKey(
+            badBlob,
+            'Unknown blob type: \'ssh-\\xbd\\xbd\\xbd\''
+            )
 
     def test_fromString_PRIVATE_BLOB(self):
         """
@@ -945,15 +954,6 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         Raise an exception when key blob has a bad format.
         """
         self.assertKeyParseError('ssh-rsa AAAAB3NzaC1yc2EA')
-
-    def test_fromString_PUBLIC_OPENSSH_invalid_blob(self):
-        """
-        Raise an exception when key blob content is invalid.
-        """
-        self.assertBadKey(
-            'ssh-rsa Th5wpEcw1o9yIr1kTGsi7PbE3gphQEACMUmj',
-            'Fail to parse OpenSSH key content.'
-            )
 
     def test_fromString_PUBLIC_OPENSSH_DSA(self):
         """
@@ -1221,17 +1221,8 @@ SUrCyZXsNh6VXwjs3gKQ
         content = """---- BEGIN SSH2 PUBLIC KEY ----
 AAAAB3NzaC1yc2EA
 ---- END SSH2 PUBLIC KEY ----"""
+
         self.assertKeyParseError(content)
-
-    def test_fromString_PUBLIC_SSHCOM_RSA_invalid_blob(self):
-        """
-        Raise an exception when key has a good format but content is invalid.
-        """
-        content = """---- BEGIN SSH2 PUBLIC KEY ----
-Th5wpEcw1o9yIr1kTGsi7PbE3gphQEACMUmj
----- END SSH2 PUBLIC KEY ----"""
-
-        self.assertBadKey(content, 'Fail to parse SSH.com key content.')
 
     def test_toString_SSHCOM_RSA_public_no_headers(self):
         """

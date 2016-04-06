@@ -630,12 +630,6 @@ class Key(object):
         """
         keyType, rest = common.getNS(blob)
 
-        try:
-            # keyType is supposed to contain only ascii characters
-            keyType.decode('ascii')
-        except UnicodeDecodeError:
-            raise BadKeyError('Invalid non-ascii blob type.')
-
         if keyType == 'ssh-rsa':
             e, n, rest = common.getMP(rest, 2)
             return cls(RSA.construct((n, e)))
@@ -683,7 +677,7 @@ class Key(object):
             dsakey = cls(DSA.construct((y, g, p, q, x)))
             return dsakey
         else:
-            raise BadKeyError('Unknown blob type: %r' % keyType)
+            raise BadKeyError('Unknown blob type: %r' % keyType[:30])
 
     @classmethod
     def _fromString_PUBLIC_OPENSSH(cls, data):
@@ -697,8 +691,6 @@ class Key(object):
         @raises BadKeyError: if the blob type is unknown.
         """
         blob = base64.decodestring(data.split()[1])
-        if cls._guessStringType(blob) != 'blob':
-            raise BadKeyError("Fail to parse OpenSSH key content.")
         return cls._fromString_BLOB(blob)
 
     @classmethod
@@ -1086,9 +1078,6 @@ class Key(object):
             raise BadKeyError("Fail to find END tag for SSH.com key.")
 
         blob = cls._getSSHCOMKeyContent(data)
-
-        if cls._guessStringType(blob) != 'blob':
-            raise BadKeyError("Fail to parse SSH.com key content.")
         return cls._fromString_BLOB(blob)
 
     @classmethod
