@@ -5,10 +5,26 @@ Common functions for the all classes from this package.
 
 Forked from twisted.conch.ssh.common
 """
-import __builtin__
-import struct
 
+from __future__ import absolute_import, division
 from Crypto import Util
+
+import struct
+import sys
+
+_PY3 = sys.version_info > (3,)
+if _PY3:
+    long = int
+
+    def iterbytes(originalBytes):
+        for i in range(len(originalBytes)):
+            yield originalBytes[i:i + 1]
+else:
+    # So we can import from this module
+    long = long
+
+    def iterbytes(originalBytes):
+        return originalBytes
 
 
 def NS(t):
@@ -33,11 +49,11 @@ def getNS(s, count=1):
 
 def MP(number):
     if number == 0:
-        return '\000' * 4
+        return b'\000' * 4
     assert number > 0
     bn = Util.number.long_to_bytes(number)
     if ord(bn[0]) & 128:
-        bn = '\000' + bn
+        bn = b'\000' + bn
     return struct.pack('>L', len(bn)) + bn
 
 
@@ -59,7 +75,8 @@ def getMP(data, count=1):
 
 
 def _MPpow(x, y, z):
-    """return the MP version of (x**y)%z
+    """
+    Return the MP version of C{(x ** y) % z}.
     """
     return MP(pow(x, y, z))
 
@@ -76,7 +93,7 @@ def _fastgetMP(data, count=1):
     for i in range(count):
         length = struct.unpack('!L', data[c:c + 4])[0]
         mp.append(
-            long(gmpy.mpz(data[c + 4:c + 4 + length][::-1] + '\x00', 256)))
+            long(gmpy.mpz(data[c + 4:c + 4 + length][::-1] + b'\x00', 256)))
         c += length + 4
     return tuple(mp) + (data[c:],)
 
@@ -102,8 +119,11 @@ def install():
         if type(x) in (long, int):
             x = mpz(x)
         return pyPow(x, y, z)
-    __builtin__.pow = _fastpow  # Ugly way of patching pow.
-
+    if not _PY3:
+        import __builtin__
+        __builtin__.pow = _fastpow  # Ugly way of patching pow.
+    else:
+        __builtins__['pow'] = _fastpow
 
 try:
     import gmpy

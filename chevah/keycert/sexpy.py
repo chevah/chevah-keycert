@@ -6,19 +6,21 @@ S-expression read / write.
 Forked from twisted.conch.ssh.sexpy
 """
 
+from chevah.keycert.common import _PY3
+
 
 def parse(s):
     s = s.strip()
     expr = []
     while s:
-        if s[0] == '(':
+        if s[0:1] == b'(':
             newSexp = []
             if expr:
                 expr[-1].append(newSexp)
             expr.append(newSexp)
             s = s[1:]
             continue
-        if s[0] == ')':
+        if s[0:1] == b')':
             aList = expr.pop()
             s = s[1:]
             if not expr:
@@ -26,7 +28,7 @@ def parse(s):
                 return aList
             continue
         i = 0
-        while s[i].isdigit():
+        while s[i:i + 1].isdigit():
             i += 1
         assert i
         length = int(s[:i])
@@ -37,12 +39,16 @@ def parse(s):
 
 
 def pack(sexp):
-    s = ""
+    s = b''
     for o in sexp:
         if type(o) in (type(()), type([])):
-            s += '('
+            s += b'('
             s += pack(o)
-            s += ')'
+            s += b')'
         else:
-            s += '%i:%s' % (len(o), o)
+            if _PY3:
+                s += ("%d" % len(o)).encode('ascii')
+            else:
+                s += b"%d" % len(o)
+            s += b":" + o
     return s
