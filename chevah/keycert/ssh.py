@@ -299,7 +299,7 @@ class Key(object):
             # Most probably some parts are missing from the key, so
             # we consider it too short.
             raise BadKeyError('Key is too short.')
-        except (struct.error,  binascii.Error, TypeError, AssertionError):
+        except (struct.error,  binascii.Error, TypeError):
             raise BadKeyError('Fail to parse key content.')
 
     def toString(self, type, extra=None):
@@ -629,6 +629,12 @@ class Key(object):
         @raises BadKeyError: if the key type (the first string) is unknown.
         """
         keyType, rest = common.getNS(blob)
+
+        try:
+            keyType.decode('ascii')
+        except UnicodeDecodeError:
+            raise BadKeyError('Invalid non-ascii blob type.')
+
         if keyType == 'ssh-rsa':
             e, n, rest = common.getMP(rest, 2)
             return cls(RSA.construct((n, e)))
@@ -636,7 +642,7 @@ class Key(object):
             p, q, g, y, rest = common.getMP(rest, 4)
             return cls(DSA.construct((y, g, p, q)))
         else:
-            raise BadKeyError('Unknown blob type: %s.' % keyType)
+            raise BadKeyError('Unknown blob type: %r' % keyType)
 
     @classmethod
     def _fromString_PRIVATE_BLOB(cls, blob):
@@ -676,7 +682,7 @@ class Key(object):
             dsakey = cls(DSA.construct((y, g, p, q, x)))
             return dsakey
         else:
-            raise BadKeyError('Unknown blob type: %s.' % keyType)
+            raise BadKeyError('Unknown blob type: %r' % keyType)
 
     @classmethod
     def _fromString_PUBLIC_OPENSSH(cls, data):
@@ -690,7 +696,8 @@ class Key(object):
         @raises BadKeyError: if the blob type is unknown.
         """
         blob = base64.decodestring(data.split()[1])
-        assert cls._guessStringType(blob) == 'blob'
+        if cls._guessStringType(blob) != 'blob':
+            raise BadKeyError("Fail to parse OpenSSH key content.")
         return cls._fromString_BLOB(blob)
 
     @classmethod
@@ -1074,8 +1081,13 @@ class Key(object):
         @return: A {Crypto.PublicKey.pubkey.pubkey} object
         @raises BadKeyError: if the blob type is unknown.
         """
+        if not data.strip().endswith('---- END SSH2 PUBLIC KEY ----'):
+            raise BadKeyError("Fail to find END tag for SSH.com key.")
+
         blob = cls._getSSHCOMKeyContent(data)
-        assert cls._guessStringType(blob) == 'blob'
+
+        if cls._guessStringType(blob) != 'blob':
+            raise BadKeyError("Fail to parse SSH.com key content.")
         return cls._fromString_BLOB(blob)
 
     @classmethod
