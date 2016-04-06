@@ -631,6 +631,7 @@ class Key(object):
         keyType, rest = common.getNS(blob)
 
         try:
+            # keyType is supposed to contain only ascii characters
             keyType.decode('ascii')
         except UnicodeDecodeError:
             raise BadKeyError('Invalid non-ascii blob type.')
@@ -642,7 +643,7 @@ class Key(object):
             p, q, g, y, rest = common.getMP(rest, 4)
             return cls(DSA.construct((y, g, p, q)))
         else:
-            raise BadKeyError('Unknown blob type: %r' % keyType)
+            raise BadKeyError('Unknown blob type: %r' % keyType[:30])
 
     @classmethod
     def _fromString_PRIVATE_BLOB(cls, blob):
