@@ -12,6 +12,7 @@ import hmac
 import itertools
 import struct
 import textwrap
+import os.path
 from hashlib import md5, sha1
 
 from Crypto import Util
@@ -22,8 +23,6 @@ from pyasn1.codec.ber import decoder as berDecoder
 from pyasn1.codec.ber import encoder as berEncoder
 from pyasn1.error import PyAsn1Error
 from pyasn1.type import univ
-
-from chevah.compat import local_filesystem
 
 from chevah.keycert import common, sexpy, _path
 from chevah.keycert.common import _PY3, long, unicode, iterbytes
@@ -185,16 +184,14 @@ def _skip_key_generation(options, private_file, public_file):
 
     Raise KeyCertException if file exists.
     """
-    private_segments = local_filesystem.getSegmentsFromRealPath(private_file)
-    if local_filesystem.exists(private_segments):
+    if os.path.exists(_path(private_file)):
         if options.key_skip:
             return True
         else:
             raise KeyCertException(
                 u'Private key already exists. %s' % private_file)
 
-    public_segments = local_filesystem.getSegmentsFromRealPath(public_file)
-    if local_filesystem.exists(public_segments):
+    if os.path.exists(_path(public_file)):
         raise KeyCertException(u'Public key already exists. %s' % public_file)
     return False
 
