@@ -1281,7 +1281,7 @@ AAAAB3NzaC1yc2EA
         """
         self.assertBadKey(
             keydata.privateECDSA_256_openssh,
-            'Key type EC not supported.'
+            'Key type \'EC\' not supported.'
             )
 
     def test_fromString_PRIVATE_OPENSSH_short(self):
@@ -1513,7 +1513,7 @@ P2/56wAAAi4AAAA3aWYtbW9kbntzaWdue3JzYS1wa2NzMS1zaGExfSxlbmNyeXB0e3JzYS
 IGNORED
 """
         self.assertBadKey(
-            content, 'Unsupported key type: ssh-bad')
+            content, 'Unsupported key type: \'ssh-bad\'')
 
     def test_fromString_PRIVATE_PUTTY_unsupported_encryption(self):
         """
@@ -1525,7 +1525,7 @@ Encryption: aes126-cbc
 IGNORED
 """
         self.assertBadKey(
-            content, 'Unsupported encryption type: aes126-cbc')
+            content, 'Unsupported encryption type: \'aes126-cbc\'')
 
     def test_fromString_PRIVATE_PUTTY_type_mismatch(self):
         """
@@ -1544,7 +1544,9 @@ IGNORED
 """
         self.assertBadKey(
             content,
-            'Mismatch key type. Header has ssh-rsa, public has ssh-dss',
+            (
+                'Mismatch key type. Header has \'ssh-rsa\','
+                ' public has \'ssh-dss\''),
             )
 
     def test_fromString_PRIVATE_PUTTY_hmac_mismatch(self):

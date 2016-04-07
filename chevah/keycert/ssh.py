@@ -299,7 +299,7 @@ class Key(object):
         try:
             method = getattr(cls, '_fromString_%s' % type.upper(), None)
             if method is None:
-                raise BadKeyError('no _fromString method for %s' % type)
+                raise BadKeyError('no _fromString method for %r' % type[:30])
             if method.__code__.co_argcount == 2:  # no passphrase
                 if passphrase:
                     raise BadKeyError('key not encrypted')
@@ -333,7 +333,7 @@ class Key(object):
         """
         method = getattr(self, '_toString_%s' % type.upper(), None)
         if method is None:
-            raise BadKeyError('unknown type: %s' % (type,))
+            raise BadKeyError('unknown type: %r' % (type[:30],))
         if method.__code__.co_argcount == 2:
             return method(extra)
         else:
@@ -757,7 +757,7 @@ class Key(object):
                 _, cipher_iv_info = lines[2].split(b' ', 1)
                 cipher, ivdata = cipher_iv_info.rstrip().split(b',', 1)
             except ValueError:
-                raise BadKeyError('invalid DEK-info %r' % (lines[2],))
+                raise BadKeyError('invalid DEK-info %r' % (lines[2][:30],))
 
             if cipher == b'AES-128-CBC':
                 CipherClass = AES
@@ -770,7 +770,7 @@ class Key(object):
                 if len(ivdata) != 16:
                     raise BadKeyError('DES encrypted key with a bad IV')
             else:
-                raise BadKeyError('unknown encryption type %r' % (cipher,))
+                raise BadKeyError('unknown encryption type %r' % cipher[:30])
 
             # extract keyData for decoding
             iv = bytes(bytearray([int(ivdata[i:i + 2], 16)
@@ -810,7 +810,7 @@ class Key(object):
                 raise BadKeyError('DSA key failed to decode properly')
             return cls(DSA.construct((y, g, p, q, x)))
         else:
-            raise BadKeyError('Key type %s not supported.' % (kind,))
+            raise BadKeyError('Key type %r not supported.' % (kind[:30],))
 
     def _toString_OPENSSH(self, extra):
         """
@@ -889,7 +889,7 @@ class Key(object):
         elif sexp[1][0] == b'rsa-pkcs1-sha1':
             return cls(RSA.construct((kd[b'n'], kd[b'e'])))
         else:
-            raise BadKeyError('unknown lsh key type %s' % (sexp[1][0],))
+            raise BadKeyError('unknown lsh key type %r' % (sexp[1][0][:30],))
 
     @classmethod
     def _fromString_PRIVATE_LSH(cls, data):
@@ -921,7 +921,7 @@ class Key(object):
             return cls(RSA.construct((
                 kd[b'n'], kd[b'e'], kd[b'd'], kd[b'p'], kd[b'q'])))
         else:
-            raise BadKeyError('unknown lsh key type %s' % (sexp[1][0],))
+            raise BadKeyError('unknown lsh key type %r' % (sexp[1][0][:30],))
 
     def _toString_LSH(self):
         """
@@ -1019,7 +1019,7 @@ class Key(object):
             q, data = common.getMP(data)
             return cls(RSA.construct((n, e, d, p, q, u)))
         else:
-            raise BadKeyError("unknown key type %s" % (keyType,))
+            raise BadKeyError("unknown key type %r" % (keyType[:30],))
 
     def _toString_AGENTV3(self):
         """
@@ -1168,7 +1168,7 @@ class Key(object):
         magic_number = struct.unpack('>I', blob[:4])[0]
         if magic_number != SSHCOM_MAGIC_NUMBER:
             raise BadKeyError(
-                'Bad magic number for SSH.com key %s' % magic_number)
+                'Bad magic number for SSH.com key %r' % magic_number)
         struct.unpack('>I', blob[4:8])[0]  # Ignore value for total size.
         type_signature, rest = common.getNS(blob[8:])
 
@@ -1183,19 +1183,19 @@ class Key(object):
         cipher_type, rest = common.getNS(rest)
         encrypted_blob, _ = common.getNS(rest)
 
-        if cipher_type.lower() not in ['none', '3des-cbc']:
+        if cipher_type.lower() not in [b'none', b'3des-cbc']:
             raise BadKeyError(
-                'Encryption method not supported: %s' % (
-                    cipher_type))
+                'Encryption method not supported: %r' % (
+                    cipher_type[:30]))
 
         encryption_key = None
-        if cipher_type.lower() == '3des-cbc':
+        if cipher_type.lower() == b'3des-cbc':
             if not passphrase:
                 raise EncryptedKeyError(
                     'Passphrase must be provided for an encrypted key.')
             encryption_key = cls._getDES3EncryptionKey(passphrase)
             key_data = DES3.new(
-                encryption_key, mode=DES3.MODE_CBC, IV='\x00' * 8).decrypt(
+                encryption_key, mode=DES3.MODE_CBC, IV=b'\x00' * 8).decrypt(
                 encrypted_blob)
         else:
             # No encryption.
@@ -1334,11 +1334,11 @@ class Key(object):
         if extra:
             # We got a password, so encrypt it.
             cipher_type = '3des-cbc'
-            padding = '\x00' * (8 - (len(payload_blob) % 8))
+            padding = b'\x00' * (8 - (len(payload_blob) % 8))
             payload_blob = payload_blob + padding
             encryption_key = self._getDES3EncryptionKey(extra)
             encrypted_blob = DES3.new(
-                encryption_key, mode=DES3.MODE_CBC, IV='\x00' * 8).encrypt(
+                encryption_key, mode=DES3.MODE_CBC, IV=b'\x00' * 8).encrypt(
                 payload_blob)
         else:
             cipher_type = 'none'
@@ -1427,14 +1427,14 @@ class Key(object):
         lines = data.strip().splitlines()
 
         key_type = lines[0][22:].strip().lower()
-        if key_type not in ['ssh-rsa', 'ssh-dss']:
-            raise BadKeyError('Unsupported key type: %s' % key_type)
+        if key_type not in [b'ssh-rsa', b'ssh-dss']:
+            raise BadKeyError('Unsupported key type: %r' % key_type[:30])
 
         encryption_type = lines[1][11:].strip().lower()
 
-        if encryption_type not in ['none', 'aes256-cbc']:
+        if encryption_type not in [b'none', b'aes256-cbc']:
             raise BadKeyError(
-                'Unsupported encryption type: %s' % encryption_type)
+                'Unsupported encryption type: %r' % encryption_type[:30])
 
         comment = lines[2][9:].strip()
 
@@ -1448,8 +1448,8 @@ class Key(object):
 
         if public_type.lower() != key_type:
             raise BadKeyError(
-                'Mismatch key type. Header has %s, public has %s' % (
-                    key_type, public_type))
+                'Mismatch key type. Header has %r, public has %r' % (
+                    key_type[:30], public_type[:30]))
 
         # We skip 4 lines so far and the total public lines.
         private_start_line = 4 + public_count
@@ -1464,14 +1464,14 @@ class Key(object):
 
         hmac_key = PUTTY_HMAC_KEY
         encryption_key = None
-        if encryption_type == 'aes256-cbc':
+        if encryption_type == b'aes256-cbc':
             if not passphrase:
                 raise EncryptedKeyError(
                     'Passphrase must be provided for an encrypted key.')
             hmac_key += passphrase
             encryption_key = cls._getPuttyAES256EncryptionKey(passphrase)
             private_blob = AES.new(
-                encryption_key, mode=AES.MODE_CBC, IV='\x00' * 16).decrypt(
+                encryption_key, mode=AES.MODE_CBC, IV=b'\x00' * 16).decrypt(
                 private_blob)
 
         # I have no idea why these values are packed form HMAC as net strings.
@@ -1492,12 +1492,12 @@ class Key(object):
                     'HMAC mismatch: file declare %s, actual is %s' % (
                         private_mac, computed_mac))
 
-        if key_type == 'ssh-rsa':
+        if key_type == b'ssh-rsa':
             e, n, _ = common.getMP(public_payload, count=2)
             d, q, p, u, _ = common.getMP(private_blob, count=4)
             return cls(RSA.construct((n, e, d, p, q, u)))
 
-        if key_type == 'ssh-dss':
+        if key_type == b'ssh-dss':
             p, q, g, y, _ = common.getMP(public_payload, count=4)
             x, _ = common.getMP(private_blob)
             return cls(DSA.construct((y, g, p, q, x)))
@@ -1508,8 +1508,8 @@ class Key(object):
         Return the encryption key used in Putty AES 256 cipher.
         """
         key_size = 32
-        part_1 = sha1('\x00\x00\x00\x00' + passphrase).digest()
-        part_2 = sha1('\x00\x00\x00\x01' + passphrase).digest()
+        part_1 = sha1(b'\x00\x00\x00\x00' + passphrase).digest()
+        part_2 = sha1(b'\x00\x00\x00\x01' + passphrase).digest()
         return (part_1 + part_2)[:key_size]
 
     def _toString_PUTTY(self, extra):
@@ -1547,12 +1547,12 @@ class Key(object):
 
         hmac_key = PUTTY_HMAC_KEY
         if extra:
-            encryption_type = 'aes256-cbc'
+            encryption_type = b'aes256-cbc'
             hmac_key += extra
         else:
             encryption_type = 'none'
 
-        if key_type == 'ssh-rsa':
+        if key_type == b'ssh-rsa':
             public_blob = (
                 common.NS(key_type) +
                 common.MP(data['e']) +
@@ -1564,7 +1564,7 @@ class Key(object):
                 common.MP(data['p']) +
                 common.MP(data['u'])
                 )
-        elif key_type == 'ssh-dss':
+        elif key_type == b'ssh-dss':
             public_blob = (
                 common.NS(key_type) +
                 common.MP(data['p']) +
@@ -1584,10 +1584,10 @@ class Key(object):
             # Padding is required for encryption.
             padding_size = -1 * (
                 (len(private_blob) % aes_block_size) - aes_block_size)
-            private_blob_plain += '\x00' * padding_size
+            private_blob_plain += b'\x00' * padding_size
             encryption_key = self._getPuttyAES256EncryptionKey(extra)
             private_blob_encrypted = AES.new(
-                encryption_key, mode=AES.MODE_CBC, IV='\x00' * aes_block_size,
+                encryption_key, mode=AES.MODE_CBC, IV=b'\x00' * aes_block_size,
                 ).encrypt(private_blob_plain)
 
         public_lines = textwrap.wrap(base64.b64encode(public_blob), 64)
