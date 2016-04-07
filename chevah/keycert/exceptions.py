@@ -4,7 +4,7 @@
 Public exceptions raised by this package.
 """
 
-import sys
+from chevah.keycert.common import _PY3
 
 
 class KeyCertException(Exception):
@@ -17,7 +17,7 @@ class KeyCertException(Exception):
     def __unicode__(self):
         return self.message
 
-    if sys.version_info >= (3, 0):
+    if _PY3:
         def __str__(self):
             return self.__unicode__()
     else:
