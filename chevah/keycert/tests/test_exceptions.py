@@ -3,12 +3,13 @@
 """
 Test for exceptions raise by this package.
 """
-from chevah.empirical import mk, EmpiricalTestCase
+from chevah.empirical import mk
 
 from chevah.keycert.exceptions import KeyCertException
+from chevah.keycert.tests.helpers import KeyCertTestCase
 
 
-class TestExceptions(EmpiricalTestCase):
+class TestExceptions(KeyCertTestCase):
     """
     Test for exceptions
     """
