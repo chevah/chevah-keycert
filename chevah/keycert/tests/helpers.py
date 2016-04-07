@@ -9,51 +9,6 @@ try:
 except ImportError:
     from io import StringIO
 import sys
-import collections
-
-from unittest import TestCase
-
-
-class KeyCertTestCase(TestCase):
-    """
-    Test case for KeyCert tests.
-    """
-
-    def assertStartsWith(self, start, source):
-        """
-        Raise AssertionError if `source` does not starts with `start`.
-        """
-        if not source.startswith(start):
-            message = '%s does not starts with %s' % (
-                repr(source), repr(start))
-            raise AssertionError(message.encode('utf-8'))
-
-    def assertIsEmpty(self, target):
-        """
-        Raise AssertionError if target is not empty.
-        """
-        if isinstance(target, collections.Iterable):
-            iterator = iter(target)
-            try:
-                next(iterator)
-            except StopIteration:
-                pass
-            else:
-                message = 'Iterable is not empty.\n%s.' % target
-                raise AssertionError(message.encode('utf-8'))
-            return
-
-        if len(target) != 0:
-            message = 'Value is not empty.\n%s.' % (target)
-            raise AssertionError(message.encode('utf-8'))
-
-    def assertEndsWith(self, end, source):
-        """
-        Raise AssertionError if `source` does not ends with `end`.
-        """
-        if not source.endswith(end):
-            message = '%s does not end with %s' % (repr(source), repr(end))
-            raise AssertionError(message.encode('utf-8'))
 
 
 class CommandLineMixin(object):

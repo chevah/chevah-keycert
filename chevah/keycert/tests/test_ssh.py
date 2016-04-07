@@ -11,10 +11,9 @@ try:
 except ImportError:
     from io import StringIO
 import base64
-import os
 import textwrap
 
-from chevah.empirical import mk
+from chevah.empirical import mk, EmpiricalTestCase
 from nose.plugins.attrib import attr
 import Crypto
 
@@ -32,8 +31,7 @@ from chevah.keycert.ssh import (
     generate_ssh_key_parser,
     )
 from chevah.keycert.tests import keydata
-from chevah.keycert.tests.helpers import CommandLineMixin, KeyCertTestCase
-
+from chevah.keycert.tests.helpers import CommandLineMixin
 
 PUBLIC_RSA_ARMOR_START = u'-----BEGIN PUBLIC KEY-----\n'
 PUBLIC_RSA_ARMOR_END = u'\n-----END PUBLIC KEY-----\n'
@@ -240,7 +238,7 @@ class DummyOpenContext(object):
         return False
 
 
-class TestHelpers(KeyCertTestCase, CommandLineMixin):
+class TestHelpers(EmpiricalTestCase, CommandLineMixin):
     """
     Unit tests for helper methods from this module.
     """
@@ -316,7 +314,7 @@ class TestHelpers(KeyCertTestCase, CommandLineMixin):
         self.assertRaises(keys.BadKeyError, keys.objectType, None)
 
 
-class TestKey(KeyCertTestCase):
+class TestKey(EmpiricalTestCase):
     """
     Unit test for SSH key generation.
 
@@ -657,7 +655,7 @@ class TestKey(KeyCertTestCase):
         result = sut.public()
 
         self.assertFalse(sut.isPublic())
-        self.assertIsInstance(result, Key)
+        self.assertIsInstance(Key, result)
         self.assertTrue(result.isPublic())
         self.assertEqual(result.data()['e'], sut.data()['e'])
         self.assertEqual(result.data()['n'], sut.data()['n'])
@@ -1723,7 +1721,7 @@ attr u:
 \t04>""")
 
 
-class Test_generate_ssh_key_parser(KeyCertTestCase, CommandLineMixin):
+class Test_generate_ssh_key_parser(EmpiricalTestCase, CommandLineMixin):
     """
     Unit tests for generate_ssh_key_parser.
     """
@@ -1797,7 +1795,7 @@ class Test_generate_ssh_key_parser(KeyCertTestCase, CommandLineMixin):
             }, options)
 
 
-class Testgenerate_ssh_key(KeyCertTestCase, CommandLineMixin):
+class Testgenerate_ssh_key(EmpiricalTestCase, CommandLineMixin):
     """
     Tests for generate_ssh_key.
     """
@@ -1814,7 +1812,7 @@ class Testgenerate_ssh_key(KeyCertTestCase, CommandLineMixin):
         """
         Check that pats are equal.
         """
-        if os.name == 'posix':
+        if self.os_family == 'posix':
             expected = expected.encode('utf-8')
         self.assertEqual(expected, actual)
 

@@ -5,9 +5,8 @@ Test for SSL keys/cert management.
 """
 from argparse import ArgumentParser
 
+from chevah.empirical import mk, EmpiricalTestCase
 from OpenSSL import crypto
-
-from chevah.empirical import mk
 
 from chevah.keycert.exceptions import KeyCertException
 from chevah.keycert.common import long
@@ -17,10 +16,10 @@ from chevah.keycert.ssl import (
     generate_csr_parser,
     generate_ssl_self_signed_certificate,
     )
-from chevah.keycert.tests.helpers import CommandLineMixin, KeyCertTestCase
+from chevah.keycert.tests.helpers import CommandLineMixin
 
 
-class CommandLineTestBase(KeyCertTestCase, CommandLineMixin):
+class CommandLineTestBase(EmpiricalTestCase, CommandLineMixin):
     """
     Share code for testing methods which read SSL command line input.
     """
@@ -34,7 +33,7 @@ class CommandLineTestBase(KeyCertTestCase, CommandLineMixin):
         generate_csr_parser(subparser, self.command_name)
 
 
-class Test_generate_ssl_self_signed_certificate(KeyCertTestCase):
+class Test_generate_ssl_self_signed_certificate(EmpiricalTestCase):
     """
     Unit tests for generate_ssl_self_signed_certificate.
     """
@@ -57,7 +56,7 @@ class Test_generate_ssl_self_signed_certificate(KeyCertTestCase):
 
 
 class Test_generate_csr_parser(
-        KeyCertTestCase, CommandLineMixin):
+        EmpiricalTestCase, CommandLineMixin):
     """
     Unit tests for generate_csr_parser.
     """
