@@ -26,7 +26,7 @@ from pyasn1.type import univ
 from chevah.compat import local_filesystem
 
 from chevah.keycert import common, sexpy, _path
-from chevah.keycert.common import _PY3, long, iterbytes
+from chevah.keycert.common import _PY3, long, unicode, iterbytes
 from chevah.keycert.exceptions import (
     BadKeyError,
     EncryptedKeyError,
@@ -35,6 +35,8 @@ from chevah.keycert.exceptions import (
 
 if not _PY3:
     izip = itertools.izip
+else:
+    izip = zip
 
 
 DEFAULT_PUBLIC_KEY_EXTENSION = u'.pub'
@@ -359,7 +361,7 @@ class Key(object):
         key = None
         try:
             key = key_class.generate(bits=key_size)
-        except ValueError, error:
+        except ValueError as error:
             raise KeyCertException(
                 u'Wrong key size "%d". %s.' % (key_size, error))
         return cls(key)
@@ -625,8 +627,8 @@ class Key(object):
             digest = pkcs1Digest(data, self.keyObject.size() // 8)
         elif self.type() == 'DSA':
             signature = common.getNS(signature)[0]
-            numbers = [Util.number.bytes_to_long(n) for n in signature[:20],
-                       signature[20:]]
+            numbers = [Util.number.bytes_to_long(n) for n in (signature[:20],
+                       signature[20:])]
             digest = sha1(data).digest()
         else:
             raise BadKeyError('unknown key type %s' % (self.type(),))
@@ -790,7 +792,7 @@ class Key(object):
 
         try:
             decodedKey = berDecoder.decode(keyData)[0]
-        except PyAsn1Error, e:
+        except PyAsn1Error as e:
             raise BadKeyError(
                 'Failed to decode key (Bad Passphrase?): %s' % (e,))
 

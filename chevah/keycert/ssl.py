@@ -234,5 +234,5 @@ def generate_and_store_csr(options, encoding='utf-8'):
 
         with open(_path(csr_name, encoding), 'wb') as store_file:
             store_file.write(result['csr_pem'])
-    except Exception, error:
+    except Exception as error:
         raise KeyCertException(str(error))

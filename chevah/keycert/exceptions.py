@@ -4,6 +4,8 @@
 Public exceptions raised by this package.
 """
 
+import sys
+
 
 class KeyCertException(Exception):
     """
@@ -12,8 +14,15 @@ class KeyCertException(Exception):
     def __init__(self, message):
         self.message = message
 
-    def __str__(self):
-        return self.message.encode('utf-8')
+    def __unicode__(self):
+        return self.message
+
+    if sys.version_info >= (3, 0):
+        def __str__(self):
+            return self.__unicode__()
+    else:
+        def __str__(self):
+            return self.__unicode__().encode('utf-8')
 
 
 class BadKeyError(KeyCertException):

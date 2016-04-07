@@ -9,6 +9,7 @@ from chevah.empirical import mk, EmpiricalTestCase
 from OpenSSL import crypto
 
 from chevah.keycert.exceptions import KeyCertException
+from chevah.keycert.common import long
 from chevah.keycert.ssl import (
     generate_and_store_csr,
     generate_csr,
@@ -238,7 +239,7 @@ class Test_generate_csr(CommandLineTestBase):
 
         # OpenSSL.crypto.PKey has no equality so we need to compare the
         # serialization.
-        self.assertEqual(2048L, result['key'].bits())
+        self.assertEqual(long(2048), result['key'].bits())
         self.assertEqual(crypto.TYPE_RSA, result['key'].type())
         key = crypto.dump_privatekey(crypto.FILETYPE_PEM, result['key'])
         self.assertEqual(key, result['key_pem'])

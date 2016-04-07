@@ -15,6 +15,7 @@ import sys
 _PY3 = sys.version_info > (3,)
 if _PY3:
     long = int
+    unicode = str
 
     def iterbytes(originalBytes):
         for i in range(len(originalBytes)):
@@ -22,6 +23,7 @@ if _PY3:
 else:
     # So we can import from this module
     long = long
+    unicode = unicode
 
     def iterbytes(originalBytes):
         return originalBytes
