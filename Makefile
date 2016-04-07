@@ -20,7 +20,7 @@ all: test
 	
 
 local_env:
-	@if [ ! -d "build/venv" ]; then virtualenv build/venv; fi
+	@if [ ! -d "build/venv" ]; then virtualenv -p python2 build/venv; fi
 	@$(BASE_PATH)/pip install -U pip
 
 
