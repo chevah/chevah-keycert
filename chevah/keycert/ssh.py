@@ -25,17 +25,17 @@ from pyasn1.error import PyAsn1Error
 from pyasn1.type import univ
 
 from chevah.keycert import common, sexpy, _path
-from chevah.keycert.common import _PY3, long, unicode, iterbytes
+from chevah.keycert.common import (
+    long,
+    iterbytes,
+    izip,
+    native_string,
+    )
 from chevah.keycert.exceptions import (
     BadKeyError,
     EncryptedKeyError,
     KeyCertException,
     )
-
-if not _PY3:
-    izip = itertools.izip
-else:
-    izip = zip
 
 
 DEFAULT_PUBLIC_KEY_EXTENSION = u'.pub'
@@ -243,14 +243,9 @@ class Key(object):
         """
         Return a pretty representation of this object.
         """
-        type = self.type()
-        if _PY3 and isinstance(type, bytes):
-            type = type.decode('ascii')
-        elif not _PY3 and isinstance(type, unicode):
-            type = type.encode('ascii')
         lines = [
             '<%s %s (%s bits)' % (
-                type,
+                native_string(self.type()),
                 self.isPublic() and 'Public Key' or 'Private Key',
                 self.keyObject.size())]
         for k, v in sorted(self.data().items()):

@@ -13,17 +13,27 @@ import struct
 import sys
 
 _PY3 = sys.version_info > (3,)
-if _PY3:
+
+if _PY3:     # pragma: no cover
     long = int
     unicode = str
+    izip = zip
+
+    def native_string(s):
+        return s.decode("ascii")
 
     def iterbytes(originalBytes):
         for i in range(len(originalBytes)):
             yield originalBytes[i:i + 1]
 else:
+    import itertools
     # So we can import from this module
     long = long
     unicode = unicode
+    izip = itertools.izip
+
+    def native_string(s):
+        return s
 
     def iterbytes(originalBytes):
         return originalBytes
