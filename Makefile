@@ -1,7 +1,7 @@
 #
 # Makefile for Chevah KeyCert project.
 #
-EXTRA_PYPI_INDEX='http://chevah.com/pypi/simple'
+EXTRA_PYPI_INDEX='https://pypi.chevah.com/simple'
 
 ifeq "$(MSYSTEM)" "MINGW32"
        BASE_PATH='build/venv/Scripts'
@@ -20,7 +20,7 @@ all: test
 	
 
 local_env:
-	@if [ ! -d "build/venv" ]; then virtualenv build/venv; fi
+	@if [ ! -d "build/venv" ]; then virtualenv -p python2 build/venv; fi
 	@$(BASE_PATH)/pip install -U pip
 
 
@@ -30,7 +30,6 @@ deps: local_env deps_base
 deps_base:
 	@$(BASE_PATH)/pip install \
 		--extra-index-url ${EXTRA_PYPI_INDEX}\
-		--trusted-host chevah.com \
 		-e .[dev]
 
 
@@ -75,8 +74,8 @@ else
 	$(BUILDBOT_TRY) -b $(TARGET)
 endif
 
-test_remote_with_clean: git_push
-	$(BUILDBOT_TRY) -b $(TARGET) --properties=force_clean=yes
+test_remote_with_purge: git_push
+	$(BUILDBOT_TRY) -b $(TARGET) --properties=force_purge=yes
 
 test_remote_with_wait: git_push
 	$(BUILDBOT_TRY) -b $(TARGET) --wait

@@ -849,7 +849,7 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         self.assertRaises(
             keys.BadKeyError, keys.Key(self.rsaObj).toString, 'bad_type')
 
-    def test_fromBlob(self):
+    def test_fromString_BLOB(self):
         """
         Test that a public key is correctly generated from a public key blob.
         """
@@ -859,13 +859,23 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
             common.NS('ssh-dss') + common.MP(2) + common.MP(3) +
             common.MP(4) + common.MP(5))
         dsaKey = keys.Key.fromString(dsaBlob)
-        badBlob = common.NS('ssh-bad')
+        badKey = common.NS('ssh-bad')
         self.assertTrue(rsaKey.isPublic())
         self.assertEqual(rsaKey.data(), {'e': 2L, 'n': 3L})
         self.assertTrue(dsaKey.isPublic())
         self.assertEqual(dsaKey.data(), {'p': 2L, 'q': 3L, 'g': 4L, 'y': 5L})
-        self.assertRaises(
-            keys.BadKeyError, keys.Key.fromString, badBlob)
+        self.assertBadKey(badKey, 'Unknown blob type: \'ssh-bad\'')
+
+    def test_fromString_BLOB_blob_type_non_ascii(self):
+        """
+        Raise with printable information for the bad type,
+        even if blob type has non-ascii data.
+        """
+        badBlob = common.NS('ssh-\xbd\xbd\xbd')
+        self.assertBadKey(
+            badBlob,
+            'Unknown blob type: \'ssh-\\xbd\\xbd\\xbd\''
+            )
 
     def test_fromString_PRIVATE_BLOB(self):
         """
@@ -938,6 +948,12 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         An exception is raised when public RSA OpenSSH key is bad formatted.
         """
         self.assertKeyIsTooShort('ssh-rsa')
+
+    def test_fromString_PUBLIC_OPENSSH_invalid_payload(self):
+        """
+        Raise an exception when key blob has a bad format.
+        """
+        self.assertKeyParseError('ssh-rsa AAAAB3NzaC1yc2EA')
 
     def test_fromString_PUBLIC_OPENSSH_DSA(self):
         """
@@ -1186,17 +1202,17 @@ SUrCyZXsNh6VXwjs3gKQ
 
         self.checkParsedDSAPublic1024(sut)
 
-    def test_fromString_PUBLIC_SSHCOM_short(self):
+    def test_fromString_PUBLIC_SSHCOM_no_end_tag(self):
         """
-        Raise an exception when key is too short.
+        Raise an exception when there is no END tag.
         """
         content = '---- BEGIN SSH2 PUBLIC KEY ----'
 
-        self.assertKeyParseError(content)
+        self.assertBadKey(content, 'Fail to find END tag for SSH.com key.')
 
         content = '---- BEGIN SSH2 PUBLIC KEY ----\nnext line'
 
-        self.assertKeyParseError(content)
+        self.assertBadKey(content, 'Fail to find END tag for SSH.com key.')
 
     def test_fromString_PUBLIC_SSHCOM_RSA_invalid_payload(self):
         """
@@ -1265,7 +1281,7 @@ AAAAB3NzaC1yc2EA
         """
         self.assertBadKey(
             keydata.privateECDSA_256_openssh,
-            'Key type EC not supported.'
+            'Key type \'EC\' not supported.'
             )
 
     def test_fromString_PRIVATE_OPENSSH_short(self):
@@ -1497,7 +1513,7 @@ P2/56wAAAi4AAAA3aWYtbW9kbntzaWdue3JzYS1wa2NzMS1zaGExfSxlbmNyeXB0e3JzYS
 IGNORED
 """
         self.assertBadKey(
-            content, 'Unsupported key type: ssh-bad')
+            content, 'Unsupported key type: \'ssh-bad\'')
 
     def test_fromString_PRIVATE_PUTTY_unsupported_encryption(self):
         """
@@ -1509,7 +1525,7 @@ Encryption: aes126-cbc
 IGNORED
 """
         self.assertBadKey(
-            content, 'Unsupported encryption type: aes126-cbc')
+            content, 'Unsupported encryption type: \'aes126-cbc\'')
 
     def test_fromString_PRIVATE_PUTTY_type_mismatch(self):
         """
@@ -1528,7 +1544,9 @@ IGNORED
 """
         self.assertBadKey(
             content,
-            'Mismatch key type. Header has ssh-rsa, public has ssh-dss',
+            (
+                'Mismatch key type. Header has \'ssh-rsa\','
+                ' public has \'ssh-dss\''),
             )
 
     def test_fromString_PRIVATE_PUTTY_hmac_mismatch(self):
