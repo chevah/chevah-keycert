@@ -127,7 +127,7 @@ setup(
             'mock',
             'bunch',
             'coverage',
-            'coveralls',
+            'codecov',
             ],
         },
     cmdclass={'test': NoseTestCommand},
