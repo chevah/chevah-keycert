@@ -14,7 +14,7 @@ import sys
 
 _PY3 = sys.version_info > (3,)
 
-if _PY3:     # pragma: no cover
+if _PY3:  # pragma: no cover
     long = int
     unicode = str
     izip = zip

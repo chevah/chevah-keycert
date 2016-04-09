@@ -59,6 +59,9 @@ pSTqy7c3a2AScC/YyOwkDaICHnnD3XyjMwIxALRzl0tQEKMXs6hH8ToUdlLROCrP
 EhQ0wahUTCk1gKA4uPD6TMTChavbh4K63OvbKg==
 -----END RSA PRIVATE KEY-----"""
 
+privateRSA_fingerprint_md5 = (
+    b'3d:13:5f:cb:c9:79:8a:93:06:27:65:bc:3d:0b:8f:af')
+
 # some versions of OpenSSH generate these (slightly different keys)
 privateRSA_openssh_alternate = """-----BEGIN RSA PRIVATE KEY-----
 MIIBzjCCAcgCAQACYQCvMnHw5g6cmbN/i18ES8uLwNU+snf9z2TYj8DPrh/GMd/2
