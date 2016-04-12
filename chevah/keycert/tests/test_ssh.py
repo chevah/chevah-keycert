@@ -429,6 +429,16 @@ class TestKey(EmpiricalTestCase):
         self.assertRaises(RuntimeError, keys.Key(self).type)
         self.assertRaises(RuntimeError, keys.Key(self).sshType)
 
+    def test_generate_no_key_type(self):
+        """
+        An error is raised when generating a key with unknown type.
+        """
+        with self.assertRaises(KeyCertException) as context:
+            Key.generate(key_type=None)
+
+        self.assertEqual(
+            'Unknown key type "not-specified".', context.exception.message)
+
     def test_generate_unknown_type(self):
         """
         An error is raised when generating a key with unknown type.
@@ -1623,6 +1633,17 @@ IGNORED
         reloaded = Key.fromString(result)
         self.assertEqual(sut, reloaded)
 
+    def test_toString_PUTTY_public(self):
+        """
+        Can export to public RSA Putty.
+        """
+        sut = Key.fromString(OPENSSH_RSA_PRIVATE).public()
+
+        result = sut.toString(type='putty')
+
+        reloaded = Key.fromString(result)
+        self.assertEqual(sut, reloaded)
+
     def test_fromString_LSH(self):
         """
         Test that keys are correctly generated from LSH strings.
@@ -1678,6 +1699,15 @@ IGNORED
             keys.BadKeyError,
             keys.Key.fromString,
             '\x00\x00\x00\x07ssh-foo' + '\x00\x00\x00\x01\x01' * 5)
+
+    def test_fingerpint(self):
+        """
+        Will return the md5 fingerprint with colons separator.
+        """
+        key = keys.Key.fromString(keydata.privateRSA_openssh)
+
+        result = key.fingerprint()
+        self.assertEqual(keydata.privateRSA_fingerprint_md5, result)
 
     def test_sign(self):
         """

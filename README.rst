@@ -33,5 +33,5 @@ Release is done automatically for each tag, using Travis-CI.
 .. image:: https://travis-ci.org/chevah/chevah-keycert.svg?branch=master
     :target: https://travis-ci.org/chevah/chevah-keycert
 
-.. image:: https://img.shields.io/coveralls/chevah/chevah-keycert/master.svg
-    :target: https://coveralls.io/r/chevah/chevah-keycert?branch=master
+.. image:: https://codecov.io/github/chevah/chevah-keycert/coverage.svg?branch=master
+    :target: https://codecov.io/github/chevah/chevah-keycert?branch=master
