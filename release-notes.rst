@@ -5,7 +5,7 @@ Relese notes for Chevah KeyCert
 1.4.0 - 14/04/2016
 ==================
 
-* Fail when a passphrase was given for an unencrypted key.
+* Fails when a passphrase was given for an unencrypted key.
 * Fix invalid text in exceptions raised for invalid input.
 
 
