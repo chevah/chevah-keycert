@@ -1017,6 +1017,19 @@ SUrCyZXsNh6VXwjs3gKQ
             passphrase='testxp')
         self.assertEqual(key, key2)
 
+    def test_fromString_PRIVATE_OPENSSH_not_encrypted_with_passphrase(self):
+        """
+        When loading a unencrypted OpenSSH private key with passhphrase
+        will raise BadKeyError.
+        """
+
+        with self.assertRaises(BadKeyError) as context:
+            Key.fromString(OPENSSH_RSA_PRIVATE, passphrase='pass')
+
+        self.assertEqual(
+            'OpenSSH key not encrypted',
+            context.exception.message)
+
     def test_toString_OPENSSH(self):
         """
         Test that the Key object generates OpenSSH keys correctly.
@@ -1307,6 +1320,19 @@ AAAAB3NzaC1yc2EA
 
         self.assertKeyParseError(content)
 
+    def test_fromString_PRIVATE_SSHCOM_unencrypted_with_passphrase(self):
+        """
+        When loading a unencrypted SSH.com private key with passhphrase
+        will raise BadKeyError.
+        """
+
+        with self.assertRaises(BadKeyError) as context:
+            Key.fromString(SSHCOM_RSA_PRIVATE_NO_PASSWORD, passphrase='pass')
+
+        self.assertEqual(
+            'SSH.com key not encrypted',
+            context.exception.message)
+
     def test_fromString_PRIVATE_SSHCOM_RSA_no_headers_no_password(self):
         """
         Can load a private SSH.com key which has no headers and no password.
@@ -1449,6 +1475,18 @@ P2/56wAAAi4AAAA3aWYtbW9kbntzaWdue3JzYS1wa2NzMS1zaGExfSxlbmNyeXB0e3JzYS
         sut = Key.fromString(PUTTY_RSA_PRIVATE_NO_PASSWORD)
 
         self.checkParsedRSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_PUTTY_not_encrypted_with_passphrase(self):
+        """
+        When loading a unencrypted PuTTY private key with passhphrase
+        will raise BadKeyError.
+        """
+        with self.assertRaises(BadKeyError) as context:
+            Key.fromString(PUTTY_RSA_PRIVATE_NO_PASSWORD, passphrase='pass')
+
+        self.assertEqual(
+            'PuTTY key not encrypted',
+            context.exception.message)
 
     def test_fromString_PRIVATE_PUTTY_RSA_with_password(self):
         """

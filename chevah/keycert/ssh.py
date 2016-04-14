@@ -780,6 +780,8 @@ class Key(object):
             removeLen = ord(keyData[-1:])
             keyData = keyData[:-removeLen]
         else:
+            if passphrase:
+                raise BadKeyError('OpenSSH key not encrypted')
             b64Data = b''.join(lines[1:-1])
             keyData = base64.decodestring(b64Data)
 
@@ -1178,13 +1180,12 @@ class Key(object):
         cipher_type, rest = common.getNS(rest)
         encrypted_blob, _ = common.getNS(rest)
 
-        if cipher_type.lower() not in [b'none', b'3des-cbc']:
-            raise BadKeyError(
-                'Encryption method not supported: %r' % (
-                    cipher_type[:30]))
-
         encryption_key = None
-        if cipher_type.lower() == b'3des-cbc':
+        if cipher_type.lower() == b'none':
+            if passphrase:
+                raise BadKeyError('SSH.com key not encrypted')
+            key_data = encrypted_blob
+        elif cipher_type.lower() == b'3des-cbc':
             if not passphrase:
                 raise EncryptedKeyError(
                     'Passphrase must be provided for an encrypted key.')
@@ -1193,8 +1194,9 @@ class Key(object):
                 encryption_key, mode=DES3.MODE_CBC, IV=b'\x00' * 8).decrypt(
                 encrypted_blob)
         else:
-            # No encryption.
-            key_data = encrypted_blob
+            raise BadKeyError(
+                'Encryption method not supported: %r' % (
+                    cipher_type[:30]))
 
         try:
             payload, _ = common.getNS(key_data)
@@ -1427,7 +1429,10 @@ class Key(object):
 
         encryption_type = lines[1][11:].strip().lower()
 
-        if encryption_type not in [b'none', b'aes256-cbc']:
+        if encryption_type == b'none':
+            if passphrase:
+                raise BadKeyError('PuTTY key not encrypted')
+        elif encryption_type != b'aes256-cbc':
             raise BadKeyError(
                 'Unsupported encryption type: %r' % encryption_type[:30])
 
