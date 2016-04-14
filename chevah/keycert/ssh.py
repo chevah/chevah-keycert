@@ -1159,7 +1159,9 @@ class Key(object):
 
         @type data: C{bytes}
         @return: A {Crypto.PublicKey.pubkey.pubkey} object
-        @raises BadKeyError: if the blob type is unknown.
+        @raises BadKeyError: if
+            * the blob type is unknown.
+            * a passphrase is provided for an unencrypted key
         """
         blob = cls._getSSHCOMKeyContent(data)
         magic_number = struct.unpack('>I', blob[:4])[0]
