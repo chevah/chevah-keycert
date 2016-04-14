@@ -419,20 +419,6 @@ class Key(object):
         """
         return self.keyObject.size() + 1
 
-    @property
-    def private_openssh(self):
-        """
-        Return the OpenSSH representation for the public key part.
-        """
-        return self.toString(type='openssh')
-
-    @property
-    def public_openssh(self):
-        """
-        Return the OpenSSH representation for private key part.
-        """
-        return self.public().toString(type='openssh')
-
     def type(self):
         """
         Return the type of the object we wrap.  Currently this can only be
@@ -449,7 +435,7 @@ class Key(object):
                 'unknown type of object: %r' % (self.keyObject,))
         if type in ('RSA', 'DSA'):
             return type
-        else:
+        else:  # pragma: no cover
             raise RuntimeError('unknown type of key: %s' % (type,))
 
     def sshType(self):
@@ -503,7 +489,9 @@ class Key(object):
             return (common.NS(b'ssh-dss') + common.MP(data['p']) +
                     common.MP(data['q']) + common.MP(data['g']) +
                     common.MP(data['y']))
-        else:
+        else:  # pragma: no cover
+            # Under normal usage we should not be able to reach this
+            # branch. First self.type() will raise an error.
             raise BadKeyError("unknown key type %s" % (type,))
 
     def privateBlob(self):
@@ -595,7 +583,8 @@ class Key(object):
             # Make sure they are padded out to 160 bits (20 bytes each)
             ret = common.NS(Util.number.long_to_bytes(sig[0], 20) +
                             Util.number.long_to_bytes(sig[1], 20))
-        else:
+        else:  # pragma: no cover
+            # We should not hit this branch under normal usage.
             raise BadKeyError('unknown key type %s' % (self.type(),))
         return common.NS(self.sshType()) + ret
 
@@ -622,7 +611,7 @@ class Key(object):
             numbers = [Util.number.bytes_to_long(n) for n in (signature[:20],
                        signature[20:])]
             digest = sha1(data).digest()
-        else:
+        else:  # pragma: no cover
             raise BadKeyError('unknown key type %s' % (self.type(),))
         return self.keyObject.verify(digest, numbers)
 
@@ -942,7 +931,7 @@ class Key(object):
                                         [b'q', common.MP(data['q'])[4:]],
                                         [b'g', common.MP(data['g'])[4:]],
                                         [b'y', common.MP(data['y'])[4:]]]]])
-            else:
+            else:  # pragma: no cover
                 raise BadKeyError("unknown key type %s" % (type,))
             return (b'{' + base64.encodestring(keyData).replace(b'\n', b'') +
                     b'}')
@@ -969,7 +958,7 @@ class Key(object):
                                      [b'g', common.MP(data['g'])[4:]],
                                      [b'y', common.MP(data['y'])[4:]],
                                      [b'x', common.MP(data['x'])[4:]]]]])
-            else:
+            else:  # pragma: no cover
                 raise BadKeyError("unknown key type %s'" % (type,))
 
     @classmethod
@@ -1015,7 +1004,7 @@ class Key(object):
             p, data = common.getMP(data)
             q, data = common.getMP(data)
             return cls(RSA.construct((n, e, d, p, q, u)))
-        else:
+        else:  # pragma: no cover
             raise BadKeyError("unknown key type %r" % (keyType[:30],))
 
     def _toString_AGENTV3(self):
@@ -1325,7 +1314,7 @@ class Key(object):
                 self._packMPSSHCOM(data['y']) +
                 self._packMPSSHCOM(data['x'])
                 )
-        else:
+        else:  # pragma: no cover
             raise BadKeyError('Unsupported key type %s' % type)
 
         payload_blob = common.NS(payload_blob)
@@ -1575,7 +1564,7 @@ class Key(object):
                 common.MP(data['y'])
                 )
             private_blob = common.MP(data['x'])
-        else:
+        else:  # pragma: no cover
             raise BadKeyError('Unsupported key type.')
 
         private_blob_plain = private_blob

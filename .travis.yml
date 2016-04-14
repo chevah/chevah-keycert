@@ -1,4 +1,5 @@
 language: python
+sudo: false
 python:
   - "2.7"
 
@@ -9,7 +10,7 @@ script:
   - python setup.py test -q
 
 after_success:
-  - coveralls
+  - codecov
 
 # Only run test when committing to master branch.
 # PR tests will still be executed.
