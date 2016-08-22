@@ -145,6 +145,12 @@ def _generate_csr(options):
     key_type = crypto.TYPE_RSA
 
     csr = crypto.X509Req()
+
+    # RFC 2459 defines it as optional, and pyopenssl set it to `0` anyway.
+    # But we got reports that Windows 2003 and Windows 2008 Servers
+    # can not parse CSR generated using this tool, so here we are.
+    csr.set_version(0)
+
     subject = csr.get_subject()
 
     if options.common_name:

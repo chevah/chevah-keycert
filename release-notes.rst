@@ -2,6 +2,12 @@ Relese notes for Chevah KeyCert
 ###############################
 
 
+1.4.1 - 22/08/2016
+==================
+
+* Set explicit version when generating the CSR.
+
+
 1.4.0 - 14/04/2016
 ==================
 

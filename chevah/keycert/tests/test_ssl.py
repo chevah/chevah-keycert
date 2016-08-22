@@ -254,6 +254,7 @@ class Test_generate_csr(CommandLineTestBase):
         self.assertIsNone(subject.localityName)
         self.assertIsNone(subject.stateOrProvinceName)
         self.assertIsNone(subject.countryName)
+        self.assertEqual(0, result['csr'].get_version())
 
     def test_gen_unicode(self):
         """
