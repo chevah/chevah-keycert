@@ -26,7 +26,7 @@ MIT License.
 
 Release is done automatically for each tag, using Travis-CI.
 
-.. image:: https://pypip.in/version/chevah-keycert/badge.svg
+.. image:: https://img.shields.io/pypi/v/chevah-keycert.svg
     :target: https://pypi.python.org/pypi/chevah-keycert/
     :alt: Latest Version
 
