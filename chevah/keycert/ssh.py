@@ -579,9 +579,12 @@ class Key(object):
         The input to the algorithm is the public key data as specified
         by [RFC4253].
 
-        The output of sha256[RFC4634] algorithm is presented to the
-        user in the form of base64 encoded sha256 hashes.
-        Example: C{US5jTUa0kgX5ZxdqaGF0yGRu8EgKXHNmoT8jHKo1StM=}
+        The output of sha256[RFC4634] and sha1[RFC3174] algorithms are
+        presented to the user in the form of base64 encoded sha256 and sha1
+        hashes, respectively.
+        Examples:
+            C{US5jTUa0kgX5ZxdqaGF0yGRu8EgKXHNmoT8jHKo1StM=}
+            C{9CCuTybG5aORtuW4jrFcp0PbK4U=}
 
         The output of the MD5[RFC1321](default) algorithm is presented to the
         user as a sequence of 16 octets printed as hexadecimal with lowercase
