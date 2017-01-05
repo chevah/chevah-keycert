@@ -13,7 +13,7 @@ import itertools
 import struct
 import textwrap
 import os.path
-from hashlib import md5, sha1
+from hashlib import md5, sha1, sha256
 
 from Crypto import Util
 from Crypto.Cipher import AES, DES3
@@ -23,6 +23,7 @@ from pyasn1.codec.ber import decoder as berDecoder
 from pyasn1.codec.ber import encoder as berEncoder
 from pyasn1.error import PyAsn1Error
 from pyasn1.type import univ
+from constantly import Names, NamedConstant
 
 from chevah.keycert import common, sexpy, _path
 from chevah.keycert.common import (
@@ -194,6 +195,32 @@ def _skip_key_generation(options, private_file, public_file):
     if os.path.exists(_path(public_file)):
         raise KeyCertException(u'Public key already exists. %s' % public_file)
     return False
+
+
+class BadFingerPrintFormat(Exception):
+    """
+    Raises when unsupported fingerprint formats are presented to fingerprint.
+    """
+
+
+class FingerprintFormats(Names):
+    """
+    Constants representing the supported formats of key fingerprints.
+
+    @cvar MD5_HEX: Named constant representing fingerprint format generated
+        using md5[RFC1321] algorithm in hexadecimal encoding.
+    @type MD5_HEX: L{NamedConstant}
+
+    @cvar SHA256_BASE64: Named constant representing fingerprint format
+        generated using sha256[RFC4634] algorithm in base64 encoding
+    @type SHA256_BASE64: L{NamedConstant}
+    @cvar SHA1_BASE64: Named constant representing fingerprint format
+        generated using sha1[RFC3174] algorithm in base64 encoding
+    @type SHA1_BASE64: L{NamedConstant}
+    """
+    MD5_HEX = NamedConstant()
+    SHA256_BASE64 = NamedConstant()
+    SHA1_BASE64 = NamedConstant()
 
 
 class Key(object):
@@ -542,25 +569,46 @@ class Key(object):
         """
         return not self.keyObject.has_private()
 
-    def fingerprint(self):
+    def fingerprint(self, format=FingerprintFormats.MD5_HEX):
         """
-        Get the user presentation of the fingerprint of this L{Key}.  As
-        described by U{RFC 4716 section
-        4<http://tools.ietf.org/html/rfc4716#section-4>}::
+        The fingerprint of a public key consists of the output of the
+        message-digest algorithm in the specified format.
+        Supported formats include L{FingerprintFormats.MD5_HEX} and
+        L{FingerprintFormats.SHA256_BASE64}
 
-            The fingerprint of a public key consists of the output of the MD5
-            message-digest algorithm [RFC1321].  The input to the algorithm is
-            the public key data as specified by [RFC4253].  (...)  The output
-            of the (MD5) algorithm is presented to the user as a sequence of 16
-            octets printed as hexadecimal with lowercase letters and separated
-            by colons.
+        The input to the algorithm is the public key data as specified
+        by [RFC4253].
+
+        The output of sha256[RFC4634] algorithm is presented to the
+        user in the form of base64 encoded sha256 hashes.
+        Example: C{US5jTUa0kgX5ZxdqaGF0yGRu8EgKXHNmoT8jHKo1StM=}
+
+        The output of the MD5[RFC1321](default) algorithm is presented to the
+        user as a sequence of 16 octets printed as hexadecimal with lowercase
+        letters and separated by colons.
+        Example: C{c1:b1:30:29:d7:b8:de:6c:97:77:10:d7:46:41:63:87}
+
+        @param format: Format for fingerprint generation. Consists
+            hash function and representation format.
+            Default is L{FingerprintFormats.MD5_HEX}
+
+        @since: 8.2
 
         @return: the user presentation of this L{Key}'s fingerprint, as a
         string.
 
         @rtype: L{str}
         """
-        return ':'.join([x.encode('hex') for x in md5(self.blob()).digest()])
+        if format is FingerprintFormats.SHA256_BASE64:
+            return base64.b64encode(sha256(self.blob()).digest())
+        elif format is FingerprintFormats.SHA1_BASE64:
+            return base64.b64encode(sha1(self.blob()).digest())
+        elif format is FingerprintFormats.MD5_HEX:
+            return ':'.join([binascii.hexlify(x)
+                             for x in iterbytes(md5(self.blob()).digest())])
+        else:
+            raise BadFingerPrintFormat(
+                'Unsupported fingerprint format: %s' % (format,))
 
     def sign(self, data):
         """

@@ -113,6 +113,7 @@ setup(
         'pyCrypto >=2.6',
         'pyasn1 >=0.1.7',
         'chevah-compat >=0.27.1',
+        'constantly >=15.1.0',
         ],
 
     extras_require={
