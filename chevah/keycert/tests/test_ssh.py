@@ -363,6 +363,27 @@ class TestKey(EmpiricalTestCase):
         """
         self.assertBadKey(content, 'Fail to parse key content.')
 
+    def _getKeysForFingerprintTest(self):
+        """
+        Return tuple with public RSA and DSA keys from the test data.
+        """
+        rsa = Crypto.PublicKey.RSA.construct((
+            keydata.RSAData2['n'],
+            keydata.RSAData2['e'],
+            keydata.RSAData2['d'],
+            keydata.RSAData2['p'],
+            keydata.RSAData2['q'],
+            keydata.RSAData2['u'],
+            ))
+        dsa = Crypto.PublicKey.DSA.construct((
+            keydata.DSAData2['y'],
+            keydata.DSAData2['g'],
+            keydata.DSAData2['p'],
+            keydata.DSAData2['q'],
+            keydata.DSAData2['x'],
+            ))
+        return (rsa, dsa)
+
     def _testPublicPrivateFromString(self, public, private, type, data):
         self._testPublicFromString(public, type, data)
         self._testPrivateFromString(private, type, data)
@@ -1746,24 +1767,6 @@ IGNORED
 
         result = key.fingerprint()
         self.assertEqual(keydata.privateRSA_fingerprint_md5, result)
-
-    def _getKeysForFingerprintTest(self):
-        rsa = Crypto.PublicKey.RSA.construct((
-            keydata.RSAData2['n'],
-            keydata.RSAData2['e'],
-            keydata.RSAData2['d'],
-            keydata.RSAData2['p'],
-            keydata.RSAData2['q'],
-            keydata.RSAData2['u'],
-            ))
-        dsa = Crypto.PublicKey.DSA.construct((
-            keydata.DSAData2['y'],
-            keydata.DSAData2['g'],
-            keydata.DSAData2['p'],
-            keydata.DSAData2['q'],
-            keydata.DSAData2['x'],
-            ))
-        return (rsa, dsa)
 
     def test_fingerprintdefault(self):
         """
