@@ -1,6 +1,12 @@
 Relese notes for Chevah KeyCert
 ###############################
 
+1.4.2 - 06/01/2017
+==================
+
+* Add support for SHA1 and SHA256 hash algorithms when getting the
+  key's fingerprint.
+
 
 1.4.1 - 22/08/2016
 ==================

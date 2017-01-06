@@ -363,6 +363,27 @@ class TestKey(EmpiricalTestCase):
         """
         self.assertBadKey(content, 'Fail to parse key content.')
 
+    def _getKeysForFingerprintTest(self):
+        """
+        Return tuple with public RSA and DSA keys from the test data.
+        """
+        rsa = Crypto.PublicKey.RSA.construct((
+            keydata.RSAData2['n'],
+            keydata.RSAData2['e'],
+            keydata.RSAData2['d'],
+            keydata.RSAData2['p'],
+            keydata.RSAData2['q'],
+            keydata.RSAData2['u'],
+            ))
+        dsa = Crypto.PublicKey.DSA.construct((
+            keydata.DSAData2['y'],
+            keydata.DSAData2['g'],
+            keydata.DSAData2['p'],
+            keydata.DSAData2['q'],
+            keydata.DSAData2['x'],
+            ))
+        return (rsa, dsa)
+
     def _testPublicPrivateFromString(self, public, private, type, data):
         self._testPublicFromString(public, type, data)
         self._testPrivateFromString(private, type, data)
@@ -1738,7 +1759,7 @@ IGNORED
             keys.Key.fromString,
             '\x00\x00\x00\x07ssh-foo' + '\x00\x00\x00\x01\x01' * 5)
 
-    def test_fingerpint(self):
+    def test_fingerprint(self):
         """
         Will return the md5 fingerprint with colons separator.
         """
@@ -1746,6 +1767,81 @@ IGNORED
 
         result = key.fingerprint()
         self.assertEqual(keydata.privateRSA_fingerprint_md5, result)
+
+    def test_fingerprintdefault(self):
+        """
+        Test that the fingerprint method returns fingerprint in
+        L{FingerprintFormats.MD5-HEX} format by default.
+        """
+        rsaObj, dsaObj = self._getKeysForFingerprintTest()
+
+        self.assertEqual(
+            keys.Key(rsaObj).fingerprint(),
+            '3d:13:5f:cb:c9:79:8a:93:06:27:65:bc:3d:0b:8f:af')
+        self.assertEqual(
+            keys.Key(dsaObj).fingerprint(),
+            '63:15:b3:0e:e6:4f:50:de:91:48:3d:01:6b:b3:13:c1')
+
+    def test_fingerprint_md5_hex(self):
+        """
+        fingerprint method generates key fingerprint in
+        L{FingerprintFormats.MD5-HEX} format if explicitly specified.
+        """
+        rsaObj, dsaObj = self._getKeysForFingerprintTest()
+
+        self.assertEqual(
+            keys.Key(rsaObj).fingerprint(
+                keys.FingerprintFormats.MD5_HEX),
+            '3d:13:5f:cb:c9:79:8a:93:06:27:65:bc:3d:0b:8f:af')
+        self.assertEqual(
+            keys.Key(dsaObj).fingerprint(
+                keys.FingerprintFormats.MD5_HEX),
+            '63:15:b3:0e:e6:4f:50:de:91:48:3d:01:6b:b3:13:c1')
+
+    def test_fingerprintsha256(self):
+        """
+        fingerprint method generates key fingerprint in
+        L{FingerprintFormats.SHA256-BASE64} format if explicitly specified.
+        """
+        rsaObj, dsaObj = self._getKeysForFingerprintTest()
+
+        self.assertEqual(
+            keys.Key(rsaObj).fingerprint(
+                keys.FingerprintFormats.SHA256_BASE64),
+            'ryaugIFT0B8ItuszldMEU7q14rG/wj9HkRosMeBWkts=')
+        self.assertEqual(
+            keys.Key(dsaObj).fingerprint(
+                keys.FingerprintFormats.SHA256_BASE64),
+            'Wz5o2YbKyxOEcJn1au/UaALSVruUzfz0vaLI1xiIGyY=')
+
+    def test_fingerprintsha1(self):
+        """
+        fingerprint method generates key fingerprint in
+        L{FingerprintFormats.SHA1-BASE64} format if explicitly specified.
+        """
+        rsaObj, dsaObj = self._getKeysForFingerprintTest()
+
+        self.assertEqual(
+            keys.Key(rsaObj).fingerprint(
+                keys.FingerprintFormats.SHA1_BASE64),
+            'mbHIgG6X8cU8KKMPo5wfkr1293g=')
+        self.assertEqual(
+            keys.Key(dsaObj).fingerprint(
+                keys.FingerprintFormats.SHA1_BASE64),
+            '9CCuTybG5aORtuW4jrFcp0PbK4U=')
+
+    def test_fingerprintBadFormat(self):
+        """
+        A C{BadFingerPrintFormat} error is raised when unsupported
+        formats are requested.
+        """
+        rsaObj = self._getKeysForFingerprintTest()[0]
+
+        with self.assertRaises(keys.BadFingerPrintFormat) as em:
+            keys.Key(rsaObj).fingerprint('sha256-base')
+        self.assertEqual(
+            'Unsupported fingerprint format: sha256-base',
+            em.exception.args[0])
 
     def test_sign(self):
         """
