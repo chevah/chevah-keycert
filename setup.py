@@ -100,6 +100,8 @@ setup(
 
     keywords='twisted ssh ssl tls pki ca',
 
+    namespace_packages=['chevah'],
+
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
 
     entry_points={
