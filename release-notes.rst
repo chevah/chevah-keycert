@@ -2,6 +2,18 @@ Relese notes for Chevah KeyCert
 ###############################
 
 
+1.4.4 - 25/01/2017
+==================
+
+* Release withtou changes to test the fix from 1.4.3.
+
+
+1.4.3 - 25/01/2017
+==================
+
+* Fix setup.py to declare the namespace package.
+
+
 1.4.2 - 06/01/2017
 ==================
 

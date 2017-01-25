@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.4.2'
+VERSION = '1.4.4'
 
 
 class NoseTestCommand(TestCommand):
@@ -99,6 +99,8 @@ setup(
         ],
 
     keywords='twisted ssh ssl tls pki ca',
+
+    namespace_packages=['chevah'],
 
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
 
