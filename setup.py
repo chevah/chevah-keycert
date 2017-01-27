@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.4.4'
+VERSION = '1.4.5'
 
 
 class NoseTestCommand(TestCommand):
@@ -114,7 +114,7 @@ setup(
         'pyopenssl >=0.13',
         'pyCrypto >=2.6',
         'pyasn1 >=0.1.7',
-        'chevah-compat >=0.27.1',
+        'chevah-compat >=0.40.0',
         'constantly >=15.1.0',
         ],
 
@@ -122,7 +122,6 @@ setup(
         'dev': [
             'zope.interface',
             'future',
-            'chevah-empirical ==0.33.1',
             'pyflakes ==0.8.1',
             'pocketlint ==1.4.4.c10',
             'pep8 ==1.6.2',
@@ -131,6 +130,7 @@ setup(
             'bunch',
             'coverage',
             'codecov',
+            'unidecode',
             ],
         },
     cmdclass={'test': NoseTestCommand},

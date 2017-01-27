@@ -10,7 +10,7 @@ from StringIO import StringIO
 import base64
 import textwrap
 
-from chevah.empirical import mk, EmpiricalTestCase
+from chevah.compat.testing import mk, ChevahTestCase
 from nose.plugins.attrib import attr
 import Crypto
 
@@ -234,7 +234,7 @@ class DummyOpenContext(object):
         return False
 
 
-class TestHelpers(EmpiricalTestCase, CommandLineMixin):
+class TestHelpers(ChevahTestCase, CommandLineMixin):
     """
     Unit tests for helper methods from this module.
     """
@@ -310,7 +310,7 @@ class TestHelpers(EmpiricalTestCase, CommandLineMixin):
         self.assertRaises(keys.BadKeyError, keys.objectType, None)
 
 
-class TestKey(EmpiricalTestCase):
+class TestKey(ChevahTestCase):
     """
     Unit test for SSH key generation.
 
@@ -1895,7 +1895,7 @@ attr u:
 \t04>""")
 
 
-class Test_generate_ssh_key_parser(EmpiricalTestCase, CommandLineMixin):
+class Test_generate_ssh_key_parser(ChevahTestCase, CommandLineMixin):
     """
     Unit tests for generate_ssh_key_parser.
     """
@@ -1969,7 +1969,7 @@ class Test_generate_ssh_key_parser(EmpiricalTestCase, CommandLineMixin):
             }, options)
 
 
-class Testgenerate_ssh_key(EmpiricalTestCase, CommandLineMixin):
+class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
     """
     Tests for generate_ssh_key.
     """
