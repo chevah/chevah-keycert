@@ -61,7 +61,7 @@ endif
 
 
 dev_deps:
-	@$(BASE_PATH)/pip install buildbot
+	@$(BASE_PATH)/pip install buildbot service_identity
 
 git_push:
 	@echo 'Sending commited changes before sending patch'

@@ -2,10 +2,16 @@ Relese notes for Chevah KeyCert
 ###############################
 
 
+1.4.6 - 13/09/2017
+==================
+
+* Remove bogus entry point from setup.py.
+
+
 1.4.5 - 25/01/2017
 ==================
 
-* Use latest chevah-compat which inclused the testing code.
+* Use latest chevah-compat which includes the testing code.
 
 
 1.4.4 - 25/01/2017

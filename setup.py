@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.4.5'
+VERSION = '1.4.6'
 
 
 class NoseTestCommand(TestCommand):
@@ -103,12 +103,6 @@ setup(
     namespace_packages=['chevah'],
 
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-
-    entry_points={
-        'nose.plugins.0.10': [
-            'timer = chevah.empirical.nose_test_timer:TestTimer'
-            ]
-        },
 
     install_requires=[
         'pyopenssl >=0.13',
