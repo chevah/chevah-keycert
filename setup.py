@@ -33,7 +33,6 @@ class NoseTestCommand(TestCommand):
             '--cover-package=' + module,
             '--cover-erase',
             '--cover-test',
-            '--with-timer',
             module.replace('.', '/'),
             ])
 
@@ -120,11 +119,13 @@ setup(
             'pocketlint ==1.4.4.c10',
             'pep8 ==1.6.2',
             'nose',
+            'remote_pdb',
             'mock',
             'bunch',
             'coverage',
             'codecov',
             'unidecode',
+            'ld',
             ],
         },
     cmdclass={'test': NoseTestCommand},

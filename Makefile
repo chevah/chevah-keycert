@@ -20,8 +20,8 @@ all: test
 	
 
 local_env:
-	@if [ ! -d "build/venv" ]; then virtualenv -p python2 build/venv; fi
-	@$(BASE_PATH)/pip install -U pip
+	@if [ ! -d "build/venv" ]; then ./paver.sh deps; fi
+	@$(BASE_PATH)/python -m pip install -U pip --force-reinstall
 
 
 deps: local_env deps_base
@@ -61,7 +61,7 @@ endif
 
 
 dev_deps:
-	@$(BASE_PATH)/pip install buildbot service_identity
+	@$(BASE_PATH)/pip install buildbot==0.8.14 service_identity
 
 git_push:
 	@echo 'Sending commited changes before sending patch'
