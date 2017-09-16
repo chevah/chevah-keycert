@@ -117,7 +117,7 @@ setup(
             'future',
             'pyflakes ==0.8.1',
             'pocketlint ==1.4.4.c10',
-            'pep8 ==1.6.2',
+            'pycodestyle ==2.3.1',
             'nose',
             'remote_pdb',
             'mock',

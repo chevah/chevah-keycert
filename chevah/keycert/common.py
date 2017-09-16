@@ -137,6 +137,7 @@ def install():
     else:
         __builtins__['pow'] = _fastpow
 
+
 try:
     import gmpy
     install()

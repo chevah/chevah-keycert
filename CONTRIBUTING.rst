@@ -5,18 +5,14 @@ All test code need to have 100% coverage.
 
 Auto-released on PyPi using Travis-CI for each tag.
 
-Build development environment and activate it::
+Build development environment and activate it.
+It uses the chevah-brink script to create the virtual environment ::
 
-    make deps
-    . build/venv/bin/activate
+    ./brink.sh deps
 
 Run checks executed on Travis-CI: test, linters and coverage::
 
-    python setup.py test
-
-To get HTML coverage report use::
-
-    make test
+    ./brink.sh test
 
 Default virtual environment is created in build/venv.
 
@@ -25,11 +21,9 @@ Use nosetests for TDD.
 Linux, OS X and Windows tests executed on private buildbot server as Travis CI
 is Linux only::
 
-    # Install dev dependencies
-    make dev_deps
     # See available builders
-    make test_remote
+    ./brink.sh remote
     # Trigger a builder
-    make test_remote TARGET=keycert-win-2008
+    ./brink.sh remote [--wait] -b keycert-win-2008
     # Trigger a builder with running the clean step
-    make test_remote_with_purge TARGET=keycert-win-2008
+    ./brink.sh remote -b keycert-win-2008 --properties=force_purge=yes

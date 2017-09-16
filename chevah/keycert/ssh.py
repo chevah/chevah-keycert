@@ -332,7 +332,7 @@ class Key(object):
             # Most probably some parts are missing from the key, so
             # we consider it too short.
             raise BadKeyError('Key is too short.')
-        except (struct.error,  binascii.Error, TypeError):
+        except (struct.error, binascii.Error, TypeError):
             raise BadKeyError('Fail to parse key content.')
 
     def toString(self, type, extra=None):
