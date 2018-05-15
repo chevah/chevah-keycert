@@ -3,6 +3,10 @@ sudo: false
 python:
   - "2.7"
 
+os:
+  - linux
+  - osx
+
 install:
   - pip install --extra-index-url https://pypi.chevah.com/simple -e .[dev]
 
