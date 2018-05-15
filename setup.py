@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.4.6'
+VERSION = '1.4.7'
 
 
 class NoseTestCommand(TestCommand):
@@ -115,9 +115,11 @@ setup(
         'dev': [
             'zope.interface',
             'future',
-            'pyflakes ==0.8.1',
+
             'pocketlint ==1.4.4.c10',
+            'pyflakes == 1.6.0',
             'pycodestyle ==2.3.1',
+
             'nose',
             'remote_pdb',
             'mock',

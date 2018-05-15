@@ -14,11 +14,11 @@ import struct
 import textwrap
 import os.path
 from hashlib import md5, sha1, sha256
+from os import urandom
 
 from Crypto import Util
 from Crypto.Cipher import AES, DES3
 from Crypto.PublicKey import DSA, RSA
-from OpenSSL import rand
 from pyasn1.codec.ber import decoder as berDecoder
 from pyasn1.codec.ber import encoder as berEncoder
 from pyasn1.error import PyAsn1Error
@@ -237,7 +237,7 @@ class Key(object):
 
     @staticmethod
     def secureRandom(n):  # pragma: no cover
-        return rand.bytes(n)
+        return urandom(n)
 
     def __init__(self, keyObject):
         """

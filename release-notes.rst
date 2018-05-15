@@ -2,6 +2,12 @@ Relese notes for Chevah KeyCert
 ###############################
 
 
+1.4.7 - 13/09/2017
+==================
+
+* Update to work with latest pyopenssl where `rand` was removed..
+
+
 1.4.6 - 13/09/2017
 ==================
 
