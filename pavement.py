@@ -129,25 +129,11 @@ def remote(args):
         runner.run()
     except SystemExit as buildbot_exit:
         pass
+    finally:
+        sys.stdout = sys.__stdout__
 
     for line in out.getvalue().splitlines():
-        if 'brink' in line:
+        if 'keycert' in line:
             print(line)
 
     sys.exit(buildbot_exit)
-
-    # BUILDBOT_TRY=$(BASE_PATH)/buildbot try \
-    #         --connect=pb --username=chevah_buildbot --passwd=chevah_password \
-    #         --master=build.chevah.com:10087 --vc=git
-    # test_remote: git_push
-    # ifeq "$(TARGET)" ""
-    #     $(BUILDBOT_TRY) --get-builder-names | grep keycert
-    # else
-    #     $(BUILDBOT_TRY) -b $(TARGET)
-    # endif
-
-    # test_remote_with_purge: git_push
-    #     $(BUILDBOT_TRY) -b $(TARGET) --properties=force_purge=yes
-
-    # test_remote_with_wait: git_push
-    #     $(BUILDBOT_TRY) -b $(TARGET) --wait

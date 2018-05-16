@@ -18,7 +18,7 @@ Default virtual environment is created in build/venv.
 
 Use nosetests for TDD.
 
-Linux, OS X and Windows tests executed on private buildbot server as Travis CI
+Linux, OS X and Windows tests executed on private Buildbot server as Travis CI
 is Linux only::
 
     # See available builders

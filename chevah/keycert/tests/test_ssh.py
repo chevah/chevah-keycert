@@ -1995,13 +1995,13 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         When custom values are provided, the key is generated using those
         values.
         """
-        file_name = mk.string()
-        file_name_pub = file_name + u'.pub'
+        file_name = mk.ascii()
+        file_name_pub = file_name + b'.pub'
         options = self.parseArguments([
             self.sub_command_name,
             '--key-size=512',
             '--key-type=DSA',
-            u'--key-file=' + file_name,
+            '--key-file=' + file_name,
             '--key-comment=this is a comment',
             ])
         open_method = DummyOpenContext()
