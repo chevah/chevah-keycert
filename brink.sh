@@ -69,10 +69,40 @@ BINARY_DIST_URI='https://binary.chevah.com/production'
 PIP_INDEX='http://pypi.chevah.com'
 BASE_REQUIREMENTS=''
 
+#
+# Check that we have a pavement.py in the current dir.
+# otherwise it means we are out of the source folder and paver can not be
+# used there.
+#
+check_source_folder() {
 
+    if [ ! -e pavement.py ]; then
+        echo 'No pavement.py file found in current folder.'
+        echo 'Make sure you are running paver from a source folder.'
+        exit 1
+    fi
+}
+
+
+# Called to trigger the entry point in the virtual environment.
+# Can be overwritten in brink.conf
 execute_venv() {
     ${PYTHON_BIN} $PYTHON3_CHECK -c 'from paver.tasks import main; main()' "$@"
 }
+
+# Called to update the dependencies inside the newly created virtual
+# environment.
+update_venv() {
+    set +e
+    ${PYTHON_BIN} -c 'from paver.tasks import main; main()' deps
+    exit_code=$?
+    set -e
+    if [ $exit_code -ne 0 ]; then
+        echo 'Failed to run the initial "paver deps" command.'
+        exit 1
+    fi
+}
+
 
 # Load repo specific configuration.
 source brink.conf
@@ -89,19 +119,13 @@ clean_build() {
     echo "Cleaning project temporary files..."
     rm -f DEFAULT_VALUES
     echo "Cleaning pyc files ..."
-    if [ $OS = "rhel4" ]; then
-        # RHEL 4 don't support + option in -exec
-        # We use -print0 and xargs to no fork for each file.
-        # find will fail if no file is found.
-        touch ./dummy_file_for_RHEL4.pyc
-        find ./ -name '*.pyc' -print0 | xargs -0 rm
-    else
-        # AIX's find complains if there are no matching files when using +.
-        [ $(uname) == AIX ] && touch ./dummy_file_for_AIX.pyc
-        # Faster than '-exec rm {} \;' and supported in most OS'es,
-        # details at http://www.in-ulm.de/~mascheck/various/find/#xargs
-        find ./ -name '*.pyc' -exec rm {} +
-    fi
+
+    # AIX's find complains if there are no matching files when using +.
+    [ $(uname) == AIX ] && touch ./dummy_file_for_AIX.pyc
+    # Faster than '-exec rm {} \;' and supported in most OS'es,
+    # details at http://www.in-ulm.de/~mascheck/various/find/#xargs
+    find ./ -name '*.pyc' -exec rm {} +
+
     # In some case pip hangs with a build folder in temp and
     # will not continue until it is manually removed.
     # On the OSX build server tmp is in $TMPDIR
@@ -413,7 +437,7 @@ copy_python() {
                 # Remove it and try to install it again.
                 echo "Updating Python from" \
                     $python_installed_version to $PYTHON_VERSION
-                rm -rf ${BUILD_FOLDER}
+                rm -rf ${BUILD_FOLDER}/*
                 rm -rf ${python_distributable}
                 copy_python
             fi
@@ -427,7 +451,7 @@ copy_python() {
                 echo "Updating Python from UNVERSIONED to $PYTHON_VERSION"
                 # We have a different python installed.
                 # Remove it and try to install it again.
-                rm -rf ${BUILD_FOLDER}
+                rm -rf ${BUILD_FOLDER}/*
                 rm -rf ${python_distributable}
                 copy_python
             else
@@ -448,42 +472,7 @@ install_dependencies(){
         return
     fi
 
-    case "$BASE_REQUIREMENTS" in
-        *paver*)
-            # Only user paver if it is dependency.
-            set +e
-            ${PYTHON_BIN} -c 'from paver.tasks import main; main()' deps
-            exit_code=$?
-            set -e
-            if [ $exit_code -ne 0 ]; then
-                echo 'Failed to run the initial "paver deps" command.'
-                exit 1
-            fi
-            ;;
-    esac
-}
-
-
-#
-# Check that we have a pavement.py in the current dir.
-# otherwise it means we are out of the source folder and paver can not be
-# used there.
-#
-check_source_folder() {
-
-    case "$BASE_REQUIREMENTS" in 
-      *paver*)
-        # Only check for pavement.py if project is using paver.
-        if [ ! -e pavement.py ]; then
-            echo 'No pavement.py file found in current folder.'
-            echo 'Make sure you are running paver from a source folder.'
-            exit 1
-        fi
-
-        ;;
-    esac
-
-
+    update_venv
 }
 
 
@@ -510,6 +499,12 @@ check_os_version() {
     local flag_supported='good_enough'
     local version_raw_array
     local version_good_array
+
+    if [[ $version_raw =~ [^[:digit:]\.] ]]; then
+        echo "Unparsed OS version should only have numbers and periods, but:"
+        echo "    \$version_raw=$version_raw"
+        exit 12
+    fi
 
     # Using '.' as a delimiter, populate the version_raw_* arrays.
     IFS=. read -a version_raw_array <<< "$version_raw"
@@ -561,6 +556,8 @@ detect_os() {
 
         # Solaris 10u8 (from 10/09) updated the libc version, so for older
         # releases we build on 10u3, and use that up to 10u7 (from 5/09).
+        # The "solaris10u3" code path also preserves the way to link to the
+        # OpenSSL 0.9.7 libs bundled in /usr/sfw/ with all Solaris 10 releases.
         if [ "${OS}" = "solaris10" ]; then
             # We extract the update number from the first line.
             update=$(head -1 /etc/release | cut -d'_' -f2 | sed 's/[^0-9]*//g')
@@ -594,8 +591,18 @@ detect_os() {
             if egrep -q 'Red\ Hat|CentOS|Scientific' /etc/redhat-release; then
                 os_version_raw=$(\
                     cat /etc/redhat-release | sed s/.*release// | cut -d' ' -f2)
-                check_os_version "Red Hat Enterprise Linux" 4 \
+                check_os_version "Red Hat Enterprise Linux" 5 \
                     "$os_version_raw" os_version_chevah
+                # RHEL 7.4 and newer have OpenSSL 1.0.2, while 7.3 and older
+                # have version 1.0.1. Thus for the older RHEL 7 versions we use
+                # a separate OS signature, to make use of a dedicated Python
+                # package.
+                if [ "$os_version_chevah" -eq 7 ]; then
+                    if openssl version | grep -F -q "1.0.1"; then
+                        # We are on 1.0.1 which is pre RHEL 7.4
+                        os_version_chevah=7openssl101
+                    fi
+                fi
                 OS="rhel${os_version_chevah}"
             fi
         elif [ -f /etc/SuSE-release ]; then
@@ -611,37 +618,42 @@ detect_os() {
                     OS="sles11sm"
                 fi
             fi
-        elif [ -f /etc/arch-release ]; then
-            # ArchLinux is a rolling distro, no version info available.
-            OS="archlinux"
-        elif [ -f /etc/alpine-release ]; then
-            os_version_raw=$(cat /etc/alpine-release)
-            check_os_version "Alpine Linux" 3.6 \
-                "$os_version_raw" os_version_chevah
-            OS="alpine${os_version_chevah}"
-        elif [ -f /etc/rpi-issue ]; then
-            # Raspbian is a special case, a Debian unofficial derivative.
-            if egrep -q ^'NAME="Raspbian GNU/Linux' /etc/os-release; then
-                os_version_raw=$(\
-                    grep ^'VERSION_ID=' /etc/os-release | cut -d'"' -f2)
-                check_os_version "Raspbian GNU/Linux" 7 \
-                    "$os_version_raw" os_version_chevah
-                OS="raspbian${os_version_chevah}"
-            fi
-        elif [ $(command -v lsb_release) ]; then
-            lsb_release_id=$(lsb_release -is)
-            os_version_raw=$(lsb_release -rs)
-            if [ $lsb_release_id = Ubuntu ]; then
-                check_os_version "Ubuntu Long-term Support" 10.04 \
-                    "$os_version_raw" os_version_chevah
-                # Only Long-term Support versions are officially endorsed, thus
-                # $os_version_chevah should end in 04, and the first two digits
-                # should represent an even year.
-                if [ ${os_version_chevah%%04} != ${os_version_chevah} -a \
-                    $(( ${os_version_chevah%%04} % 2 )) -eq 0 ]; then
-                    OS="ubuntu${os_version_chevah}"
-                fi
-            fi
+        elif [ -f /etc/os-release ]; then
+            source /etc/os-release
+            linux_distro="$ID"
+            distro_fancy_name="$NAME"
+            case "$linux_distro" in
+                "ubuntu")
+                    os_version_raw="$VERSION_ID"
+                    check_os_version "$distro_fancy_name" 14.04 \
+                        "$os_version_raw" os_version_chevah
+                    # Only Long-term Support versions are supported,
+                    # thus $os_version_chevah should end in 04,
+                    # and the first two digits should represent an even year.
+                    if [ ${os_version_chevah%%04} != ${os_version_chevah} -a \
+                        $(( ${os_version_chevah%%04} % 2 )) -eq 0 ]; then
+                        OS="ubuntu${os_version_chevah}"
+                    else
+                        echo "Unsupported Ubuntu, using generic Linux binaries!"
+                    fi
+                    ;;
+                "raspbian")
+                    os_version_raw="$VERSION_ID"
+                    check_os_version "$distro_fancy_name" 7 \
+                        "$os_version_raw" os_version_chevah
+                    OS="raspbian${os_version_chevah}"
+                    ;;
+                "alpine")
+                    os_version_raw="$VERSION_ID"
+                    check_os_version "$distro_fancy_name" 3.6 \
+                        "$os_version_raw" os_version_chevah
+                    OS="alpine${os_version_chevah}"
+                    ;;
+                "arch")
+                    # Arch Linux is a rolling distro, no version info available.
+                    OS="archlinux"
+                    ;;
+            esac
         fi
     elif [ "${OS}" = "darwin" ]; then
         ARCH=$(uname -m)
