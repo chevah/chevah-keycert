@@ -107,7 +107,7 @@ setup(
         'pyopenssl >=0.13',
         'pyCrypto >=2.6',
         'pyasn1 >=0.1.7',
-        'chevah-compat >=0.40.0',
+        'chevah-compat >=0.49.3',
         'scandir >= 1.7',
         'constantly >=15.1.0',
         ],
