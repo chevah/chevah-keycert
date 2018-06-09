@@ -4,6 +4,8 @@
 """
 Test for SSH keys management.
 """
+import __builtin__
+
 from argparse import ArgumentParser
 from hashlib import sha1
 from StringIO import StringIO
@@ -2009,6 +2011,7 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         exit_code, message, key = generate_ssh_key(
             options, open_method=open_method)
 
+        self.assertEqual(0, exit_code, message)
         self.assertEqual('DSA', key.type())
         self.assertEqual(512, key.size)
 
@@ -2163,3 +2166,30 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         self.assertEqual(
             "[Errno 2] No such file or directory: 'no-such-parent/ssh.key'",
             message)
+
+
+class Testgenerate_ssh_key_GMP(Testgenerate_ssh_key):
+    """
+    Run tests with GMP POW method.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls._builtin_pow = __builtin__.pow
+        try:
+            # Use GMP faster computation.
+            from gmpy2 import mpz
+        except ImportError:
+            # If GMPY2 is not available, fallback to GMPY (version 1)
+            # This is used on HP-UX for example.
+            from gmpy import mpz
+
+        def _fastpow(x, y, z=None, mpz=mpz):
+            if type(x) in (long, int):
+                x = mpz(x)
+            return long(cls._builtin_pow(x, y, z))
+        __builtin__.pow = _fastpow
+
+    @classmethod
+    def tearDownClass(cls):
+        __builtin__.pow = cls._builtin_pow
