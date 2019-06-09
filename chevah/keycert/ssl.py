@@ -14,7 +14,7 @@ from chevah.keycert.exceptions import KeyCertException
 _DEFAULT_SSL_KEY_CYPHER = b'aes-256-cbc'
 
 
-def generate_ssl_self_signed_certificate():
+def generate_ssl_self_signed_certificate(serial=1000):
     """
     Generate a self signed SSL certificate.
 
@@ -31,7 +31,7 @@ def generate_ssl_self_signed_certificate():
     cert.get_subject().O = "ACME Inc."
     cert.get_subject().OU = "Henderson"
     cert.get_subject().CN = gethostname()
-    cert.set_serial_number(1000)
+    cert.set_serial_number(serial)
     cert.gmtime_adj_notBefore(0)
     cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
     cert.set_issuer(cert.get_subject())
@@ -58,6 +58,15 @@ def generate_csr_parser(subparsers, name, default_key_size=2048):
         '--common-name',
         help='Common name associated with the generated CSR.',
         required=True,
+        )
+    sub_command.add_argument(
+        '--key',
+        metavar="FILE",
+        default=None,
+        help=(
+            'Sign the CSR using this private key. '
+            'Private key loaded as PEM PKCS#8 format. '
+            ),
         )
     sub_command.add_argument(
         '--key-file',
@@ -192,8 +201,19 @@ def _generate_csr(options):
             False,
             options.alternative_name.encode('idna')))
 
-    key = crypto.PKey()
-    key.generate_key(key_type, options.key_size)
+    key_pem = None
+    private_key = options.key
+    if private_key:
+        if os.path.exists(_path(private_key)):
+            with open(_path(private_key) , 'rb') as stream:
+                private_key = stream.read()
+
+        key_pem = private_key
+        key = crypto.load_privatekey(crypto.FILETYPE_PEM, private_key)
+    else:
+        # Generate new Key.
+        key = crypto.PKey()
+        key.generate_key(key_type, options.key_size)
 
     csr.add_extensions(extensions)
     csr.set_pubkey(key)
@@ -205,12 +225,14 @@ def _generate_csr(options):
         csr.sign(key, 'sha1')
 
     csr_pem = crypto.dump_certificate_request(crypto.FILETYPE_PEM, csr)
-    if options.key_password:
-        key_pem = crypto.dump_privatekey(
-            crypto.FILETYPE_PEM, key,
-            _DEFAULT_SSL_KEY_CYPHER, options.key_password.encode('utf-8'))
-    else:
-        key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
+
+    if not key_pem:
+        if options.key_password:
+            key_pem = crypto.dump_privatekey(
+                crypto.FILETYPE_PEM, key,
+                _DEFAULT_SSL_KEY_CYPHER, options.key_password.encode('utf-8'))
+        else:
+            key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
 
     return {
         'csr_pem': csr_pem,

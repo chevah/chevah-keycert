@@ -2,6 +2,13 @@ Relese notes for Chevah KeyCert
 ###############################
 
 
+1.5.0 - 09/06/2017
+==================
+
+* Create CSR with existing private key.
+* Create self signed certificate with explicit serial id.
+
+
 1.4.7 - 13/09/2017
 ==================
 
