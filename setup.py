@@ -104,7 +104,7 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
 
     install_requires=[
-        'bcrypt >=3.1.6'
+        'bcrypt >=3.1.6',
         'pyopenssl >=0.16',
         'pyasn1 >=0.1.7',
         'chevah-compat >=0.49.3',
