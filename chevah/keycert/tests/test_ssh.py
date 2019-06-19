@@ -567,7 +567,7 @@ class TestKey(ChevahTestCase):
 
     def test_guessStringType_PEM_certificate(self):
         """
-        None is returned when reading PEM certificates.
+        PEM certificates are recognized as public keys.
         """
         content = (
             '-----BEGIN CERTIFICATE-----\n'
@@ -577,7 +577,7 @@ class TestKey(ChevahTestCase):
 
         result = Key._guessStringType(content)
 
-        self.assertIsNone(result)
+        self.assertEqual('public_x509', result)
 
     def test_guessStringType_private_OpenSSH_RSA(self):
         """
@@ -1456,6 +1456,141 @@ P2/56wAAAi4AAAA3aWYtbW9kbntzaWdue3JzYS1wa2NzMS1zaGExfSxlbmNyeXB0e3JzYS
 ---- END SSH2 ENCRYPTED PRIVATE KEY ----"""
 
         self.assertKeyParseError(content)
+
+    def test_fromString_X509_PEM_invalid_format(self):
+        """
+        It fails to load invalid formated X509 PEM certificate.
+        """
+        data = """-----BEGIN CERTIFICATE-----
+MIIBNDCB66ADAgECAgEBMAoGCCqGSM49BAMCMDQxCzAJBgNVBAYTAkdCMQ8wDQYD
+8J4wCgYIKoZIzj0EAwIDOAAwNQIZANYXcrq622yfNJSyjlzDvk3w59IaOlljqwIY
+Gt7MBDMYYr8yfcZS94pZEUfhebR3CYAZ
+-----END CERTIFICATE-----
+"""
+        with self.assertRaises(BadKeyError) as context:
+            Key.fromString(data)
+
+        self.assertStartsWith(
+            "Failed to load certificate. [('asn1 encoding routines'",
+            context.exception.message,
+            )
+
+    def test_fromString_X509_PEM_EC(self):
+        """
+        EC public key from an X509 PEM certificate are not supported.
+        """
+        data = """-----BEGIN CERTIFICATE-----
+MIIBNDCB66ADAgECAgEBMAoGCCqGSM49BAMCMDQxCzAJBgNVBAYTAkdCMQ8wDQYD
+VQQKEwZDaGV2YWgxFDASBgNVBAMTC3Rlc3QtZWMtc3NoMB4XDTE5MDYxOTEyNTQw
+MFoXDTIwMDYxOTEyNTQwMFowNDELMAkGA1UEBhMCR0IxDzANBgNVBAoTBkNoZXZh
+aDEUMBIGA1UEAxMLdGVzdC1lYy1zc2gwSTATBgcqhkjOPQIBBggqhkjOPQMBAQMy
+AARzpUpSPLojoyouYH7HhSFV661wUKrRVqLyJlBb1cWU8f4wLZsGkXymZpAPClwu
+8J4wCgYIKoZIzj0EAwIDOAAwNQIZANYXcrq622yfNJSyjlzDvk3w59IaOlljqwIY
+Gt7MBDMYYr8yfcZS94pZEUfhebR3CYAZ
+-----END CERTIFICATE-----
+"""
+        with self.assertRaises(BadKeyError) as context:
+            Key.fromString(data)
+
+        self.assertEqual(
+            'Unsupported key found in the certificate.',
+            context.exception.message,
+            )
+
+    def test_fromString_X509_PEM_RSA(self):
+        """
+        It can extract RSA public key from an X509 PEM certificate
+        """
+        data = """-----BEGIN CERTIFICATE-----
+MIICaDCCAdGgAwIBAgIBDjANBgkqhkiG9w0BAQUFADBGMQswCQYDVQQGEwJHQjEP
+MA0GA1UEChMGQ2hldmFoMRIwEAYDVQQLEwlDaGV2YWggQ0ExEjAQBgNVBAMTCUNo
+ZXZhaCBDQTAeFw0xNjA2MTUxNDM4MDBaFw0zNjA2MTUxNDM4MDBaMEgxCzAJBgNV
+BAYTAkdCMQ8wDQYDVQQKEwZDaGV2YWgxFDASBgNVBAsTC0NoZXZhaCBUZXN0MRIw
+EAYDVQQDEwlsb2NhbGhvc3QwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAM6h
+lRh3woxhut7nNkjBH5Xp07b5wJhVLjoEdtFuq3uBzOSghaEpapeL0/M4Rpw9ANjy
+ulGy7rwJI9Me95aG53BrjMbBKk1qaHuNXa3PJjcgVmPelwPcbzk5Wl4E57dLN+eh
+4Rf/Qyi9HBdtrDf19OzBmBs7W7pO9LPo5/usHlyVAgMBAAGjZDBiMBMGA1UdJQQM
+MAoGCCsGAQUFBwMBMDgGA1UdHwQxMC8wLaAroCmGJ2h0dHA6Ly9sb2NhbGhvc3Q6
+ODA4MC9zb21lLWNoaWxkL2NhLmNybDARBglghkgBhvhCAQEEBAMCBkAwDQYJKoZI
+hvcNAQEFBQADgYEAM8Ro0XZeIrR7+fi4pGMdqTAdNFNd2O86YgzpvGpUIbhmJnty
+1k0aF2QNot4M6i6OhVQEwL4Ph/l6pbOnusv238nuzHyDHFWNPy1wV02hjacXF9EW
+JZQaMjV9XxNTFOlNUTWswff3uE677wSVDPSuNkxo2FLRcGfPUxAQGsgL5Ts=
+-----END CERTIFICATE-----
+"""
+
+        sut = Key.fromString(data)
+
+        self.assertTrue(sut.isPublic())
+        self.assertEqual('RSA', sut.type())
+        self.assertEqual(1024, sut.size)
+
+        components = sut.data()
+        self.assertEqual(65537L, components['e'])
+        n = long(
+            '14510135000543456324610075074919561379239940215773254633039625814'
+            '50191438083097108908667737243399472490927083264564327600896049375'
+            '92092816317169486450111458914839337717035721053431064458247582292'
+            '33425907841901335798792724220900289242783534069221630733833594745'
+            '1002424312049140771718167143894887320401855011989L'
+            )
+        self.assertEqual(n, components['n'])
+
+    def test_fromString_X509_PEM_DSA(self):
+        """
+        It can extract DSA public key from an X509 PEM certificate
+        """
+        data = """-----BEGIN CERTIFICATE-----
+MIICsDCCAm6gAwIBAgIBATALBglghkgBZQMEAwIwPTELMAkGA1UEBhMCR0IxDzAN
+BgNVBAoTBkNoZXZhaDEdMBsGA1UEAxMUdGVzdC1zc2gtY29udmVyc3Rpb24wHhcN
+MTkwNjE5MTIzNjAwWhcNMjAwNjE5MTIzNjAwWjA9MQswCQYDVQQGEwJHQjEPMA0G
+A1UEChMGQ2hldmFoMR0wGwYDVQQDExR0ZXN0LXNzaC1jb252ZXJzdGlvbjCCAbcw
+ggEsBgcqhkjOOAQBMIIBHwKBgQD/HJmstkyONrDh2iSafsRqxAzRG4dIUa70PdsE
+gfMYBx95Nk1vhwGFyEQyCy305b2mgLG9+nkFkaLiD5UnoBbmO1NCggXlSNoe3ezq
+akr80gV6dCwbM4T7B7lc3S0Eh5OJ2F5DKewzT65QyRrnkfECFlvjJqpeywhfucvg
+nadoCwIVAIA92hGRUbX41P8zCqRBAMiEChlzAoGBALg27DhLThHhJHWdFX2gZYTm
+NMjv/Z7mHCAda8/uqNXjAz97jI9w6KCSYIC7qiyl0lwGuW7kGqNCtnsZyxKWQzTy
+HoONu9gfAmAxZbI3TuE49fYZJ/0m0mXyPpCg0VIeFJVcS6lA2W51UD1JrvCrUb1M
+1SgNW+V/VHw6M54e+v1SA4GEAAKBgC/cCWpZpebhiEThZLd+eodR9vCntB8sIzrA
+0JRCmi4t8vBOxLNAZQE7WdPWXZJA7d43+6B4//DZH+GOt6EoxLyPxcqM+GHqa99i
+EwIuTKCIG6ucDtvzMSgwvYVFugfYaoJvu0Okc+6elNywpk9t3HLH5p2QbpPXPYgO
+SH6qmzKdMAsGCWCGSAFlAwQDAgMvADAsAhR2vu0VK+loePjKDZcalym8vjgwkwIU
+HNkVqo/9uKhSFkhbG6uKWUnOky0=
+-----END CERTIFICATE-----
+"""
+
+        sut = Key.fromString(data)
+
+        self.assertTrue(sut.isPublic())
+        self.assertEqual('DSA', sut.type())
+        self.assertEqual(1024, sut.size)
+
+        components = sut.data()
+        y = long(
+            '33608096932577498834618892325416552088960771123656082234885710486'
+            '75507586904443594643612585160476637613084634099891307779753871384'
+            '19072984388914093315900417736990449366567905225558889080164633948'
+            '75642330307431599331123161679260711587324602448450132263105327567'
+            '324900691359269978674482129301723462636106625693'
+            )
+        p = long(
+            '17914554197956231476032656039682646299975055883332311875135017227'
+            '52180243454588892360869849018970437236700881503241838175380166833'
+            '56570852141623851276212449051705325396966909384918507908491159872'
+            '81118556760058432354600693107636249903432532125207156471720334839'
+            '5401646777661899361981163845950810903143363602443'
+            )
+        g = long(
+            '12935985053463672691492638315705405640647316377002915690069266627'
+            '73032720642846501430445126372712764104983906841935717997673558164'
+            '74657088881395785073303554687569602926262408886111665706815822813'
+            '14448994749901282518897434324098506093655990924057550618491224583'
+            '7106339202519842112263186663472095769544164572498'
+            )
+        self.assertEqual(y, components['y'])
+        self.assertEqual(p, components['p'])
+        self.assertEqual(g, components['g'])
+        self.assertEqual(
+            732130160578857514768194964362219084190055012723L, components['q'])
 
     def test_toString_SSHCOM_RSA_private_without_encryption(self):
         """

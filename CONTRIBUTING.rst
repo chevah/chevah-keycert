@@ -18,6 +18,10 @@ Default virtual environment is created in build/venv.
 
 Use nosetests for TDD.
 
+You can manually test the command line tools::
+
+    $ ./build/venv/bin/python keycert-demo.py
+
 Linux, OS X and Windows tests executed on private Buildbot server as Travis CI
 is Linux only::
 

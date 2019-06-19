@@ -19,11 +19,13 @@ from os import urandom
 from Crypto import Util
 from Crypto.Cipher import AES, DES3
 from Crypto.PublicKey import DSA, RSA
+from OpenSSL import crypto
 from pyasn1.codec.ber import decoder as berDecoder
 from pyasn1.codec.ber import encoder as berEncoder
 from pyasn1.error import PyAsn1Error
 from pyasn1.type import univ
 from constantly import Names, NamedConstant
+
 
 from chevah.keycert import common, sexpy, _path
 from chevah.keycert.common import (
@@ -404,6 +406,8 @@ class Key(object):
             data.startswith(b'-----BEGIN EC')
                 ):
             return 'private_openssh'
+        elif data.startswith(b'-----BEGIN CERTIFICATE-----'):
+            return 'public_x509'
         elif data.startswith(b'PuTTY-User-Key-File-2'):
             return 'private_putty'
         elif data.startswith(b'{'):
@@ -435,6 +439,7 @@ class Key(object):
             'private_putty': 'PuTTY Private',
             'public_lsh': 'LSH Public',
             'private_lsh': 'LSH Private',
+            'public_x509': 'X509 Certificate',
             }
 
         return human_readable.get(key_type, 'Unknown format')
@@ -1656,6 +1661,40 @@ class Key(object):
         lines.extend(private_lines)
         lines.append('Private-MAC: %s' % private_mac)
         return '\r\n'.join(lines)
+
+    @classmethod
+    def _fromString_PUBLIC_X509(cls, data):
+        """
+        Read the public key from PEM format.
+        """
+        try:
+            cert = crypto.load_certificate(crypto.FILETYPE_PEM, data)
+        except crypto.Error as error:
+            raise BadKeyError('Failed to load certificate. %s' % (error,))
+
+        pkey = cert.get_pubkey()
+
+        type_id = pkey.type()
+
+        if type_id not in [6, 116]:
+            raise BadKeyError('Unsupported key found in the certificate.')
+
+        ckey = pkey.to_cryptography_key()
+        components = ckey.public_numbers()
+
+        if type_id == 6:
+            # RSA key.
+            return cls(RSA.construct((long(components.n), long(components.e))))
+
+        if type_id == 116:
+            # DSA key.
+            parameters = components.parameter_numbers
+            return cls(DSA.construct((
+                long(components.y),
+                long(parameters.g),
+                long(parameters.p),
+                long(parameters.q)
+                )))
 
 
 def objectType(obj):

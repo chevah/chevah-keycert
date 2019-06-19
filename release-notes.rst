@@ -1,5 +1,18 @@
-Relese notes for Chevah KeyCert
-###############################
+Release notes for Chevah KeyCert
+################################
+
+
+1.6.0 - 19/06/2017
+==================
+
+* Load public SSH keys from X.509 certificates.
+
+
+1.5.0 - 09/06/2017
+==================
+
+* Create CSR with existing private key.
+* Create self signed certificate with explicit serial id.
 
 
 1.4.7 - 13/09/2017

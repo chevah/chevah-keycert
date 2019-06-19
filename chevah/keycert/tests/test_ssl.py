@@ -17,6 +17,23 @@ from chevah.keycert.ssl import (
     )
 from chevah.keycert.tests.helpers import CommandLineMixin
 
+RSA_PRIVATE = """-----BEGIN RSA PRIVATE KEY-----
+MIICWwIBAAKBgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTKAPkPAWzlu5BRHcmA
+u0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk+X6Lc4+lAfp1YxCR
+9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcjRToF6/jpLwIDAQAB
+AoGACB5cQDvxmBdgYVpuy43DduabTmR71HFaNFl+nE5vwFxUqX0qFOQpG0E2Cv56
+zesPzT1JWBiqffSir4iSjH/lnskZnM9J1xfpnoJ5HTzcGHaBYVFEEXS6fOsyWT15
+oY7Kb6rRBTnWV0Ins/05Hhp38r/RR/O4poB+3NwQJDl/6gECQQDoAnRdC+5SyjrZ
+1JQUWUkapiYHIhFq6kWtGm3kWJn0IxCBtFhGvqIWJwZIAjf6tTKMUk6bjG9p7Jpe
+tXUsTiDBAkEAy5EDU2F42Xm6tvQzM8bAgq7d2/x2iHRuOkDUb1bK3YwByTihl9BL
+qvdRhRxpl21EcqWpB/RzAFbGa+60G/iV7wJABSz415KKkII+admaLBIJ1XRbaNFT
+viTXxRLP3MY1OQMHPT1+sqVSDFh2hWi3QvqD1CmJ42JwodZLY018/a4IgQJAOsCg
+yBjyyznB9PnoKUJs34rex5ZHE70e7zs01Omk5Wp6PXxVzz40CKUW5yc7JpRH1BsR
+/RTFeEyTOiWL4CLQCwJAf4BF9eVLxRQ9A4Mm9Ikt4lF8ii6na4nxdtEzP8p2LP9t
+LqHYUobNanxB+7Msi4f3gYyuKdOGnWHqD2U4HcLdMQ==
+-----END RSA PRIVATE KEY-----
+"""
+
 
 class CommandLineTestBase(ChevahTestCase, CommandLineMixin):
     """
@@ -93,6 +110,7 @@ class Test_generate_csr_parser(
 
         self.assertNamespaceEqual({
             'sub_command': 'key-gen',
+            'key': None,
             'key_file': 'server.key',
             'key_size': 2048,
             'key_password': None,
@@ -129,6 +147,7 @@ class Test_generate_csr_parser(
 
         self.assertNamespaceEqual({
             'sub_command': 'key-gen',
+            'key': None,
             'key_file': 'my_server.pem',
             'key_size': 1024,
             'key_password': u'valu\u20ac',
@@ -158,6 +177,7 @@ class Test_generate_csr_parser(
 
         self.assertNamespaceEqual({
             'sub_command': 'key-gen',
+            'key': None,
             'key_file': 'server.key',
             'key_size': 1024,
             'key_password': None,
@@ -310,6 +330,59 @@ class Test_generate_csr(CommandLineTestBase):
             crypto.dump_privatekey(crypto.FILETYPE_PEM, key),
             crypto.dump_privatekey(crypto.FILETYPE_PEM, result['key']),
             )
+
+    def test_existing_key_string(self):
+        """
+        It can generate a CSR from an existing private key as text.
+        """
+        key_pem = RSA_PRIVATE
+
+        options = self.parseArguments([
+            self.command_name,
+            '--common-name=domain.com',
+            ])
+        options.key = key_pem
+
+        result = generate_csr(options)
+
+        # OpenSSL.crypto.PKey has no equality so we need to compare the
+        # serialization.
+        self.assertEqual(1024L, result['key'].bits())
+        self.assertEqual(crypto.TYPE_RSA, result['key'].type())
+        self.assertEqual(key_pem, result['key_pem'])
+        # For CSR we can not get extensions so we only check the subject.
+        csr = crypto.dump_certificate_request(
+            crypto.FILETYPE_PEM, result['csr'])
+        self.assertEqual(csr, result['csr_pem'])
+        subject = result['csr'].get_subject()
+        self.assertEqual(u'domain.com', subject.commonName)
+
+    def test_existing_key_path(self):
+        """
+        It can generate a CSR from an existing private key file.
+        """
+        key_pem = RSA_PRIVATE
+        key_path, _ = self.tempFile(content=key_pem)
+
+        options = self.parseArguments([
+            self.command_name,
+            '--key', key_path,
+            '--common-name=domain.com',
+            ])
+
+        result = generate_csr(options)
+
+        # OpenSSL.crypto.PKey has no equality so we need to compare the
+        # serialization.
+        self.assertEqual(1024L, result['key'].bits())
+        self.assertEqual(crypto.TYPE_RSA, result['key'].type())
+        self.assertEqual(key_pem, result['key_pem'])
+        # For CSR we can not get extensions so we only check the subject.
+        csr = crypto.dump_certificate_request(
+            crypto.FILETYPE_PEM, result['csr'])
+        self.assertEqual(csr, result['csr_pem'])
+        subject = result['csr'].get_subject()
+        self.assertEqual(u'domain.com', subject.commonName)
 
 
 class Test_generate_and_store_csr(CommandLineTestBase):
