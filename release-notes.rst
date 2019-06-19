@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+2.0.0 - 19/06/2017
+==================
+
+* Replace the usage of PyCryto with Python Cryptography.
+
+
 1.6.0 - 19/06/2017
 ==================
 
