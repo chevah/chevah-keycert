@@ -1,5 +1,11 @@
-Relese notes for Chevah KeyCert
+Release notes for Chevah KeyCert
 ###############################
+
+
+1.6.0 - 19/06/2017
+==================
+
+* Load public SSH keys from X.509 certificates.
 
 
 1.5.0 - 09/06/2017

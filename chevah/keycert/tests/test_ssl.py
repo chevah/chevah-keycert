@@ -93,6 +93,7 @@ class Test_generate_csr_parser(
 
         self.assertNamespaceEqual({
             'sub_command': 'key-gen',
+            'key': None,
             'key_file': 'server.key',
             'key_size': 2048,
             'key_password': None,
@@ -129,6 +130,7 @@ class Test_generate_csr_parser(
 
         self.assertNamespaceEqual({
             'sub_command': 'key-gen',
+            'key': None,
             'key_file': 'my_server.pem',
             'key_size': 1024,
             'key_password': u'valu\u20ac',
@@ -158,6 +160,7 @@ class Test_generate_csr_parser(
 
         self.assertNamespaceEqual({
             'sub_command': 'key-gen',
+            'key': None,
             'key_file': 'server.key',
             'key_size': 1024,
             'key_password': None,

@@ -205,7 +205,7 @@ def _generate_csr(options):
     private_key = options.key
     if private_key:
         if os.path.exists(_path(private_key)):
-            with open(_path(private_key) , 'rb') as stream:
+            with open(_path(private_key), 'rb') as stream:
                 private_key = stream.read()
 
         key_pem = private_key
