@@ -774,24 +774,26 @@ class Key(object):
         @param q: The 'q' RSA variable (optional for a public key).
 
         @type u: L{int} or L{None}
-        @param u: The 'u' RSA variable. Ignored, as its value is determined by
-        p and q.
+        @param u: The 'u' RSA variable. When no provided,
+            its value is determined by p and q.
 
         @rtype: L{Key}
         @return: An RSA key constructed from the values as given.
         """
         publicNumbers = rsa.RSAPublicNumbers(e=e, n=n)
+
         if d is None:
             # We have public components.
             keyObject = publicNumbers.public_key(default_backend())
         else:
+            u = rsa.rsa_crt_iqmp(p, q)
             privateNumbers = rsa.RSAPrivateNumbers(
                 p=p,
                 q=q,
                 d=d,
                 dmp1=rsa.rsa_crt_dmp1(d, p),
                 dmq1=rsa.rsa_crt_dmq1(d, q),
-                iqmp=rsa.rsa_crt_iqmp(p, q),
+                iqmp=u,
                 public_numbers=publicNumbers,
             )
             keyObject = privateNumbers.private_key(default_backend())
@@ -1242,7 +1244,7 @@ class Key(object):
             return (common.NS(data['curve']) + common.MP(data['x']) +
                     common.MP(data['y']) + common.MP(data['privateValue']))
 
-    def toString(self, type, extra=None):
+    def toString(self, type, extra=None, comment=None):
         """
         Create a string representation of this key.  If the key is a private
         key and you want the representation of its public key, use
@@ -1265,6 +1267,8 @@ class Key(object):
             raise BadKeyError('unknown type: %r' % (type[:30],))
         if method.__code__.co_argcount == 2:
             return method(extra)
+        if method.__code__.co_argcount == 3:
+            return method(extra, comment)
         else:
             return method()
 
@@ -1716,8 +1720,8 @@ class Key(object):
         * mpint d
         * mpint n
         * mpint u
-        * mpint p
         * mpint q
+        * mpint p
 
         The payload for a DSA key:
         * uint32 0
@@ -1773,8 +1777,8 @@ class Key(object):
         try:
             payload, _ = common.getNS(key_data)
             if key_type == 'rsa':
-                e, d, n, u, p, q, rest = cls._unpackMPSSHCOM(payload, 6)
-                return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q)
+                e, d, n, u, q, p, rest = cls._unpackMPSSHCOM(payload, 6)
+                return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q, u=u)
 
             if key_type == 'dsa':
                 # First 32bit is an uint with value 0. We just ignore it.
@@ -1882,8 +1886,8 @@ class Key(object):
                 self._packMPSSHCOM(data['d']) +
                 self._packMPSSHCOM(data['n']) +
                 self._packMPSSHCOM(data['u']) +
-                self._packMPSSHCOM(data['p']) +
-                self._packMPSSHCOM(data['q'])
+                self._packMPSSHCOM(data['q']) +
+                self._packMPSSHCOM(data['p'])
                 )
         elif type == 'DSA':
             type_signature = 'dl-modp{sign{dsa-nist-sha1},dh{plain}}'
@@ -1966,8 +1970,8 @@ class Key(object):
 
         Private part RSA:
         * mpint d
-        * mpint q
         * mpint p
+        * mpint q
         * mpint u
 
         Pulic part DSA:
@@ -2066,8 +2070,8 @@ class Key(object):
 
         if key_type == b'ssh-rsa':
             e, n, _ = common.getMP(public_payload, count=2)
-            d, q, p, u, _ = common.getMP(private_blob, count=4)
-            return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q)
+            d, p, q, u, _ = common.getMP(private_blob, count=4)
+            return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q, u=u)
 
         if key_type == b'ssh-dss':
             p, q, g, y, _ = common.getMP(public_payload, count=4)
@@ -2084,7 +2088,7 @@ class Key(object):
         part_2 = sha1(b'\x00\x00\x00\x01' + passphrase).digest()
         return (part_1 + part_2)[:key_size]
 
-    def _toString_PUTTY(self, extra):
+    def _toString_PUTTY(self, extra, comment=None):
         """
         Return a public or private Putty string.
 
@@ -2105,16 +2109,17 @@ class Key(object):
             # Putty uses SSH.com as public format.
             return self._toString_SSHCOM_public(extra)
         else:
-            return self._toString_PUTTY_private(extra)
+            return self._toString_PUTTY_private(extra, comment)
 
-    def _toString_PUTTY_private(self, extra):
+    def _toString_PUTTY_private(self, extra, comment=None):
         """
         Return the Putty private key representation.
         """
         aes_block_size = 16
         lines = []
         key_type = self.sshType()
-        comment = 'Exported by chevah-keycert.'
+        if comment is None:
+            comment = 'Exported by chevah-keycert.'
         data = self.data()
 
         hmac_key = PUTTY_HMAC_KEY
@@ -2132,8 +2137,8 @@ class Key(object):
                 )
             private_blob = (
                 common.MP(data['d']) +
-                common.MP(data['q']) +
                 common.MP(data['p']) +
+                common.MP(data['q']) +
                 common.MP(data['u'])
                 )
         elif key_type == b'ssh-dss':
