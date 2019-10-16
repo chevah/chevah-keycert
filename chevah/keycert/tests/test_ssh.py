@@ -593,7 +593,6 @@ class TestKey(ChevahTestCase):
 
         self.assertEqual('public_pkcs1', result)
 
-
     def test_guessStringType_private_OpenSSH_RSA(self):
         """
         Can recognize an OpenSSH RSA private key.

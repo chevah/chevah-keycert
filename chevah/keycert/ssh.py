@@ -1674,8 +1674,6 @@ class Key(object):
         except crypto.Error as error:
             raise BadKeyError('Failed to load certificate. %s' % (error,))
 
-        pkey = cert.get_pubkey()
-
         return cls._fromOpenSSLPublic(cert.get_pubkey(), 'certificate')
 
     @classmethod
