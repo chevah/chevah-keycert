@@ -408,6 +408,8 @@ class Key(object):
             return 'private_openssh'
         elif data.startswith(b'-----BEGIN CERTIFICATE-----'):
             return 'public_x509'
+        elif data.startswith(b'-----BEGIN PUBLIC KEY-----'):
+            return 'public_pkcs1'
         elif data.startswith(b'PuTTY-User-Key-File-2'):
             return 'private_putty'
         elif data.startswith(b'{'):
@@ -1665,7 +1667,7 @@ class Key(object):
     @classmethod
     def _fromString_PUBLIC_X509(cls, data):
         """
-        Read the public key from PEM format.
+        Read the public key from X509 Certificates in PEM format.
         """
         try:
             cert = crypto.load_certificate(crypto.FILETYPE_PEM, data)
@@ -1674,10 +1676,30 @@ class Key(object):
 
         pkey = cert.get_pubkey()
 
+        return cls._fromOpenSSLPublic(cert.get_pubkey(), 'certificate')
+
+    @classmethod
+    def _fromString_PUBLIC_PKCS1(cls, data):
+        """
+        Read the public key from PKCS1 PEM format.
+        """
+        try:
+            pkey = crypto.load_publickey(crypto.FILETYPE_PEM, data)
+        except crypto.Error as error:
+            raise BadKeyError('Failed to load certificate. %s' % (error,))
+
+        return cls._fromOpenSSLPublic(pkey, 'PKCS#1 PEM file')
+
+    @classmethod
+    def _fromOpenSSLPublic(cls, pkey, source_type):
+        """
+        Load the SSH from an OpenSSL Public Key object.
+        """
         type_id = pkey.type()
 
         if type_id not in [6, 116]:
-            raise BadKeyError('Unsupported key found in the certificate.')
+            raise BadKeyError(
+                'Unsupported key found in the %s.' % (source_type,))
 
         ckey = pkey.to_cryptography_key()
         components = ckey.public_numbers()

@@ -579,6 +579,21 @@ class TestKey(ChevahTestCase):
 
         self.assertEqual('public_x509', result)
 
+    def test_guessStringType_publick_PKCS1(self):
+        """
+        PEM certificates are recognized as public keys.
+        """
+        content = (
+            '-----BEGIN PUBLIC KEY-----\n'
+            'CONTENT\n'
+            '-----END PUBLIC KEY-----\n'
+            )
+
+        result = Key._guessStringType(content)
+
+        self.assertEqual('public_pkcs1', result)
+
+
     def test_guessStringType_private_OpenSSH_RSA(self):
         """
         Can recognize an OpenSSH RSA private key.
@@ -1497,6 +1512,25 @@ Gt7MBDMYYr8yfcZS94pZEUfhebR3CYAZ
             context.exception.message,
             )
 
+    def test_fromString_PKCS1_PUBLIC_EC(self):
+        """
+        It can extract RSA public key from an PKCS1 public EC PEM file.
+        """
+        # This is the same as the X509 RSA cert.
+        # $ openssl x509 -in bla.cert -pubkey -noout
+        data = """-----BEGIN PUBLIC KEY-----
+MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEc6VKUjy6I6MqLmB+x4UhVeutcFCq
+0Vai8iZQW9XFlPH+MC2bBpF8pmaQDwpcLvCe
+-----END PUBLIC KEY-----
+"""
+        with self.assertRaises(BadKeyError) as context:
+            Key.fromString(data)
+
+        self.assertEqual(
+            'Unsupported key found in the PKCS#1 PEM file.',
+            context.exception.message,
+            )
+
     def test_fromString_X509_PEM_RSA(self):
         """
         It can extract RSA public key from an X509 PEM certificate
@@ -1516,6 +1550,37 @@ hvcNAQEFBQADgYEAM8Ro0XZeIrR7+fi4pGMdqTAdNFNd2O86YgzpvGpUIbhmJnty
 1k0aF2QNot4M6i6OhVQEwL4Ph/l6pbOnusv238nuzHyDHFWNPy1wV02hjacXF9EW
 JZQaMjV9XxNTFOlNUTWswff3uE677wSVDPSuNkxo2FLRcGfPUxAQGsgL5Ts=
 -----END CERTIFICATE-----
+"""
+
+        sut = Key.fromString(data)
+
+        self.assertTrue(sut.isPublic())
+        self.assertEqual('RSA', sut.type())
+        self.assertEqual(1024, sut.size)
+
+        components = sut.data()
+        self.assertEqual(65537L, components['e'])
+        n = long(
+            '14510135000543456324610075074919561379239940215773254633039625814'
+            '50191438083097108908667737243399472490927083264564327600896049375'
+            '92092816317169486450111458914839337717035721053431064458247582292'
+            '33425907841901335798792724220900289242783534069221630733833594745'
+            '1002424312049140771718167143894887320401855011989L'
+            )
+        self.assertEqual(n, components['n'])
+
+    def test_fromString_PKCS1_PUBLIC_RSA(self):
+        """
+        It can extract RSA public key from an PKCS1 public RSA PEM file.
+        """
+        # This is the same as the X509 RSA cert.
+        # $ openssl x509 -in bla.cert -pubkey -noout
+        data = """-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDOoZUYd8KMYbre5zZIwR+V6dO2
++cCYVS46BHbRbqt7gczkoIWhKWqXi9PzOEacPQDY8rpRsu68CSPTHveWhudwa4zG
+wSpNamh7jV2tzyY3IFZj3pcD3G85OVpeBOe3SzfnoeEX/0MovRwXbaw39fTswZgb
+O1u6TvSz6Of7rB5clQIDAQAB
+-----END PUBLIC KEY-----
 """
 
         sut = Key.fromString(data)
@@ -1556,6 +1621,60 @@ EwIuTKCIG6ucDtvzMSgwvYVFugfYaoJvu0Okc+6elNywpk9t3HLH5p2QbpPXPYgO
 SH6qmzKdMAsGCWCGSAFlAwQDAgMvADAsAhR2vu0VK+loePjKDZcalym8vjgwkwIU
 HNkVqo/9uKhSFkhbG6uKWUnOky0=
 -----END CERTIFICATE-----
+"""
+
+        sut = Key.fromString(data)
+
+        self.assertTrue(sut.isPublic())
+        self.assertEqual('DSA', sut.type())
+        self.assertEqual(1024, sut.size)
+
+        components = sut.data()
+        y = long(
+            '33608096932577498834618892325416552088960771123656082234885710486'
+            '75507586904443594643612585160476637613084634099891307779753871384'
+            '19072984388914093315900417736990449366567905225558889080164633948'
+            '75642330307431599331123161679260711587324602448450132263105327567'
+            '324900691359269978674482129301723462636106625693'
+            )
+        p = long(
+            '17914554197956231476032656039682646299975055883332311875135017227'
+            '52180243454588892360869849018970437236700881503241838175380166833'
+            '56570852141623851276212449051705325396966909384918507908491159872'
+            '81118556760058432354600693107636249903432532125207156471720334839'
+            '5401646777661899361981163845950810903143363602443'
+            )
+        g = long(
+            '12935985053463672691492638315705405640647316377002915690069266627'
+            '73032720642846501430445126372712764104983906841935717997673558164'
+            '74657088881395785073303554687569602926262408886111665706815822813'
+            '14448994749901282518897434324098506093655990924057550618491224583'
+            '7106339202519842112263186663472095769544164572498'
+            )
+        self.assertEqual(y, components['y'])
+        self.assertEqual(p, components['p'])
+        self.assertEqual(g, components['g'])
+        self.assertEqual(
+            732130160578857514768194964362219084190055012723L, components['q'])
+
+    def test_fromString_PCKS1_PUBLIC_DSA(self):
+        """
+        It can extract RSA public key from an PKCS1 public DSA PEM file.
+        """
+        # This is the same as the X509 DSA cert.
+        # $ openssl x509 -in bla.cert -pubkey -noout
+        data = """-----BEGIN PUBLIC KEY-----
+MIIBtzCCASwGByqGSM44BAEwggEfAoGBAP8cmay2TI42sOHaJJp+xGrEDNEbh0hR
+rvQ92wSB8xgHH3k2TW+HAYXIRDILLfTlvaaAsb36eQWRouIPlSegFuY7U0KCBeVI
+2h7d7OpqSvzSBXp0LBszhPsHuVzdLQSHk4nYXkMp7DNPrlDJGueR8QIWW+Mmql7L
+CF+5y+Cdp2gLAhUAgD3aEZFRtfjU/zMKpEEAyIQKGXMCgYEAuDbsOEtOEeEkdZ0V
+faBlhOY0yO/9nuYcIB1rz+6o1eMDP3uMj3DooJJggLuqLKXSXAa5buQao0K2exnL
+EpZDNPIeg4272B8CYDFlsjdO4Tj19hkn/SbSZfI+kKDRUh4UlVxLqUDZbnVQPUmu
+8KtRvUzVKA1b5X9UfDoznh76/VIDgYQAAoGAL9wJalml5uGIROFkt356h1H28Ke0
+HywjOsDQlEKaLi3y8E7Es0BlATtZ09ZdkkDt3jf7oHj/8Nkf4Y63oSjEvI/Fyoz4
+Yepr32ITAi5MoIgbq5wO2/MxKDC9hUW6B9hqgm+7Q6Rz7p6U3LCmT23ccsfmnZBu
+k9c9iA5IfqqbMp0=
+-----END PUBLIC KEY-----
 """
 
         sut = Key.fromString(data)

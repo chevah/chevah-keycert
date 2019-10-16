@@ -17,6 +17,8 @@ It provides the following functionalities:
 * Generate SSL key and CSR. Signed with SHA256 or fall back to SHA1.
 * Generate RSA/DSA keys.
 * Convert OpenSSH, SSH.com, Putty, LSH.
+* Read SSH public keys from X.509 PEM Certificate
+* Read SSH public keys from PKCS#1 public key PEM
 * Populate an argparser subparser with command line options.
 
 The SSH key handling was forked from Twisted code, but project no longer
