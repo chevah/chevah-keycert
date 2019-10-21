@@ -19,6 +19,7 @@ It provides the following functionalities:
 * Convert OpenSSH, SSH.com, Putty, LSH.
 * Read SSH public keys from X.509 PEM Certificate
 * Read SSH public and private keys from PKCS#1 PEM
+* Read SSH private keys from PKCS#8 PEM
 * Populate an argparser subparser with command line options.
 
 The SSH key handling was forked from Twisted code, but project no longer
