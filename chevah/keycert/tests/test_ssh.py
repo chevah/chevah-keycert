@@ -29,14 +29,6 @@ from chevah.keycert.ssh import (
 from chevah.keycert.tests import keydata
 from chevah.keycert.tests.helpers import CommandLineMixin
 
-PUBLIC_RSA_ARMOR_START = u'-----BEGIN PUBLIC KEY-----\n'
-PUBLIC_RSA_ARMOR_END = u'\n-----END PUBLIC KEY-----\n'
-PRIVATE_RSA_ARMOR_START = u'-----BEGIN RSA PRIVATE KEY-----\n'
-PRIVATE_RSA_ARMOR_END = u'\n-----END RSA PRIVATE KEY-----\n'
-PUBLIC_DSA_ARMOR_START = u'-----BEGIN PUBLIC KEY-----\n'
-PUBLIC_DSA_ARMOR_END = u'\n-----END PUBLIC KEY-----\n'
-PRIVATE_DSA_ARMOR_START = u'-----BEGIN DSA PRIVATE KEY-----\n'
-PRIVATE_DSA_ARMOR_END = u'\n-----END DSA PRIVATE KEY-----\n'
 
 OPENSSH_RSA_PRIVATE = ('''-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTKAPkPAWzlu5BRHcmA
@@ -565,7 +557,7 @@ class TestKey(ChevahTestCase):
 
         self.assertIsNone(result)
 
-    def test_guessStringType_PEM_certificate(self):
+    def test_guessStringType_X509_PEM_certificate(self):
         """
         PEM certificates are recognized as public keys.
         """
@@ -579,9 +571,9 @@ class TestKey(ChevahTestCase):
 
         self.assertEqual('public_x509', result)
 
-    def test_guessStringType_publick_PKCS1(self):
+    def test_guessStringType_PKCS1_PUBLIC(self):
         """
-        PEM certificates are recognized as public keys.
+        PEM PKCS@ public PEM are recognized as public keys.
         """
         content = (
             '-----BEGIN PUBLIC KEY-----\n'
@@ -592,6 +584,34 @@ class TestKey(ChevahTestCase):
         result = Key._guessStringType(content)
 
         self.assertEqual('public_pkcs1', result)
+
+    def test_guessStringType_PKCS8_PRIVATE(self):
+        """
+        PKS#8 private PEM are recognized as private keys.
+        """
+        content = (
+            '-----BEGIN PRIVATE KEY-----\n'
+            'CONTENT\n'
+            '-----END PRIVATE KEY-----\n'
+            )
+
+        result = Key._guessStringType(content)
+
+        self.assertEqual('private_pkcs8', result)
+
+    def test_guessStringType_PKCS8_PRIVATE_ENCRYPTED(self):
+        """
+        PKS#8 encrypted private PEM are recognized as private keys.
+        """
+        content = (
+            '-----BEGIN ENCRYPTED PRIVATE KEY-----\n'
+            'CONTENT\n'
+            '-----END ENCRYPTED PRIVATE KEY-----\n'
+            )
+
+        result = Key._guessStringType(content)
+
+        self.assertEqual('private_pkcs8', result)
 
     def test_guessStringType_private_OpenSSH_RSA(self):
         """
@@ -1526,7 +1546,7 @@ MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEc6VKUjy6I6MqLmB+x4UhVeutcFCq
             Key.fromString(data)
 
         self.assertEqual(
-            'Unsupported key found in the PKCS#1 PEM file.',
+            'Unsupported key found in the PKCS#1 public PEM file.',
             context.exception.message,
             )
 
@@ -1567,6 +1587,23 @@ JZQaMjV9XxNTFOlNUTWswff3uE677wSVDPSuNkxo2FLRcGfPUxAQGsgL5Ts=
             '1002424312049140771718167143894887320401855011989L'
             )
         self.assertEqual(n, components['n'])
+
+    def test_fromString_PKCS1_PUBLIC_PEM_invalid_format(self):
+        """
+        It fails to load invalid formated PKCS1 public PEM file.
+        """
+        data = """-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDOoZUYd8KMYbre5zZIwR+V6dO2
+O1u6TvSz6Of7rB5clQIDAQAB
+-----END PUBLIC KEY-----
+"""
+        with self.assertRaises(BadKeyError) as context:
+            Key.fromString(data)
+
+        self.assertStartsWith(
+            "Failed to load PKCS#1 public key. [('asn1 encoding routines'",
+            context.exception.message,
+            )
 
     def test_fromString_PKCS1_PUBLIC_RSA(self):
         """
@@ -1709,6 +1746,121 @@ k9c9iA5IfqqbMp0=
         self.assertEqual(g, components['g'])
         self.assertEqual(
             732130160578857514768194964362219084190055012723L, components['q'])
+
+    def test_fromString_PRIVATE_PKCS8_invalid_format(self):
+        """
+        It fails to load invalid formated PKCS8 PEM file.
+        """
+        data = """-----BEGIN PRIVATE KEY-----
+MIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAM6hlRh3woxhut7n
+r3fAiJ9U0aDLrcUh
+-----END PRIVATE KEY-----
+"""
+        with self.assertRaises(BadKeyError) as context:
+            Key.fromString(data)
+
+        self.assertStartsWith(
+            "Failed to load PKCS#8 PEM. [('asn1 encoding routines'",
+            context.exception.message,
+            )
+
+    def test_fromString_PRIVATE_PKCS8_RSA(self):
+        """
+        It can extract RSA key from an PKCS8 private RSA PEM file,
+        without encryption.
+        """
+        # Obtain from a P12
+        # openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in pkcs1.key
+        data = """-----BEGIN PRIVATE KEY-----
+MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBALh9Xq1JqQNIHpmi
+/KAux/WIL0/e0kd49MoA+Q8BbOW7kFEdyYC7S5OOfsaGunFuONYzANU3Q7HPDu14
+jQ4QhWSmeVzIzovmYaT5fotzj6UB+nVjEJH2j34VcxZIk/faNHAj7guFZjGdhSV2
+8A7ksPP1B5HTIqKbByNFOgXr+OkvAgMBAAECgYAIHlxAO/GYF2BhWm7LjcN25ptO
+ZHvUcVo0WX6cTm/AXFSpfSoU5CkbQTYK/nrN6w/NPUlYGKp99KKviJKMf+WeyRmc
+z0nXF+megnkdPNwYdoFhUUQRdLp86zJZPXmhjspvqtEFOdZXQiez/TkeGnfyv9FH
+87imgH7c3BAkOX/qAQJBAOgCdF0L7lLKOtnUlBRZSRqmJgciEWrqRa0abeRYmfQj
+EIG0WEa+ohYnBkgCN/q1MoxSTpuMb2nsml61dSxOIMECQQDLkQNTYXjZebq29DMz
+xsCCrt3b/HaIdG46QNRvVsrdjAHJOKGX0Euq91GFHGmXbURypakH9HMAVsZr7rQb
++JXvAkAFLPjXkoqQgj5p2ZosEgnVdFto0VO+JNfFEs/cxjU5Awc9PX6ypVIMWHaF
+aLdC+oPUKYnjYnCh1ktjTXz9rgiBAkA6wKDIGPLLOcH0+egpQmzfit7HlkcTvR7v
+OzTU6aTlano9fFXPPjQIpRbnJzsmlEfUGxH9FMV4TJM6JYvgItALAkB/gEX15UvF
+FD0Dgyb0iS3iUXyKLqdrifF20TM/ynYs/20uodhShs1qfEH7syyLh/eBjK4p04ad
+YeoPZTgdwt0x
+-----END PRIVATE KEY-----
+"""
+        sut = Key.fromString(data)
+
+        self.checkParsedRSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_PKCS8_RSA_ENCRYPTED(self):
+        """
+        It can extract RSA key from an PKCS8 private RSA PEM file,
+        without encryption.
+        """
+        # openssl pkcs8 -topk8 -inform PEM -outform PEM -in pkcs1.key
+        data = """-----BEGIN ENCRYPTED PRIVATE KEY-----
+MIIC3TBXBgkqhkiG9w0BBQ0wSjApBgkqhkiG9w0BBQwwHAQICxbcEPe+vjECAggA
+MAwGCCqGSIb3DQIJBQAwHQYJYIZIAWUDBAEqBBAhBDpmQH4bpzIQSQqpw+GjBIIC
+gMKX1CcvdGi6ZFxbhp9ycCnXU04bCsQrijAyYmndInf+EWSSTWpIzM86K6huOjdG
+fKsTrmWb0bUM7LTu50GzNHwwGJgVMrUrL7rZQcTkht1D3mdLXWpanaCWyn2IYW8s
+jXuzftEUn4AVHVzMeU95wlorgH33QlcAIDt/ZIDzeCfygsu3yJQW44kzWvp3/Eoy
+tjBL+K6u7IRoHj67knh6YJ6cQxusK9cAFEpS8RfRLJpryAZyUfvwJteVK0LXQgcS
+b8WsIwC+iv8E2QKExFmh4aoUsSsfOrdAb/H2iKTNU/qChCkeeYtzPFVLNmXYL1zG
+9G80EGEKmaMgPTIt+oXx2cmY4W21jRGEQ/5KAUcLAWNR+3fEcDVdgfKxlCWQGSad
+fQdemXnYhXW1emyb6RvWl0ml7f3ZzVFdeWgShLwx9ZVYdMT/ed4aCucK++XaXl55
+dK37TVTeVe6dzyhOADj8lNZ695Xt7+QO+O/hd+9K54xrjmt9TUKxFBbmS3Oqz9rI
+T/0h4ym65OOio0CCePzj0vNrCvAD5rBo63B9Kjqxwnyzh2XmIBhUxcCzBEzm1pbS
+FM6UHBQ3Jj595U0LGgParXRXxmt1A0i28Q9JhOQp5R1lxD+/q4q3eq/kV05bACyD
+IdZR03u3euOWDtw0+Q6+DXvq53m1X1d9A4Dl14spNZoAdGnDLawrvdbWPvSeeXqR
+5O9OYI0dake/SYROPlDvc2MgehllwSVU1IXdsrP3xChP2V4YupESRDcFcX+/zlph
+HZ6BMxEKcYuIT9PKwhhp+FrwNo6J8mylpQLnCJ3hvXlhEPmyalg4rwVoeTHXRK6Y
+TbW5RErmC8ifa/J4NdCv7MY=
+-----END ENCRYPTED PRIVATE KEY-----
+"""
+        sut = Key.fromString(data, passphrase='password')
+
+        self.checkParsedRSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_PKCS8_DSA(self):
+        """
+        It can extract DSA key from an PKCS8 private RSA PEM file,
+        without encryption.
+        """
+        # Obtain from a P12
+        # openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in pkcs1.key
+        data = """-----BEGIN PRIVATE KEY-----
+MIIBSgIBADCCASsGByqGSM44BAEwggEeAoGBAM7CQoaeZVn1tGXtkKf/BIQtXSfk
+QuypVkU60GkeV4Q6K2y+MQEFtMpfR9nze9oxWckVXDcNBJuLX3aSu+T3T1jqHcdU
+7YwoFF323b1+vbpW8JlA7FHh/OQ+4v4/Hj5KGoTXvWw7Oy4QO3QyTF/XnZDGsDa8
++jCSPt+bNEfnGANNAhUAhhv+WNJRyWjpOI3CiIX71vJp8UkCgYBcD5MAYKYXZl41
+k3TiaDF7JPfggDDfs0aYss/9vKLzp0px3PmG2o+I5Zw2YXOsDtrSj56sTcH6aLAS
+baxXP55VZ804IlBqUdSpGuTWJXnjYUvQEJ4+Ilr3UFrDilVLmGdI2Sj9aynRWdbe
+rk4r+0+zWlHL7epZTDCuDmLOFiQF/AQWAhROTtpG/rmhN51iwDKLzQvymFgE3g==
+-----END PRIVATE KEY-----
+"""
+        sut = Key.fromString(data)
+
+        self.checkParsedDSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_PKCS8_EC(self):
+        """
+        It fails to extract the EC key from an PKCS8 private EC PEM file,
+        """
+        # openssl ecparam -name prime256v1 -genkey -noout -out private.ec.key
+        # openssl pkcs8 -topk8 -in private.ec.key -nocrypt
+        data = """-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgrNfvVhrhJeyufkeZ
+4oQ6i/kUFKudRU+xZ69FaAsw3MehRANCAASpL4fmdxdxbt317O8gV4Op5fVYwDnQ
+7C/wsAsbx6monIz1qc1jje9RgggJL5pZ5HfbDInclQfV5T9rz6kWFEZS
+-----END PRIVATE KEY-----
+"""
+        with self.assertRaises(BadKeyError) as context:
+            Key.fromString(data)
+
+        self.assertEqual(
+            'Unsupported key found in the PKCS#8 private PEM file.',
+            context.exception.message,
+            )
 
     def test_toString_SSHCOM_RSA_private_without_encryption(self):
         """

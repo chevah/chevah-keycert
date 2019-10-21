@@ -2,13 +2,25 @@ Release notes for Chevah KeyCert
 ################################
 
 
-1.7.0 - 19/06/2017
+1.9.0 - 2019-10-21
+==================
+
+* Load SSH keys from PKCS#8 private key PEM files (RSA and DSA).
+
+
+1.8.0 - 2019-10-16
+==================
+
+* Load SSH keys from PKCS#1 private key PEM files (RSA and DSA).
+
+
+1.7.0 - 2019-10-16
 ==================
 
 * Load public SSH keys from PKCS#1 public key PEM files (RSA and DSA).
 
 
-1.6.0 - 19/06/2017
+1.6.0 - 19/06/2019
 ==================
 
 * Load public SSH keys from X.509 certificates.
