@@ -2,6 +2,18 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.9.2 - 2019-10-24
+==================
+
+* Fix syntax error bug.
+
+
+1.9.1 - 2019-10-24
+==================
+
+* Add support for SSH get key type for PKCS#8 and PKCS#1.
+
+
 1.9.0 - 2019-10-21
 ==================
 

@@ -447,6 +447,8 @@ class Key(object):
             'public_lsh': 'LSH Public',
             'private_lsh': 'LSH Private',
             'public_x509': 'X509 Certificate',
+            'public_pkcs1': 'PKCS#1 Public',
+            'private_pkcs8': 'PKCS#8 Private',
             }
 
         return human_readable.get(key_type, 'Unknown format')

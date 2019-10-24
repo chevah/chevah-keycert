@@ -1769,7 +1769,6 @@ r3fAiJ9U0aDLrcUh
         It can extract RSA key from an PKCS8 private RSA PEM file,
         without encryption.
         """
-        # Obtain from a P12
         # openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in pkcs1.key
         data = """-----BEGIN PRIVATE KEY-----
 MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBALh9Xq1JqQNIHpmi
