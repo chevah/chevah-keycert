@@ -8,6 +8,9 @@ Public exceptions raised by this package.
 class KeyCertException(Exception):
     """
     Generic exception raised by the package.
+
+    Code calling the public API should handle only this exception.
+    The other exceptions are just for fine tunning.
     """
     def __init__(self, message):
         self.message = message
@@ -24,7 +27,7 @@ class BadKeyError(KeyCertException):
     """
 
 
-class EncryptedKeyError(KeyCertException):
+class EncryptedKeyError(BadKeyError):
     """
     Raised when an encrypted key is presented to fromString/fromFile without
     a password.

@@ -414,7 +414,7 @@ class Key(object):
         elif data.startswith(b'-----BEGIN PRIVATE KEY-----'):
             return 'private_pkcs8'
         elif data.startswith(b'-----BEGIN ENCRYPTED PRIVATE KEY-----'):
-            return 'private_pkcs8'
+            return 'private_encrypted_pkcs8'
         elif data.startswith(b'PuTTY-User-Key-File-2'):
             return 'private_putty'
         elif data.startswith(b'{'):
@@ -449,6 +449,7 @@ class Key(object):
             'public_x509': 'X509 Certificate',
             'public_pkcs1': 'PKCS#1 Public',
             'private_pkcs8': 'PKCS#8 Private',
+            'private_encrypted_pkcs8': 'PKCS#8 Encrypted Private',
             }
 
         return human_readable.get(key_type, 'Unknown format')
@@ -1727,7 +1728,25 @@ class Key(object):
     @classmethod
     def _fromString_PRIVATE_PKCS8(cls, data, passphrase=None):
         """
-        Read the public key from PKCS8 PEM format.
+        Read the private key from PKCS8 PEM format.
+        """
+        return cls._load_PRIVATE_PKCS8(data, passphrase='')
+
+    @classmethod
+    def _fromString_PRIVATE_ENCRYPTED_PKCS8(cls, data, passphrase=None):
+        """
+        Read the encrypted private key from PKCS8 PEM format.
+        """
+        if not passphrase:
+            raise EncryptedKeyError(
+                'Passphrase must be provided for an encrypted key')
+
+        return cls._load_PRIVATE_PKCS8(data, passphrase)
+
+    @classmethod
+    def _load_PRIVATE_PKCS8(cls, data, passphrase):
+        """
+        Shared code for loading a private PKCS8 key.
         """
         try:
             key = crypto.load_privatekey(
@@ -1767,6 +1786,7 @@ class Key(object):
                 long(public.parameter_numbers.q),
                 long(private.x),
                 )))
+
 
 def objectType(obj):
     """

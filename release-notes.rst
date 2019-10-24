@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.9.3 - 2019-10-24
+==================
+
+* Remove interactive password input for encrypted PKCS#8 files.
+
+
 1.9.2 - 2019-10-24
 ==================
 

@@ -611,7 +611,7 @@ class TestKey(ChevahTestCase):
 
         result = Key._guessStringType(content)
 
-        self.assertEqual('private_pkcs8', result)
+        self.assertEqual('private_encrypted_pkcs8', result)
 
     def test_guessStringType_private_OpenSSH_RSA(self):
         """
@@ -763,7 +763,7 @@ class TestKey(ChevahTestCase):
             keys.BadKeyError,
             keys.Key.fromString,
             keydata.publicRSA_lsh, passphrase='unencrypted')
-        # trying to decrypt a key with the wrong passphrase
+        # trying t  fo decrypt a key with the wrong passphrase
         self.assertRaises(
             keys.EncryptedKeyError,
             keys.Key.fromString,
@@ -1047,6 +1047,18 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         self._testPublicPrivateFromString(
             keydata.publicDSA_openssh,
             keydata.privateDSA_openssh, 'DSA', keydata.DSAData)
+
+    def test_fromString_OpenSSH_private_missing_passwrd(self):
+        """
+        It fails to load an ecrypted key when password is not provided.
+        """
+        with self.assertRaises(EncryptedKeyError) as context:
+            keys.Key.fromString(keydata.privateRSA_openssh_encrypted)
+
+        self.assertEqual(
+            'Passphrase must be provided for an encrypted key',
+            context.exception.message,
+            )
 
     def test_fromString_PRIVATE_OPENSSH_with_whitespace(self):
         """
@@ -1794,7 +1806,7 @@ YeoPZTgdwt0x
     def test_fromString_PRIVATE_PKCS8_RSA_ENCRYPTED(self):
         """
         It can extract RSA key from an PKCS8 private RSA PEM file,
-        without encryption.
+        with encryption.
         """
         # openssl pkcs8 -topk8 -inform PEM -outform PEM -in pkcs1.key
         data = """-----BEGIN ENCRYPTED PRIVATE KEY-----
@@ -1819,6 +1831,39 @@ TbW5RErmC8ifa/J4NdCv7MY=
         sut = Key.fromString(data, passphrase='password')
 
         self.checkParsedRSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_PKCS8_ENCRYPTED_no_pass(self):
+        """
+        It fails to extract RSA key from an PKCS8 private RSA PEM file,
+        if no password is provided and file is encrypted.
+        """
+        # openssl pkcs8 -topk8 -inform PEM -outform PEM -in pkcs1.key
+        data = """-----BEGIN ENCRYPTED PRIVATE KEY-----
+MIIC3TBXBgkqhkiG9w0BBQ0wSjApBgkqhkiG9w0BBQwwHAQICxbcEPe+vjECAggA
+MAwGCCqGSIb3DQIJBQAwHQYJYIZIAWUDBAEqBBAhBDpmQH4bpzIQSQqpw+GjBIIC
+gMKX1CcvdGi6ZFxbhp9ycCnXU04bCsQrijAyYmndInf+EWSSTWpIzM86K6huOjdG
+fKsTrmWb0bUM7LTu50GzNHwwGJgVMrUrL7rZQcTkht1D3mdLXWpanaCWyn2IYW8s
+jXuzftEUn4AVHVzMeU95wlorgH33QlcAIDt/ZIDzeCfygsu3yJQW44kzWvp3/Eoy
+tjBL+K6u7IRoHj67knh6YJ6cQxusK9cAFEpS8RfRLJpryAZyUfvwJteVK0LXQgcS
+b8WsIwC+iv8E2QKExFmh4aoUsSsfOrdAb/H2iKTNU/qChCkeeYtzPFVLNmXYL1zG
+9G80EGEKmaMgPTIt+oXx2cmY4W21jRGEQ/5KAUcLAWNR+3fEcDVdgfKxlCWQGSad
+fQdemXnYhXW1emyb6RvWl0ml7f3ZzVFdeWgShLwx9ZVYdMT/ed4aCucK++XaXl55
+dK37TVTeVe6dzyhOADj8lNZ695Xt7+QO+O/hd+9K54xrjmt9TUKxFBbmS3Oqz9rI
+T/0h4ym65OOio0CCePzj0vNrCvAD5rBo63B9Kjqxwnyzh2XmIBhUxcCzBEzm1pbS
+FM6UHBQ3Jj595U0LGgParXRXxmt1A0i28Q9JhOQp5R1lxD+/q4q3eq/kV05bACyD
+IdZR03u3euOWDtw0+Q6+DXvq53m1X1d9A4Dl14spNZoAdGnDLawrvdbWPvSeeXqR
+5O9OYI0dake/SYROPlDvc2MgehllwSVU1IXdsrP3xChP2V4YupESRDcFcX+/zlph
+HZ6BMxEKcYuIT9PKwhhp+FrwNo6J8mylpQLnCJ3hvXlhEPmyalg4rwVoeTHXRK6Y
+TbW5RErmC8ifa/J4NdCv7MY=
+-----END ENCRYPTED PRIVATE KEY-----
+"""
+        with self.assertRaises(EncryptedKeyError) as context:
+            Key.fromString(data)
+
+        self.assertEqual(
+            'Passphrase must be provided for an encrypted key',
+            context.exception.message,
+            )
 
     def test_fromString_PRIVATE_PKCS8_DSA(self):
         """
