@@ -5,6 +5,7 @@ SSL keys and certificates.
 """
 from socket import gethostname
 import os
+from random import randint
 
 from OpenSSL import crypto
 
@@ -14,14 +15,21 @@ from chevah.keycert.exceptions import KeyCertException
 _DEFAULT_SSL_KEY_CYPHER = b'aes-256-cbc'
 
 
-def generate_ssl_self_signed_certificate(serial=1000):
+def generate_ssl_self_signed_certificate(options):
     """
     Generate a self signed SSL certificate.
 
     Returns a tuple of (certificate_pem, key_pem)
     """
+    serial = options.serial
+    key_size = options.key_size
+    sign_algorithm = options.sign_algorithm
+
+    if not serial:
+        serial = randint(0, 1000000000000)
+
     key = crypto.PKey()
-    key.generate_key(crypto.TYPE_RSA, 1024)
+    key.generate_key(crypto.TYPE_RSA, key_size)
 
     # create a self-signed cert
     cert = crypto.X509()
@@ -36,7 +44,7 @@ def generate_ssl_self_signed_certificate(serial=1000):
     cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
     cert.set_issuer(cert.get_subject())
     cert.set_pubkey(key)
-    cert.sign(key, 'sha1')
+    cert.sign(key, sign_algorithm)
 
     certificate_pem = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
     key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)

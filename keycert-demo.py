@@ -18,6 +18,7 @@ from chevah.keycert.ssh import (
 from chevah.keycert.ssl import (
     generate_csr_parser,
     generate_and_store_csr,
+    generate_ssl_self_signed_certificate,
     )
 
 def ssh_load_key(options, open_method=None):
@@ -73,6 +74,34 @@ sub.set_defaults(handler=ssh_load_key)
 
 sub = generate_csr_parser(subparser, 'ssl-gen-key')
 sub.set_defaults(handler=generate_and_store_csr)
+
+
+sub = subparser.add_parser(
+    'ssl-self-signed',
+    help='Generate a self signed certificate.',
+    )
+sub.add_argument(
+    '--serial',
+    type=int,
+    default=1234,
+    metavar='DECIMAL_NUMBER',
+    help='Serial number for the self signed certificate.'
+    )
+sub.add_argument(
+    '--key-size',
+    type=int,
+    default=1024,
+    metavar='BITS',
+    help='Size of the newly generated ssl key.'
+    )
+sub.add_argument(
+    '--sign-algorithm',
+    default='sha1',
+    metavar='DECIMAL_NUMBER',
+    help='Serial number for the self signed certificate.'
+    )
+sub.set_defaults(handler=lambda o: print(
+    '\n'.join(generate_ssl_self_signed_certificate(o))))
 
 options = parser.parse_args()
 

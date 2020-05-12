@@ -2,6 +2,13 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.10.0 - 2020-05-12
+===================
+
+* Add support for configurable key size and signing algorithm when creating
+  a self signed certificate.
+
+
 1.9.3 - 2019-10-24
 ==================
 

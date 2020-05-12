@@ -1,0 +1,19 @@
+Scope
+=====
+
+Describe the scope of the changes or the problem that these changes wants
+to solve.
+
+
+Changes
+=======
+
+Describe at a very high level how the problem was fixed.
+
+
+How to try and test the changes
+===============================
+
+reviewers: @robi-net
+
+Briefly describe the end user changes in a tester friendly way.
