@@ -7,10 +7,10 @@ os:
   - linux
 
 install:
-  - pip install --extra-index-url https://pypi.chevah.com/simple -e .[dev]
+  - ./paver.sh deps
 
 script:
-  - python setup.py test -q
+  - ./paver.sh test
 
 after_success:
   - codecov

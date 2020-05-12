@@ -405,9 +405,16 @@ class Key(object):
             data.startswith(b'-----BEGIN DSA') or
             data.startswith(b'-----BEGIN EC')
                 ):
+            # This is also private PKCS#1 format.
             return 'private_openssh'
         elif data.startswith(b'-----BEGIN CERTIFICATE-----'):
             return 'public_x509'
+        elif data.startswith(b'-----BEGIN PUBLIC KEY-----'):
+            return 'public_pkcs1'
+        elif data.startswith(b'-----BEGIN PRIVATE KEY-----'):
+            return 'private_pkcs8'
+        elif data.startswith(b'-----BEGIN ENCRYPTED PRIVATE KEY-----'):
+            return 'private_encrypted_pkcs8'
         elif data.startswith(b'PuTTY-User-Key-File-2'):
             return 'private_putty'
         elif data.startswith(b'{'):
@@ -440,6 +447,9 @@ class Key(object):
             'public_lsh': 'LSH Public',
             'private_lsh': 'LSH Private',
             'public_x509': 'X509 Certificate',
+            'public_pkcs1': 'PKCS#1 Public',
+            'private_pkcs8': 'PKCS#8 Private',
+            'private_encrypted_pkcs8': 'PKCS#8 Encrypted Private',
             }
 
         return human_readable.get(key_type, 'Unknown format')
@@ -1665,19 +1675,38 @@ class Key(object):
     @classmethod
     def _fromString_PUBLIC_X509(cls, data):
         """
-        Read the public key from PEM format.
+        Read the public key from X509 Certificates in PEM format.
         """
         try:
             cert = crypto.load_certificate(crypto.FILETYPE_PEM, data)
         except crypto.Error as error:
             raise BadKeyError('Failed to load certificate. %s' % (error,))
 
-        pkey = cert.get_pubkey()
+        return cls._fromOpenSSLPublic(cert.get_pubkey(), 'certificate')
 
+    @classmethod
+    def _fromString_PUBLIC_PKCS1(cls, data):
+        """
+        Read the public key from PKCS1 PEM format.
+        """
+        try:
+            pkey = crypto.load_publickey(crypto.FILETYPE_PEM, data)
+        except crypto.Error as error:
+            raise BadKeyError(
+                'Failed to load PKCS#1 public key. %s' % (error,))
+
+        return cls._fromOpenSSLPublic(pkey, 'PKCS#1 public PEM file')
+
+    @classmethod
+    def _fromOpenSSLPublic(cls, pkey, source_type):
+        """
+        Load the SSH from an OpenSSL Public Key object.
+        """
         type_id = pkey.type()
 
         if type_id not in [6, 116]:
-            raise BadKeyError('Unsupported key found in the certificate.')
+            raise BadKeyError(
+                'Unsupported key found in the %s.' % (source_type,))
 
         ckey = pkey.to_cryptography_key()
         components = ckey.public_numbers()
@@ -1694,6 +1723,68 @@ class Key(object):
                 long(parameters.g),
                 long(parameters.p),
                 long(parameters.q)
+                )))
+
+    @classmethod
+    def _fromString_PRIVATE_PKCS8(cls, data, passphrase=None):
+        """
+        Read the private key from PKCS8 PEM format.
+        """
+        return cls._load_PRIVATE_PKCS8(data, passphrase='')
+
+    @classmethod
+    def _fromString_PRIVATE_ENCRYPTED_PKCS8(cls, data, passphrase=None):
+        """
+        Read the encrypted private key from PKCS8 PEM format.
+        """
+        if not passphrase:
+            raise EncryptedKeyError(
+                'Passphrase must be provided for an encrypted key')
+
+        return cls._load_PRIVATE_PKCS8(data, passphrase)
+
+    @classmethod
+    def _load_PRIVATE_PKCS8(cls, data, passphrase):
+        """
+        Shared code for loading a private PKCS8 key.
+        """
+        try:
+            key = crypto.load_privatekey(
+                crypto.FILETYPE_PEM, data, passphrase=passphrase)
+        except crypto.Error as error:
+            raise BadKeyError('Failed to load PKCS#8 PEM. %s' % (error,))
+
+        type_id = key.type()
+
+        if type_id not in [6, 116]:
+            raise BadKeyError(
+                'Unsupported key found in the PKCS#8 private PEM file.')
+
+        ckey = key.to_cryptography_key()
+
+        if type_id == 6:
+            # RSA key.
+            private = ckey.private_numbers()
+            public = ckey.public_key().public_numbers()
+            return cls(RSA.construct((
+                long(public.n),
+                long(public.e),
+                long(private.d),
+                long(private.q),
+                long(private.p),
+                long(private.iqmp),
+                )))
+
+        if type_id == 116:
+            # DSA key.
+            private = ckey.private_numbers()
+            public = ckey.public_key().public_numbers()
+            return cls(DSA.construct((
+                long(public.y),
+                long(public.parameter_numbers.g),
+                long(public.parameter_numbers.p),
+                long(public.parameter_numbers.q),
+                long(private.x),
                 )))
 
 
