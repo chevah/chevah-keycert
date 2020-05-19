@@ -37,31 +37,13 @@ def test():
     """
     import nose
 
-    coverage = load_entry_point('coverage', 'console_scripts', 'coverage')
-
     nose_args = ['nosetests']
     nose_args.extend([
-        '--with-coverage',
-        '--cover-package=chevah.keycert',
-        '--cover-erase',
-        '--cover-test',
         ])
     nose_code = nose.run(argv=nose_args)
     nose_code = 0 if nose_code else 1
 
-    coverage_args = [
-        'report',
-        '--include=chevah/keycert/tests/*',
-        '--fail-under=100',
-        ]
-    covergate_exit = coverage(argv=coverage_args)
-    if not covergate_exit:
-        print('Tests coverage OK')
-
-    coverage(argv=['html', '-d', 'build/cover'])
-    print("See HTML coverate in build/cover")
-
-    sys.exit(nose_code or covergate_exit)
+    sys.exit(nose_code)
 
 
 @task

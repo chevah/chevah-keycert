@@ -5,6 +5,7 @@ Test for SSL keys/cert management.
 """
 from argparse import ArgumentParser
 
+from bunch import Bunch
 from chevah.compat.testing import mk, ChevahTestCase
 from OpenSSL import crypto
 
@@ -59,14 +60,19 @@ class Test_generate_ssl_self_signed_certificate(ChevahTestCase):
         Will generate the key and self signed certificate for current
         hostname.
         """
-        cert_pem, key_pem = generate_ssl_self_signed_certificate()
+        options = Bunch(
+            serial=0,
+            key_size=1024,
+            sign_algorithm='sha1'
+            )
+        cert_pem, key_pem = generate_ssl_self_signed_certificate(options)
 
         key = crypto.load_privatekey(crypto.FILETYPE_PEM, key_pem)
         cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert_pem)
         self.assertEqual(1024, key.bits())
         self.assertEqual(crypto.TYPE_RSA, key.type())
-        subject = cert.get_subject()
-        self.assertEqual(u'UN', subject.C)
+        self.assertEqual(u'UN', cert.get_subject().C)
+        self.assertNotEqual(0, cert.get_serial_number())
         issuer = cert.get_issuer()
         self.assertEqual(cert.subject_name_hash(), issuer.hash())
 
