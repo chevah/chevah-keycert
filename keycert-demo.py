@@ -97,8 +97,8 @@ sub.add_argument(
 sub.add_argument(
     '--sign-algorithm',
     default='sha1',
-    metavar='DECIMAL_NUMBER',
-    help='Serial number for the self signed certificate.'
+    metavar='STRING',
+    help='Algorithm used for the self-signed certificate: sha1, sha256, etc.'
     )
 sub.set_defaults(handler=lambda o: print(
     '\n'.join(generate_ssl_self_signed_certificate(o))))
