@@ -7,10 +7,10 @@ os:
   - linux
 
 install:
-  - ./paver.sh deps
+  - ./brink.sh deps
 
 script:
-  - ./paver.sh test
+  - ./brink.sh test
 
 after_success:
   - codecov

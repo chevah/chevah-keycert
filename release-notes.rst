@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.11.0 - 2020-06-29
+===================
+
+* Add support for unencrypted RSA and DSA OpenSSH v1 private keys.
+
+
 1.10.0 - 2020-05-12
 ===================
 

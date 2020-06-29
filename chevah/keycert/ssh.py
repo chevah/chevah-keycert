@@ -407,6 +407,8 @@ class Key(object):
                 ):
             # This is also private PKCS#1 format.
             return 'private_openssh'
+        elif data.startswith(b'-----BEGIN OPENSSH PRIVATE KEY-----'):
+            return 'private_openssh_v2'
         elif data.startswith(b'-----BEGIN CERTIFICATE-----'):
             return 'public_x509'
         elif data.startswith(b'-----BEGIN PUBLIC KEY-----'):
@@ -917,6 +919,86 @@ class Key(object):
             lines.append(b''.join((b'-----END ', self.type().encode('ascii'),
                                    b' PRIVATE KEY-----')))
             return b'\n'.join(lines)
+
+    @classmethod
+    def _fromString_PRIVATE_OPENSSH_V2(cls, data, passphrase):
+        """
+        PEM wrap and base64 encoded for:
+
+        Check OpenSSH source file openssh-portable/PROTOCOL.key.
+
+        openssh-key-v10x00    # NULL-terminated "Auth Magic" string
+        32-bit length, "none"   # ciphername length and string
+        32-bit length, "none"   # kdfname length and string
+        32-bit length, nil      # kdfoptions (0 length, no kdf)
+        32-bit 0x01             # number of keys, hard-coded to 1 (no length)
+        32-bit length, sshpub   # public key in ssh format
+            32-bit length, keytype
+            32-bit length, pub0
+            32-bit length, pub1
+        32-bit length for rnd+prv+comment+pad
+            64-bit random check bytes  # a random 32-bit int, repeated
+            32-bit length, keytype  # the private key (including public)
+            32-bit length, pub0     # Public Key parts
+            32-bit length, pub1
+            32-bit length, prv0     # Private Key parts
+            ...                     # (number varies by type)
+            32-bit length, comment  # comment string
+            padding bytes 0x010203  # pad to blocksize (see notes below)
+        """
+        lines = data.strip().split(b'\n')
+        data = b''.join(lines[1:-1]).decode('base64')
+        if not data.startswith(b'openssh-key-v1\x00'):
+            raise BadKeyError('Invalid OpenSSH v1.')
+        data = data[15:]
+        cipher_name, data = common.getNS(data)
+
+        if cipher_name != b'none':
+            raise EncryptedKeyError(
+                'Encrypted OpenSSH v1 private key is not supported.')
+
+        kdf_name, data = common.getNS(data)
+        kdf_options, data = common.getNS(data)
+
+        number_of_keys = struct.unpack('>I', data[:4])[0]
+        data = data[4:]
+        if number_of_keys != 1:
+            raise BadKeyError(
+                'Only a single OpenSSH v1 private key is supported.')
+
+        public_key, data = common.getNS(data)
+        private_key, _ = common.getNS(data)
+
+        # Ignore the random 32bit.
+        key_type, data = common.getNS(private_key[8:])
+
+        if key_type == b'ssh-rsa':
+            # Public part.
+            n, data = common.getMP(data)
+            e, data = common.getMP(data)
+            # Private parts.
+            d, data = common.getMP(data)
+            u, data = common.getMP(data)
+            q, data = common.getMP(data)
+            p, data = common.getMP(data)
+            comment, data = common.getNS(data)
+            if data != '\x01\x02\x03':
+                raise BadKeyError('Invalid padding for OpneSSH v1.')
+
+            return cls(RSA.construct((n, e, d, p, q, u)))
+
+        if key_type == 'ssh-dss':
+            p, data = common.getMP(data)
+            q, data = common.getMP(data)
+            g, data = common.getMP(data)
+            y, data = common.getMP(data)
+            x, data = common.getMP(data)
+            comment, data = common.getNS(data)
+            if data != '\x01\x02\x03':
+                raise BadKeyError('Invalid padding for OpneSSH v1.')
+            return cls(DSA.construct((y, g, p, q, x)))
+
+        raise BadKeyError('Unsupported OpenSSH v1 key type.')
 
     @classmethod
     def _fromString_PUBLIC_LSH(cls, data):
