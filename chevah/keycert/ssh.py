@@ -947,7 +947,7 @@ class Key(object):
             padding bytes 0x010203  # pad to blocksize (see notes below)
         """
         lines = data.strip().split(b'\n')
-        data = b''.join(lines[1:-1]).decode('base64')
+        data = base64.decodestring(b''.join(lines[1:-1]))
         if not data.startswith(b'openssh-key-v1\x00'):
             raise BadKeyError('Invalid OpenSSH v1.')
         data = data[15:]
