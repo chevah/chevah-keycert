@@ -36,7 +36,7 @@ jobs:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         CHEVAH_BUILD: 'build-keycert-ț'
 
-  :
+  macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
