@@ -2574,10 +2574,10 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         file_name_pub = file_name + b'.pub'
         options = self.parseArguments([
             self.sub_command_name,
-            '--key-size=512',
-            '--key-type=DSA',
-            '--key-file=' + file_name,
-            '--key-comment=this is a comment',
+            u'--key-size=512',
+            u'--key-type=DSA',
+            u'--key-file=' + file_name,
+            u'--key-comment=this is a comment',
             ])
         open_method = DummyOpenContext()
 
@@ -2590,14 +2590,16 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         # First it writes the private key.
         first_file = open_method.calls.pop(0)
 
-        self.assertPathEqual(_path(file_name), first_file['path'])
+        self.assertPathEqual(
+            _path(file_name.decode('ascii')), first_file['path'])
         self.assertEqual('wb', first_file['mode'])
         self.assertEqual(
             key.toString('openssh'), first_file['stream'].getvalue())
 
         # Second it writes the public key.
         second_file = open_method.calls.pop(0)
-        self.assertPathEqual(_path(file_name_pub), second_file['path'])
+        self.assertPathEqual(
+            _path(file_name_pub.decode('ascii')), second_file['path'])
         self.assertEqual('wb', second_file['mode'])
         self.assertEqual(
             key.public().toString('openssh', 'this is a comment'),

@@ -24,15 +24,19 @@ jobs:
     - name: Deps
       run: ./brink.sh deps
 
+    - name: Lint
+        run: ./brink.sh lint
+
+    - name: Rename build to unicode
+        run: mv build-keycert build-keycert-ț
+
     - name: Test
       run: ./brink.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        CHEVAH_BUILD: 'build-keycert-ț'
 
-    - name: Lint
-      run: ./brink.sh lint
-
-  macos:
+  :
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
