@@ -21,6 +21,13 @@ jobs:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
 
+    - name: Cache build
+      uses: actions/cache@v2
+      with:
+        path: |
+          build-keycert
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+
     - name: Deps
       run: ./brink.sh deps
 
@@ -35,6 +42,10 @@ jobs:
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         CHEVAH_BUILD: 'build-keycert-ț'
+
+    - name: Rename build from unicode for cache
+      run: mv build-keycert-ț build-keycert
+
 
   macos:
     runs-on: macos-latest
