@@ -26,7 +26,6 @@ def deps():
         'install',
         '--extra-index-url', EXTRA_PYPI_INDEX,
         '-e', '.[dev]',
-        'twisted', 'buildbot==0.8.11rc8', 'service_identity',
         ])
 
 
@@ -44,19 +43,6 @@ def test():
     nose_code = 0 if nose_code else 1
 
     sys.exit(nose_code)
-
-
-@task
-def test_ci():
-    """
-    Run tests in the Buildbot CI environment.
-    """
-    test_type = os.environ.get('TEST_TYPE', '')
-    if test_type == "os-independent":
-        call_task('lint')
-    else:
-        call_task('test')
-
 
 
 @task
@@ -81,41 +67,3 @@ def lint():
     pycodestyle_exit = pycodestyle_main()
 
     sys.exit(pyflakes_exit.code or pycodestyle_exit)
-
-
-@task
-@consume_args
-def remote(args):
-    """
-    Trigger tests on Builbot CI.
-    """
-    from buildbot.scripts import runner
-    from io import BytesIO
-    base_args = [
-        'buildbot',
-        'try',
-        '--connect=pb',
-        '--username=chevah_buildbot',
-        '--passwd=chevah_password',
-        '--master=build.chevah.com:10087',
-        '--vc=git',
-        ]
-    out = BytesIO()
-    if not args:
-        sys.argv = base_args + ['--get-builder-names']
-        sys.stdout = out
-    else:
-        sys.argv = base_args + args
-
-    try:
-        runner.run()
-    except SystemExit as buildbot_exit:
-        pass
-    finally:
-        sys.stdout = sys.__stdout__
-
-    for line in out.getvalue().splitlines():
-        if 'keycert' in line:
-            print(line)
-
-    sys.exit(buildbot_exit)

@@ -1,25 +1,38 @@
 #!/usr/bin/env bash
-# Copyright (c) 2010-2013 Adi Roiban.
-# See LICENSE for details.
+# Copyright (c) 2010-2020 Adi Roiban.
+# See MIT LICENSE for details.
 #
-# Helper script for bootstrapping the build system on Unix/Msys.
-# It will write the default values in the 'DEFAULT_VALUES' file.
+# This file has no version. Documentation is found in this comment.
 #
-# To use this script you will need to publish binary archive files for the
-# following components:
+# Helper script for bootstrapping a Python based build system on Unix/Msys.
 #
-# * Python main distribution
-# * pip
-# * setuptools
+# It is similar with a python-virtualenv but it will not used the local
+# Python version and can be used on systems without a local Python.
 #
-# It will delegate the argument to the paver script, with the exception of
-# these commands:
-#
+# It will delegate the argument to the execute_venv function,
+# with the exception of these commands:
 # * clean - remove everything, except cache
 # * purge - remove (empty) the cache
-# * detect_os - detect operating system, create the DEFAULT_VALUES file and exit
 # * get_python - download Python distribution in cache
 # * get_agent - download Rexx/Putty distribution in cache
+#
+# It exports the following environment variables:
+# * PYTHONPATH - path to the build directory
+# * CHEVAH_PYTHON - name of the python versions
+# * CHEVAH_OS - name of the current OS
+# * CHEVAH_ARCH - CPU type of the current OS
+#
+# The build directory is used from CHEVAH_BUILD env,
+# then read from brink.conf as CHEVAH_BUILD_DIR,
+# and will use a default value if not defined there.
+#
+# The cache directory is read the CHEVAH_CACHE env,
+# and then read from brink.conf as CHEVAH_CACHE_DIR,
+# and will use a default value if not defined.
+#
+# You can define your own `execute_venv` function in paver.conf with the
+# command used to execute Python inside the newly virtual environment.
+#
 
 # Script initialization.
 set -o nounset
@@ -50,15 +63,24 @@ WAS_PYTHON_JUST_INSTALLED=0
 DIST_FOLDER='dist'
 
 # Path global variables.
+
+# Configuration variable.
+CHEVAH_BUILD_DIR=""
+# Variale used at runtime.
 BUILD_FOLDER=""
-CACHE_FOLDER="cache"
+
+# Configuration variable
+CHEVAH_CACHE_DIR=
+# Varible used at runtime.
+CACHE_FOLDER=""
+
 PYTHON_BIN=""
 PYTHON_LIB=""
 LOCAL_PYTHON_BINARY_DIST=""
 
 # Put default values and create them as global variables.
 OS='not-detected-yet'
-ARCH='x86'
+ARCH='not-detected-yet'
 
 # Initialize default values from brink.conf
 PYTHON_CONFIGURATION='NOT-YET-DEFINED'
@@ -77,18 +99,18 @@ BASE_REQUIREMENTS=''
 check_source_folder() {
 
     if [ ! -e pavement.py ]; then
-        echo 'No pavement.py file found in current folder.'
-        echo 'Make sure you are running paver from a source folder.'
-        exit 1
+        (>&2 echo 'No "pavement.py" file found in current folder.')
+        (>&2 echo 'Make sure you are running "paver.sh" from a source folder.')
+        exit 8
     fi
 }
-
 
 # Called to trigger the entry point in the virtual environment.
 # Can be overwritten in brink.conf
 execute_venv() {
     ${PYTHON_BIN} $PYTHON3_CHECK -c 'from paver.tasks import main; main()' "$@"
 }
+
 
 # Called to update the dependencies inside the newly created virtual
 # environment.
@@ -98,11 +120,10 @@ update_venv() {
     exit_code=$?
     set -e
     if [ $exit_code -ne 0 ]; then
-        echo 'Failed to run the initial "paver deps" command.'
-        exit 1
+        (>&2 echo 'Failed to run the initial "./paver.sh deps" command.')
+        exit 7
     fi
 }
-
 
 # Load repo specific configuration.
 source brink.conf
@@ -116,8 +137,6 @@ clean_build() {
     delete_folder ${DIST_FOLDER}
     echo "Removing publish..."
     delete_folder 'publish'
-    echo "Cleaning project temporary files..."
-    rm -f DEFAULT_VALUES
     echo "Cleaning pyc files ..."
 
     # AIX's find complains if there are no matching files when using +.
@@ -146,7 +165,7 @@ purge_cache() {
     clean_build
 
     echo "Cleaning download cache ..."
-    rm -rf cache/*
+    rm -rf $CACHE_FOLDER/*
 }
 
 
@@ -157,7 +176,7 @@ delete_folder() {
     local target="$1"
     # On Windows, we use internal command prompt for maximum speed.
     # See: http://stackoverflow.com/a/6208144/539264
-    if [ $OS = "windows" -a -d $target ]; then
+    if [ $OS = "win" -a -d $target ]; then
         cmd //c "del /f/s/q $target > nul"
         cmd //c "rmdir /s/q $target"
     else
@@ -180,7 +199,7 @@ execute() {
     exit_code=$?
     set -e
     if [ $exit_code -ne 0 ]; then
-        echo "Fail:" $@
+        (>&2 echo "Failed:" $@)
         exit 1
     fi
 }
@@ -191,7 +210,7 @@ execute() {
 update_path_variables() {
     resolve_python_version
 
-    if [ "${OS}" = "windows" ] ; then
+    if [ "${OS}" = "win" ] ; then
         PYTHON_BIN="/lib/python.exe"
         PYTHON_LIB="/lib/Lib/"
     else
@@ -199,8 +218,30 @@ update_path_variables() {
         PYTHON_LIB="/lib/${PYTHON_NAME}/"
     fi
 
+    # Read first from env var.
+    set +o nounset
+    BUILD_FOLDER="${CHEVAH_BUILD}"
+    CACHE_FOLDER="${CHEVAH_CACHE}"
+    set -o nounset
+
     if [ "${BUILD_FOLDER}" = "" ] ; then
+        # Use value from configuration file.
+        BUILD_FOLDER="${CHEVAH_BUILD_DIR}"
+    fi
+
+    if [ "${BUILD_FOLDER}" = "" ] ; then
+        # Use default value if not yet defined.
         BUILD_FOLDER="build-${OS}-${ARCH}"
+    fi
+
+    if [ "${CACHE_FOLDER}" = "" ] ; then
+        # Use default if not yet defined.
+        CACHE_FOLDER="${CHEVAH_CACHE_DIR}"
+    fi
+
+    if [ "${CACHE_FOLDER}" = "" ] ; then
+        # Use default if not yet defined.
+        CACHE_FOLDER="cache"
     fi
 
     PYTHON_BIN="${BUILD_FOLDER}${PYTHON_BIN}"
@@ -209,6 +250,10 @@ update_path_variables() {
     LOCAL_PYTHON_BINARY_DIST="$PYTHON_NAME-$OS-$ARCH"
 
     export PYTHONPATH=${BUILD_FOLDER}
+    export CHEVAH_PYTHON=${PYTHON_NAME}
+    export CHEVAH_OS=${OS}
+    export CHEVAH_ARCH=${ARCH}
+
 }
 
 #
@@ -241,19 +286,12 @@ resolve_python_version() {
     done
 }
 
-write_default_values() {
-    echo ${BUILD_FOLDER} ${PYTHON_NAME} ${OS} ${ARCH} > DEFAULT_VALUES
-}
-
 
 #
 # Install base package.
 #
 install_base_deps() {
-    if [ "${BASE_REQUIREMENTS}" == "" ] ; then
-        return
-    fi
-    echo "Installing base requirements: $BASE_REQUIREMENTS"
+    echo "Installing base requirements: $BASE_REQUIREMENTS."
     pip_install "$BASE_REQUIREMENTS"
 }
 
@@ -268,21 +306,50 @@ pip_install() {
     # See https://github.com/pypa/pip/issues/3564
     rm -rf ${BUILD_FOLDER}/pip-build
     ${PYTHON_BIN} -m \
-        pip.__init__ install $1 \
+        pip install $1 \
             --trusted-host pypi.chevah.com \
             --index-url=$PIP_INDEX/simple \
             --build=${BUILD_FOLDER}/pip-build \
-            --cache-dir=${CACHE_FOLDER} \
-            --use-wheel
 
     exit_code=$?
     set -e
     if [ $exit_code -ne 0 ]; then
-        echo "Failed to install brink."
-        exit 1
+        (>&2 echo "Failed to install brink.")
+        exit 2
     fi
 }
 
+#
+# Check for wget or curl and set needed download commands accordingly.
+#
+set_download_commands() {
+    set +o errexit
+    command -v wget > /dev/null
+    if [ $? -eq 0 ]; then
+        # Using WGET for downloading Python package.
+        wget --version > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            # This is not GNU Wget, could be the more frugal wget from Busybox.
+            DOWNLOAD_CMD="wget"
+        else
+            # Use 1MB dots to reduce output and avoid polluting Buildbot pages.
+            DOWNLOAD_CMD="wget --progress=dot --execute dot_bytes=1m"
+        fi
+        ONLINETEST_CMD="wget --spider --quiet"
+        set -o errexit
+        return
+    fi
+    command -v curl > /dev/null
+    if [ $? -eq 0 ]; then
+        # Using CURL for downloading Python package.
+        DOWNLOAD_CMD="curl --remote-name"
+        ONLINETEST_CMD="curl --fail --silent --head --output /dev/null"
+        set -o errexit
+        return
+    fi
+    (>&2 echo "Missing wget and curl! One is needed for online operations.")
+    exit 3
+}
 
 #
 # Download and extract a binary distribution.
@@ -303,9 +370,7 @@ get_binary_dist() {
         rm -rf $dist_name
         rm -f $tar_gz_file
         rm -f $tar_file
-        # Use 1M dot to reduce console pollution.
-        execute wget --progress=dot -e dotbytes=1M \
-            $remote_base_url/${tar_gz_file}
+        execute $DOWNLOAD_CMD $remote_base_url/${tar_gz_file}
         execute gunzip $tar_gz_file
         execute tar -xf $tar_file
         rm -f $tar_gz_file
@@ -319,12 +384,10 @@ get_binary_dist() {
 #
 test_version_exists() {
     local remote_base_url=$1
-    local wget_test
     local target_file=python-${PYTHON_VERSION}-${OS}-${ARCH}.tar.gz
 
-    wget --spider $remote_base_url/${OS}/${ARCH}/$target_file
-    wget_test=$?
-    return $wget_test
+    $ONLINETEST_CMD $remote_base_url/${OS}/${ARCH}/$target_file
+    return $?
 }
 
 #
@@ -345,13 +408,8 @@ get_python_dist() {
         # We have the requested python version.
         get_binary_dist $python_distributable $remote_base_url/${OS}/${ARCH}
     else
-        if [ $download_mode == "strict" ]; then
-            echo "The requested version was not found on the remote server."
-            exit 1
-        fi
-        # Fall back to the non-versioned distribution.
-        echo "!!!Getting FALLBACK version!!!"
-        get_binary_dist $PYTHON_NAME-$OS-$ARCH $remote_base_url
+        (>&2 echo "Requested version was not found on the remote server.")
+        exit 4
     fi
 }
 
@@ -370,8 +428,8 @@ copy_python() {
     COPY_PYTHON_RECURSIONS=`expr $COPY_PYTHON_RECURSIONS + 1`
 
     if [ $COPY_PYTHON_RECURSIONS -gt 2 ]; then
-        echo "Too many calls to copy_python. ($COPY_PYTHON_RECURSIONS)"
-        exit 1
+        (>&2 echo "Too many calls to copy_python: $COPY_PYTHON_RECURSIONS")
+        exit 5
     fi
 
     # Check that python dist was installed
@@ -428,10 +486,10 @@ copy_python() {
                 local test_version=$?
                 set -o errexit
                 if [ $test_version -ne 0 ]; then
-                    echo "The build is now at $python_installed_version"
-                    echo "Failed to find the required $PYTHON_VERSION"
-                    echo "Check your configuration or the remote server."
-                    exit 1
+                    (>&2 echo "The build is now at $python_installed_version.")
+                    (>&2 echo "Failed to find the required $PYTHON_VERSION.")
+                    (>&2 echo "Check your configuration or the remote server.")
+                    exit 6
                 fi
 
                 # Remove it and try to install it again.
@@ -472,6 +530,11 @@ install_dependencies(){
         return
     fi
 
+    if [ "$COMMAND" == "deps" ] ; then
+        # Will be installed soon.
+        return
+    fi
+
     update_venv
 }
 
@@ -501,12 +564,12 @@ check_os_version() {
     local version_good_array
 
     if [[ $version_raw =~ [^[:digit:]\.] ]]; then
-        echo "Unparsed OS version should only have numbers and periods, but:"
-        echo "    \$version_raw=$version_raw"
+        (>&2 echo "OS version should only have numbers and periods, but:")
+        (>&2 echo "    \$version_raw=$version_raw")
         exit 12
     fi
 
-    # Using '.' as a delimiter, populate the version_raw_* arrays.
+    # Using '.' as a delimiter, populate the version_* arrays.
     IFS=. read -a version_raw_array <<< "$version_raw"
     IFS=. read -a version_good_array <<< "$version_good"
 
@@ -524,181 +587,229 @@ check_os_version() {
     done
 
     if [ "$flag_supported" = 'false' ]; then
-        echo "The current version of ${name_fancy} is too old: ${version_raw}"
-        echo "Oldest supported version of ${name_fancy} is: ${version_good}"
-        exit 13
+        (>&2 echo "Current version of ${name_fancy} is too old: ${version_raw}")
+        (>&2 echo "Oldest supported ${name_fancy} version is: ${version_good}")
+        if [ "$OS" = "Linux" ]; then
+            # For old and/or unsupported Linux distros there's a second chance!
+            check_linux_glibc
+        else
+            exit 13
+        fi
     fi
 
     # The sane way to return fancy values with a bash function is to use eval.
     eval $version_chevah="'$version_constructed'"
 }
 
+#
+# For old unsupported Linux distros (some with no /etc/os-release) and for other
+# unsupported Linux distros (eg. Arch), we check if the system is glibc-based.
+# If so, we use a generic code path that builds everything statically,
+# including OpenSSL, thus only requiring glibc 2.x.
+#
+check_linux_glibc() {
+    local glibc_version
+    local glibc_version_array
+
+    echo "Unsupported Linux distribution detected!"
+    echo "To get you going, we'll try to treat it as generic Linux..."
+
+    set +o errexit
+
+    command -v ldd > /dev/null
+    if [ $? -ne 0 ]; then
+        (>&2 echo "No ldd binary found, can't check for glibc!")
+        exit 18
+    fi
+
+    ldd --version | egrep "GNU\ libc|GLIBC" > /dev/null
+    if [ $? -ne 0 ]; then
+        (>&2 echo "No glibc reported by ldd... Unsupported Linux libc?")
+        exit 19
+    fi
+
+    # Parsing tested with glibc 2.11.x and 2.29, eglibc 2.13 and 2.19.
+    glibc_version=$(ldd --version | head -n 1 | rev | cut -d\  -f1 | rev)
+
+    if [[ $glibc_version =~ [^[:digit:]\.] ]]; then
+        (>&2 echo "Glibc version should only have numbers and periods, but:")
+        (>&2 echo "    \$glibc_version=$glibc_version")
+        exit 20
+    fi
+
+    IFS=. read -a glibc_version_array <<< "$glibc_version"
+
+    if [ ${glibc_version_array[0]} -ne 2 ]; then
+        (>&2 echo "Only glibc 2 is supported! Detected version: $glibc_version")
+        exit 21
+    fi
+
+    # We pass here because:
+    #   1. In python-package building should work with older glibc version.
+    #   2. Our generic "lnx" runtime might work with a slightly older glibc 2.
+    if [ ${glibc_version_array[1]} -lt 11 ]; then
+        (>&2 echo "Beware glibc versions older than 2.11 were NOT tested!")
+        (>&2 echo "Detected glibc version: $glibc_version")
+    fi
+
+    set -o errexit
+
+    # glibc 2 detected, we set $OS for a generic build.
+    OS="lnx"
+}
 
 #
-# Update OS and ARCH variables with the current values.
+# For glibc-based Linux distros, after checking if current version is
+# supported with check_os_version(), $OS might already be set to "lnx"
+# if current version is too old, through check_linux_glibc().
+#
+set_os_if_not_generic() {
+    local distro_name="$1"
+    local distro_version="$2"
+
+    if [ "$OS" != "lnx" ]; then
+        OS="${distro_name}${distro_version}"
+    fi
+}
+
+#
+# Detect OS and ARCH for the current system.
+# In some cases we normalize or even override ARCH at the end of this function.
 #
 detect_os() {
 
-    OS=$(uname -s | tr "[A-Z]" "[a-z]")
+    OS=$(uname -s)
 
-    if [ "${OS%mingw*}" = "" ]; then
-
-        OS='windows'
-        ARCH='x86'
-
-    elif [ "${OS}" = "sunos" ]; then
-
-        ARCH=$(isainfo -n)
-        os_version_raw=$(uname -r | cut -d'.' -f2)
-        check_os_version Solaris 10 "$os_version_raw" os_version_chevah
-
-        OS="solaris${os_version_chevah}"
-
-        # Solaris 10u8 (from 10/09) updated the libc version, so for older
-        # releases we build on 10u3, and use that up to 10u7 (from 5/09).
-        # The "solaris10u3" code path also preserves the way to link to the
-        # OpenSSL 0.9.7 libs bundled in /usr/sfw/ with all Solaris 10 releases.
-        if [ "${OS}" = "solaris10" ]; then
-            # We extract the update number from the first line.
-            update=$(head -1 /etc/release | cut -d'_' -f2 | sed 's/[^0-9]*//g')
-            if [ "$update" -lt 8 ]; then
-                OS="solaris10u3"
+    case "$OS" in
+        MINGW*|MSYS*)
+            ARCH=$(uname -m)
+            OS="win"
+            ;;
+        Linux)
+            ARCH=$(uname -m)
+            if [ ! -f /etc/os-release ]; then
+                # No /etc/os-release file present, so we don't support this
+                # distro, but check for glibc, the generic build should work.
+                check_linux_glibc
+            else
+                source /etc/os-release
+                linux_distro="$ID"
+                distro_fancy_name="$NAME"
+                # Some rolling-release distros (eg. Arch Linux) have
+                # no VERSION_ID here, so don't count on it unconditionally.
+                case "$linux_distro" in
+                    rhel|centos)
+                        os_version_raw="$VERSION_ID"
+                        check_os_version "Red Hat Enterprise Linux" 7 \
+                            "$os_version_raw" os_version_chevah
+                        set_os_if_not_generic "rhel" $os_version_chevah
+                        if [ "$os_version_chevah" -eq 7 ]; then
+                            if openssl version | grep -F -q "1.0.1"; then
+                                # 7.0-7.3 has OpenSSL 1.0.1, use generic build.
+                                check_linux_glibc
+                            fi
+                        fi
+                        ;;
+                    amzn)
+                        os_version_raw="$VERSION_ID"
+                        check_os_version "$distro_fancy_name" 2 \
+                            "$os_version_raw" os_version_chevah
+                        set_os_if_not_generic "amzn" $os_version_chevah
+                        ;;
+                    ubuntu|ubuntu-core)
+                        os_version_raw="$VERSION_ID"
+                        # 12.04/14.04 have OpenSSL 1.0.1, use generic Linux.
+                        check_os_version "$distro_fancy_name" 16.04 \
+                            "$os_version_raw" os_version_chevah
+                        # Only LTS versions are supported. If it doesn't end in
+                        # 04 or first two digits are uneven, use generic build.
+                        if [ ${os_version_chevah%%04} == ${os_version_chevah} \
+                            -o $(( ${os_version_chevah:0:2} % 2 )) -ne 0 ]; then
+                            check_linux_glibc
+                        fi
+                        set_os_if_not_generic "ubuntu" $os_version_chevah
+                        ;;
+                    alpine)
+                        os_version_raw="$VERSION_ID"
+                        check_os_version "$distro_fancy_name" 3.6 \
+                            "$os_version_raw" os_version_chevah
+                        set_os_if_not_generic "alpine" $os_version_chevah
+                        ;;
+                    *)
+                        # Unsupported modern distros such as SLES, Debian, etc.
+                        check_linux_glibc
+                        ;;
+                esac
             fi
-        fi
-
-    elif [ "${OS}" = "aix" ]; then
-
-        ARCH="ppc$(getconf HARDWARE_BITMODE)"
-        os_version_raw=$(oslevel)
-        check_os_version AIX 5.3 "$os_version_raw" os_version_chevah
-
-        OS="aix${os_version_chevah}"
-
-    elif [ "${OS}" = "hp-ux" ]; then
-
-        ARCH=$(uname -m)
-        os_version_raw=$(uname -r | cut -d'.' -f2-)
-        check_os_version HP-UX 11.31 "$os_version_raw" os_version_chevah
-
-        OS="hpux${os_version_chevah}"
-
-    elif [ "${OS}" = "linux" ]; then
-
-        ARCH=$(uname -m)
-
-        if [ -f /etc/redhat-release ]; then
-            # Avoid getting confused by Red Hat derivatives such as Fedora.
-            if egrep -q 'Red\ Hat|CentOS|Scientific' /etc/redhat-release; then
-                os_version_raw=$(\
-                    cat /etc/redhat-release | sed s/.*release// | cut -d' ' -f2)
-                check_os_version "Red Hat Enterprise Linux" 5 \
-                    "$os_version_raw" os_version_chevah
-                # RHEL 7.4 and newer have OpenSSL 1.0.2, while 7.3 and older
-                # have version 1.0.1. Thus for the older RHEL 7 versions we use
-                # a separate OS signature, to make use of a dedicated Python
-                # package.
-                if [ "$os_version_chevah" -eq 7 ]; then
-                    if openssl version | grep -F -q "1.0.1"; then
-                        # We are on 1.0.1 which is pre RHEL 7.4
-                        os_version_chevah=7openssl101
+            ;;
+        Darwin)
+            ARCH=$(uname -m)
+            os_version_raw=$(sw_vers -productVersion)
+            # Tested on 10.13, but this works on 10.12 too. Older versions need
+            # "-Wl,-no_weak_imports" in LDFLAGS to avoid runtime issues. More
+            # details at https://github.com/Homebrew/homebrew-core/issues/3727.
+            check_os_version "macOS" 10.12 "$os_version_raw" os_version_chevah
+            # Build a generic package to cover all supported versions.
+            OS="macos"
+            ;;
+        FreeBSD)
+            ARCH=$(uname -m)
+            os_version_raw=$(uname -r | cut -d'.' -f1)
+            check_os_version "FreeBSD" 11 "$os_version_raw" os_version_chevah
+            OS="fbsd${os_version_chevah}"
+            ;;
+        OpenBSD)
+            ARCH=$(uname -m)
+            os_version_raw=$(uname -r)
+            check_os_version "OpenBSD" 6.5 "$os_version_raw" os_version_chevah
+            OS="obsd${os_version_chevah}"
+            ;;
+        SunOS)
+            ARCH=$(isainfo -n)
+            os_version_raw=$(uname -r | cut -d'.' -f2)
+            check_os_version Solaris 10 "$os_version_raw" os_version_chevah
+            OS="sol${os_version_chevah}"
+            case "$OS" in
+                sol10)
+                    # Solaris 10u8 (from 10/09) updated libc version, so for
+                    # older releases up to 10u7 (from 5/09) we build on 10u3.
+                    # The "sol10u3" code path also shows the way to link to
+                    # OpenSSL 0.9.7 libs bundled in /usr/sfw/ with Solaris 10.
+                    # Update number is taken from first line of /etc/release.
+                    un=$(head -1 /etc/release | cut -d_ -f2 | sed s/[^0-9]*//g)
+                    if [ "$un" -lt 8 ]; then
+                        OS="sol10u3"
                     fi
-                fi
-                OS="rhel${os_version_chevah}"
-            fi
-        elif [ -f /etc/SuSE-release ]; then
-            # Avoid getting confused by SUSE derivatives such as OpenSUSE.
-            if [ $(head -n1 /etc/SuSE-release | cut -d' ' -f1) = 'SUSE' ]; then
-                os_version_raw=$(\
-                    grep VERSION /etc/SuSE-release | cut -d' ' -f3)
-                check_os_version "SUSE Linux Enterprise Server" 10 \
-                    "$os_version_raw" os_version_chevah
-                OS="sles${os_version_chevah}"
-                # On 11.x, check for OpenSSL 1.0.x (a.k.a. Security Module).
-                if [ ${os_version_chevah} -eq 11 -a -x /usr/bin/openssl1 ]; then
-                    OS="sles11sm"
-                fi
-            fi
-        elif [ -f /etc/os-release ]; then
-            source /etc/os-release
-            linux_distro="$ID"
-            distro_fancy_name="$NAME"
-            case "$linux_distro" in
-                "ubuntu")
-                    os_version_raw="$VERSION_ID"
-                    check_os_version "$distro_fancy_name" 14.04 \
-                        "$os_version_raw" os_version_chevah
-                    # Only Long-term Support versions are supported,
-                    # thus $os_version_chevah should end in 04,
-                    # and the first two digits should represent an even year.
-                    if [ ${os_version_chevah%%04} != ${os_version_chevah} -a \
-                        $(( ${os_version_chevah%%04} % 2 )) -eq 0 ]; then
-                        OS="ubuntu${os_version_chevah}"
-                    else
-                        echo "Unsupported Ubuntu, using generic Linux binaries!"
+                    ;;
+                sol11)
+                    # Solaris 11 releases prior to 11.4 bundled OpenSSL libs
+                    # missing support for Elliptic-curve crypto. From here on:
+                    #   * Solaris 11.4 (or newer) with OpenSSL 1.0.2 is "sol11",
+                    #   * Solaris 11.2/11.3 with OpenSSL 1.0.1 is "sol112",
+                    #   * Solaris 11.0/11.1 with OpenSSL 1.0.0 is not supported.
+                    minor_version=$(uname -v | cut -d'.' -f2)
+                    if [ "$minor_version" -lt 4 ]; then
+                        OS="sol112"
                     fi
-                    ;;
-                "raspbian")
-                    os_version_raw="$VERSION_ID"
-                    check_os_version "$distro_fancy_name" 7 \
-                        "$os_version_raw" os_version_chevah
-                    OS="raspbian${os_version_chevah}"
-                    ;;
-                "alpine")
-                    os_version_raw="$VERSION_ID"
-                    check_os_version "$distro_fancy_name" 3.6 \
-                        "$os_version_raw" os_version_chevah
-                    OS="alpine${os_version_chevah}"
-                    ;;
-                "arch")
-                    # Arch Linux is a rolling distro, no version info available.
-                    OS="archlinux"
                     ;;
             esac
-        fi
-    elif [ "${OS}" = "darwin" ]; then
-        ARCH=$(uname -m)
-
-        os_version_raw=$(sw_vers -productVersion)
-        check_os_version "Mac OS X" 10.8 "$os_version_raw" os_version_chevah
-
-        if [ ${os_version_chevah:0:2} -eq 10 -a \
-            ${os_version_chevah:2:2} -ge 12  ]; then
-            # For newer, macOS versions, we use '1012'.
-            OS="macos1012"
-        else
-            # For older, OS X versions, we use '108'.
-            OS="osx108"
-        fi
-
-
-    elif [ "${OS}" = "freebsd" ]; then
-        ARCH=$(uname -m)
-
-        os_version_raw=$(uname -r | cut -d'.' -f1)
-        check_os_version "FreeBSD" 10 "$os_version_raw" os_version_chevah
-
-        OS="freebsd${os_version_chevah}"
-
-    elif [ "${OS}" = "openbsd" ]; then
-        ARCH=$(uname -m)
-
-        os_version_raw=$(uname -r)
-        check_os_version "OpenBSD" 5.9 "$os_version_raw" os_version_chevah
-        OS="openbsd${os_version_chevah}"
-
-    elif [ "${OS}" = "netbsd" ]; then
-        ARCH=$(uname -m)
-
-        os_version_raw=$(uname -r | cut -d'.' -f1)
-        check_os_version "NetBSD" 7 "$os_version_raw" os_version_chevah
-
-        # For now, no matter the actual NetBSD version returned, we use '7'.
-        OS="netbsd7"
-
-    else
-        echo 'Unsupported operating system:' $OS
-        exit 14
-    fi
+            ;;
+        AIX)
+            ARCH="ppc$(getconf HARDWARE_BITMODE)"
+            os_version_raw=$(oslevel)
+            check_os_version AIX 5.3 "$os_version_raw" os_version_chevah
+            OS="aix${os_version_chevah}"
+            ;;
+        HP-UX)
+            ARCH=$(uname -m)
+            os_version_raw=$(uname -r | cut -d'.' -f2-)
+            check_os_version HP-UX 11.31 "$os_version_raw" os_version_chevah
+            OS="hpux${os_version_chevah}"
+            ;;
+        *)
+            (>&2 echo "Unsupported operating system: ${OS}.")
+            exit 14
+    esac
 
     # Normalize arch names. Force 32bit builds on some OS'es.
     case "$ARCH" in
@@ -707,6 +818,21 @@ detect_os() {
             ;;
         "amd64"|"x86_64")
             ARCH="x64"
+            case "$OS" in
+                sol10*)
+                    # On Solaris 10, x64 built fine prior to adding "bcrypt".
+                    ARCH="x86"
+                    ;;
+                win)
+                    # 32bit build on Windows 2016, 64bit otherwise.
+                    # Should work with a l10n pack too (tested with French).
+                    win_ver=$(systeminfo.exe | head -n 3 | tail -n 1 \
+                        | cut -d ":" -f 2 | cut -b 15-43)
+                    if [ "$win_ver" = "Microsoft Windows Server 2016" ]; then
+                        ARCH="x86"
+                    fi
+                    ;;
+            esac
             ;;
         "aarch64")
             ARCH="arm64"
@@ -725,6 +851,7 @@ detect_os() {
 
 detect_os
 update_path_variables
+set_download_commands
 
 if [ "$COMMAND" = "clean" ] ; then
     clean_build
@@ -736,10 +863,6 @@ if [ "$COMMAND" = "purge" ] ; then
     exit 0
 fi
 
-if [ "$COMMAND" = "detect_os" ] ; then
-    write_default_values
-    exit 0
-fi
 
 if [ "$COMMAND" = "get_python" ] ; then
     OS=$2
@@ -755,16 +878,13 @@ if [ "$COMMAND" = "get_agent" ] ; then
 fi
 
 check_source_folder
-write_default_values
 copy_python
 install_dependencies
 
-# Always update brink when running buildbot tasks.
-for paver_task in "deps" "test_os_dependent" "test_os_independent"; do
-    if [ "$COMMAND" == "$paver_task" ] ; then
-        install_base_deps
-    fi
-done
+# Update brink.conf dependencies when running deps.
+if [ "$COMMAND" == "deps" ] ; then
+    install_base_deps
+fi
 
 case $COMMAND in
     test_ci|test_py3)
@@ -775,11 +895,9 @@ case $COMMAND in
         ;;
 esac
 
-# Now that we have Python and Paver, let's call Paver from Python :)
 set +e
-
 execute_venv "$@"
-
 exit_code=$?
 set -e
+
 exit $exit_code

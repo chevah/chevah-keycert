@@ -15,7 +15,7 @@ from nose.plugins.attrib import attr
 import Crypto
 
 # Twisted test compatibility.
-from chevah.keycert import ssh as keys, common, sexpy
+from chevah.keycert import ssh as keys, common, sexpy, _path
 from chevah.keycert.exceptions import (
     BadKeyError,
     KeyCertException,
@@ -46,11 +46,56 @@ yBjyyznB9PnoKUJs34rex5ZHE70e7zs01Omk5Wp6PXxVzz40CKUW5yc7JpRH1BsR
 LqHYUobNanxB+7Msi4f3gYyuKdOGnWHqD2U4HcLdMQ==
 -----END RSA PRIVATE KEY-----''')
 
+# Converted from old format using OpenSSH without a password.
+# $ ssh-keygen -e -p -f OPENSSH_RSA_PRIVATE.key
+OPENSSH_V1_RSA_PRIVATE = ('''-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAlwAAAAdzc2gtcn
+NhAAAAAwEAAQAAAIEAuH1erUmpA0gemaL8oC7H9YgvT97SR3j0ygD5DwFs5buQUR3JgLtL
+k45+xoa6cW441jMA1TdDsc8O7XiNDhCFZKZ5XMjOi+ZhpPl+i3OPpQH6dWMQkfaPfhVzFk
+iT99o0cCPuC4VmMZ2FJXbwDuSw8/UHkdMiopsHI0U6Bev46S8AAAH4y/dH2sv3R9oAAAAH
+c3NoLXJzYQAAAIEAuH1erUmpA0gemaL8oC7H9YgvT97SR3j0ygD5DwFs5buQUR3JgLtLk4
+5+xoa6cW441jMA1TdDsc8O7XiNDhCFZKZ5XMjOi+ZhpPl+i3OPpQH6dWMQkfaPfhVzFkiT
+99o0cCPuC4VmMZ2FJXbwDuSw8/UHkdMiopsHI0U6Bev46S8AAAADAQABAAAAgAgeXEA78Z
+gXYGFabsuNw3bmm05ke9RxWjRZfpxOb8BcVKl9KhTkKRtBNgr+es3rD809SVgYqn30oq+I
+kox/5Z7JGZzPSdcX6Z6CeR083Bh2gWFRRBF0unzrMlk9eaGOym+q0QU51ldCJ7P9OR4ad/
+K/0UfzuKaAftzcECQ5f+oBAAAAQH+ARfXlS8UUPQODJvSJLeJRfIoup2uJ8XbRMz/Kdiz/
+bS6h2FKGzWp8QfuzLIuH94GMrinThp1h6g9lOB3C3TEAAABBAOgCdF0L7lLKOtnUlBRZSR
+qmJgciEWrqRa0abeRYmfQjEIG0WEa+ohYnBkgCN/q1MoxSTpuMb2nsml61dSxOIMEAAABB
+AMuRA1NheNl5urb0MzPGwIKu3dv8doh0bjpA1G9Wyt2MAck4oZfQS6r3UYUcaZdtRHKlqQ
+f0cwBWxmvutBv4le8AAAAAAQID
+-----END OPENSSH PRIVATE KEY-----''')
+
+# Converted from old format using OpenSSH with `test` as password.
+# $ ssh-keygen -e -p -f OPENSSH_RSA_PRIVATE.key
+OPENSSH_V1_ENCRYPTED_RSA_PRIVATE = ('''-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABCO5u6Nze
+CPk3e+vkL9MmvWAAAAEAAAAAEAAACXAAAAB3NzaC1yc2EAAAADAQABAAAAgQC4fV6tSakD
+SB6ZovygLsf1iC9P3tJHePTKAPkPAWzlu5BRHcmAu0uTjn7GhrpxbjjWMwDVN0Oxzw7teI
+0OEIVkpnlcyM6L5mGk+X6Lc4+lAfp1YxCR9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz
+9QeR0yKimwcjRToF6/jpLwAAAgDuID/fk0osaBUXQ+M32lA677YjC9BX5bSwKHNdbaH/eD
+H5T4mNZNe8IvZXsYGsVXKT5yaRP/19A/5pVivnTn2n0dOZ0tbfnqrPLJnEdPPTlLVv+YaR
++TZYRYfydOXpZ44MsJAzmOmCWVIlDNratEt/zoiqhF2T3q4ODFEABfDQ3LixRx+Jk90icy
+FrL7DuDLsTdjXLnmUSh7Ytzd9v8XrQ8ku98EvOzqCCneYguYt2zHrRVd+jWivJ7Pdv86lg
+kksqxIlY7TV+wqcbYvLDuZF6iP3jWAGoQYSUJpqVwp0PLz53hzxwcLMEg+V93e9fYiQjsE
+psoQ/y8ZGmBIGqkAj+BC9Y6DXFPmstv0yHlSoB/A4FwVerZiVu4G239LF8Wt6gfAU7Bu7j
+yvWKic87GsONUvp8iKFntCFgeX4aa9bVsl4N9APzEBPsj2ni4E3+UYYovGBo8jlmxBAj3V
+evUSgiQfOTIM8UkZfk6plXchJTmshIeL1SMyjdNF2ziVh72T1RCOs/905gXXvw+Bl+zdtJ
+5sRcoQii4HcPjK0WUZaSM/5LsxSsqDt+nBVoaq7k24ITTjXdHIuiT1YnKFjErzD3bznosW
+wNe7YoLXxnuszUFaBAWthJuOsE1JVAScqo7oClPc1CHX8qEZz5vihkEploAOGe0hj5Kjt6
+vLDBLhI7ag==
+-----END OPENSSH PRIVATE KEY-----''')
+
 OPENSSH_RSA_PUBLIC = (
     'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTKA'
     'PkPAWzlu5BRHcmAu0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk+X6Lc4+lAf'
     'p1YxCR9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcjRToF6/jpLw=='
     )
+
+PKCS1_RSA_PUBLIC = ('''-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBALh9Xq1JqQNIHpmi/KAux/WIL0/e0kd49MoA+Q8BbOW7kFEdyYC7S5OO
+fsaGunFuONYzANU3Q7HPDu14jQ4QhWSmeVzIzovmYaT5fotzj6UB+nVjEJH2j34V
+cxZIk/faNHAj7guFZjGdhSV28A7ksPP1B5HTIqKbByNFOgXr+OkvAgMBAAE=
+-----END RSA PUBLIC KEY-----''')
 
 OPENSSH_DSA_PRIVATE = ('''-----BEGIN DSA PRIVATE KEY-----
 MIIBugIBAAKBgQDOwkKGnmVZ9bRl7ZCn/wSELV0n5ELsqVZFOtBpHleEOitsvjEB
@@ -64,6 +109,55 @@ zhYkBfwCgYB/6sL9MO4ZwtFzwbOKNOoZxfORwNbzzHf+IpzyBTxxQJcYS6QgbtSi
 8uZXhx4TmOoSxzxy2jTJb4rt4R6bbwjaI9ca/1iLavocQ218Zk204gIUTk7aRv65
 oTedYsAyi80L8phYBN4=
 -----END DSA PRIVATE KEY-----''')
+
+# Converted from old format using OpenSSH without a password.
+# $ ssh-keygen -e -p -f OPENSSH_DSA_PRIVATE.key
+OPENSSH_V1_DSA_PRIVATE = ('''-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABsQAAAAdzc2gtZH
+NzAAAAgQDOwkKGnmVZ9bRl7ZCn/wSELV0n5ELsqVZFOtBpHleEOitsvjEBBbTKX0fZ83va
+MVnJFVw3DQSbi192krvk909Y6h3HVO2MKBRd9t29fr26VvCZQOxR4fzkPuL+Px4+ShqE17
+1sOzsuEDt0Mkxf152QxrA2vPowkj7fmzRH5xgDTQAAABUAhhv+WNJRyWjpOI3CiIX71vJp
+8UkAAACAXA+TAGCmF2ZeNZN04mgxeyT34IAw37NGmLLP/byi86dKcdz5htqPiOWcNmFzrA
+7a0o+erE3B+miwEm2sVz+eVWfNOCJQalHUqRrk1iV542FL0BCePiJa91Baw4pVS5hnSNko
+/Wsp0VnW3q5OK/tPs1pRy+3qWUwwrg5izhYkBfwAAACAf+rC/TDuGcLRc8GzijTqGcXzkc
+DW88x3/iKc8gU8cUCXGEukIG7UotrVGNVnicZqv8ZDKFS4KZqSujTfjbgemrseeFO4eQd6
+We0p6ESe7wE0JzCacGWJ6PLmV4ceE5jqEsc8cto0yW+K7eEem28I2iPXGv9Yi2r6HENtfG
+ZNtOIAAAHYZ8aTg2fGk4MAAAAHc3NoLWRzcwAAAIEAzsJChp5lWfW0Ze2Qp/8EhC1dJ+RC
+7KlWRTrQaR5XhDorbL4xAQW0yl9H2fN72jFZyRVcNw0Em4tfdpK75PdPWOodx1TtjCgUXf
+bdvX69ulbwmUDsUeH85D7i/j8ePkoahNe9bDs7LhA7dDJMX9edkMawNrz6MJI+35s0R+cY
+A00AAAAVAIYb/ljSUclo6TiNwoiF+9byafFJAAAAgFwPkwBgphdmXjWTdOJoMXsk9+CAMN
++zRpiyz/28ovOnSnHc+Ybaj4jlnDZhc6wO2tKPnqxNwfposBJtrFc/nlVnzTgiUGpR1Kka
+5NYleeNhS9AQnj4iWvdQWsOKVUuYZ0jZKP1rKdFZ1t6uTiv7T7NaUcvt6llMMK4OYs4WJA
+X8AAAAgH/qwv0w7hnC0XPBs4o06hnF85HA1vPMd/4inPIFPHFAlxhLpCBu1KLa1RjVZ4nG
+ar/GQyhUuCmakro03424Hpq7HnhTuHkHelntKehEnu8BNCcwmnBliejy5leHHhOY6hLHPH
+LaNMlviu3hHptvCNoj1xr/WItq+hxDbXxmTbTiAAAAFE5O2kb+uaE3nWLAMovNC/KYWATe
+AAAAAAECAw==
+-----END OPENSSH PRIVATE KEY-----''')
+
+# Converted from old format using OpenSSH with `test` as the password.
+# $ ssh-keygen -e -p -f OPENSSH_DSA_PRIVATE.key
+OPENSSH_V1_ENCRYPTED_DSA_PRIVATE = ('''-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABCR+DbQqo
+2salfbIh0HztjEAAAAEAAAAAEAAAGxAAAAB3NzaC1kc3MAAACBAM7CQoaeZVn1tGXtkKf/
+BIQtXSfkQuypVkU60GkeV4Q6K2y+MQEFtMpfR9nze9oxWckVXDcNBJuLX3aSu+T3T1jqHc
+dU7YwoFF323b1+vbpW8JlA7FHh/OQ+4v4/Hj5KGoTXvWw7Oy4QO3QyTF/XnZDGsDa8+jCS
+Pt+bNEfnGANNAAAAFQCGG/5Y0lHJaOk4jcKIhfvW8mnxSQAAAIBcD5MAYKYXZl41k3TiaD
+F7JPfggDDfs0aYss/9vKLzp0px3PmG2o+I5Zw2YXOsDtrSj56sTcH6aLASbaxXP55VZ804
+IlBqUdSpGuTWJXnjYUvQEJ4+Ilr3UFrDilVLmGdI2Sj9aynRWdberk4r+0+zWlHL7epZTD
+CuDmLOFiQF/AAAAIB/6sL9MO4ZwtFzwbOKNOoZxfORwNbzzHf+IpzyBTxxQJcYS6QgbtSi
+2tUY1WeJxmq/xkMoVLgpmpK6NN+NuB6aux54U7h5B3pZ7SnoRJ7vATQnMJpwZYno8uZXhx
+4TmOoSxzxy2jTJb4rt4R6bbwjaI9ca/1iLavocQ218Zk204gAAAeBVUr2hdw/PN3S0QUwq
+Ny7fOtmBVyuhRDvlS7OTsCaOs4cPF3j9o8K56Fk2Fdj69G8g56/2NrRPHvGyCtoN4olKwZ
+Cc/MsePe0R7vWumVgTt1kDk6/CcnAUnTtCL7GW7a1w+8ZDwBotCZgznDD9NlnhfH0g0MZ9
+eLP4UY181lYC6452fy8E2pV9qyYufRnRYe5Gu0zoRjEuyYDbNzDBCU4WZ4O7InJDiHuVVE
+hocQSVu4WzfABuCageM2wCkbKeM0mRZw1jljhO8a/T45wLmoYQxnUYFeUkUuy4akn5/uJ2
+xvIn3zl6fCqiWAnwbRjZeBfQ7q+5E/jUrUklGyBeEMn2RNo9kYTEOItuj6j8bXYELsTyjH
+tJ8DplDkNN3/FYG+D8JYyhuaGd4cSLtjXS95nuazHvwyb60CQxPwbmUcojqsrM65Yu7+dQ
+wwYEpG5w9/IlKJ62JmEqhEVMI4HHyDLcocYlU6OoD1Ivy09dcIO8uRBYc9jFccj/1ej5oI
+tn6RsW0HRlVx06tbp6RDHBfAdg5suu5pW9uv2tESbEqpMHt4FQgqKcSQwzYLvo/bfPuxs0
+HNOQMLNwRg8yYbCG+u2HU9YTlQdTgG/5h+eYsQLObPU+TjYgS5p6sUZCkTCnOz8=
+-----END OPENSSH PRIVATE KEY-----''')
+
 
 OPENSSH_DSA_PUBLIC = (
     'ssh-dss AAAAB3NzaC1kc3MAAACBAM7CQoaeZVn1tGXtkKf/BIQtXSfkQuypVkU60GkeV4Q6K'
@@ -300,6 +394,16 @@ class TestHelpers(ChevahTestCase, CommandLineMixin):
             keys.objectType(keys.Key.fromString(
                 keydata.privateDSA_openssh).keyObject), 'ssh-dss')
         self.assertRaises(keys.BadKeyError, keys.objectType, None)
+
+    def test_path(self):
+        """
+        Will take an unicode and will return the os encoded path.
+        """
+        result = _path(u'path-\N{sun}')
+        if self.os_name == 'windows':
+            self.assertEqual(u'path-\N{sun}', result)
+        else:
+            self.assertEqual(b'path-\xe2\x98\x89', result)
 
 
 class TestKey(ChevahTestCase):
@@ -569,11 +673,11 @@ class TestKey(ChevahTestCase):
 
         result = Key._guessStringType(content)
 
-        self.assertEqual('public_x509', result)
+        self.assertEqual('public_x509_certificate', result)
 
-    def test_guessStringType_PKCS1_PUBLIC(self):
+    def test_guessStringType_X509_PUBLIC(self):
         """
-        PEM PKCS@ public PEM are recognized as public keys.
+        x509 public PEM are recognized as public keys.
         """
         content = (
             '-----BEGIN PUBLIC KEY-----\n'
@@ -583,7 +687,7 @@ class TestKey(ChevahTestCase):
 
         result = Key._guessStringType(content)
 
-        self.assertEqual('public_pkcs1', result)
+        self.assertEqual('public_x509', result)
 
     def test_guessStringType_PKCS8_PRIVATE(self):
         """
@@ -644,6 +748,14 @@ class TestKey(ChevahTestCase):
         result = Key._guessStringType(OPENSSH_RSA_PUBLIC)
 
         self.assertEqual('public_openssh', result)
+
+    def test_guessStringType_public_PKCS1(self):
+        """
+        Can recognize an PKCS1 PEM public key.
+        """
+        result = Key._guessStringType(PKCS1_RSA_PUBLIC)
+
+        self.assertEqual('public_pkcs1_rsa', result)
 
     def test_guessStringType_public_OpenSSH_ECDSA(self):
         """
@@ -1008,6 +1120,14 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
 
         self.checkParsedRSAPublic1024(sut)
 
+    def test_fromString_PUBLIC_PKC1_RSA(self):
+        """
+        Can load public RSA PKC1 key.
+        """
+        sut = Key.fromString(PKCS1_RSA_PUBLIC)
+
+        self.checkParsedRSAPublic1024(sut)
+
     def test_fromString_PUBLIC_OPENSSH_RSA_too_short(self):
         """
         An exception is raised when public RSA OpenSSH key is bad formatted.
@@ -1048,7 +1168,7 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
             keydata.publicDSA_openssh,
             keydata.privateDSA_openssh, 'DSA', keydata.DSAData)
 
-    def test_fromString_OpenSSH_private_missing_passwrd(self):
+    def test_fromString_OpenSSH_private_missing_password(self):
         """
         It fails to load an ecrypted key when password is not provided.
         """
@@ -1357,11 +1477,27 @@ AAAAB3NzaC1yc2EA
 
         self.checkParsedRSAPrivate1024(sut)
 
+    def test_fromString_PRIVATE_OPENSSH_v1_RSA(self):
+        """
+        Can load a private OpenSSH v1 RSA key.
+        """
+        sut = Key.fromString(OPENSSH_V1_RSA_PRIVATE)
+
+        self.checkParsedRSAPrivate1024(sut)
+
     def test_fromString_PRIVATE_OPENSSH_DSA(self):
         """
         Can load a private OpenSSH DSA key.
         """
         sut = Key.fromString(OPENSSH_DSA_PRIVATE)
+
+        self.checkParsedDSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_OPENSSH_v1_DSA(self):
+        """
+        Can load a private OpenSSH V1 DSA key.
+        """
+        sut = Key.fromString(OPENSSH_V1_DSA_PRIVATE)
 
         self.checkParsedDSAPrivate1024(sut)
 
@@ -1558,7 +1694,7 @@ MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEc6VKUjy6I6MqLmB+x4UhVeutcFCq
             Key.fromString(data)
 
         self.assertEqual(
-            'Unsupported key found in the PKCS#1 public PEM file.',
+            'Unsupported key found in the X509 public PEM file.',
             context.exception.message,
             )
 
@@ -2444,14 +2580,14 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         When custom values are provided, the key is generated using those
         values.
         """
-        file_name = mk.ascii()
-        file_name_pub = file_name + b'.pub'
+        file_name = mk.ascii().decode('ascii')
+        file_name_pub = file_name + '.pub'
         options = self.parseArguments([
             self.sub_command_name,
-            '--key-size=512',
-            '--key-type=DSA',
-            '--key-file=' + file_name,
-            '--key-comment=this is a comment',
+            u'--key-size=512',
+            u'--key-type=DSA',
+            u'--key-file=' + file_name,
+            u'--key-comment=this is a comment',
             ])
         open_method = DummyOpenContext()
 
@@ -2463,14 +2599,17 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
 
         # First it writes the private key.
         first_file = open_method.calls.pop(0)
-        self.assertPathEqual(file_name, first_file['path'])
+
+        self.assertPathEqual(
+            _path(file_name), first_file['path'])
         self.assertEqual('wb', first_file['mode'])
         self.assertEqual(
             key.toString('openssh'), first_file['stream'].getvalue())
 
         # Second it writes the public key.
         second_file = open_method.calls.pop(0)
-        self.assertPathEqual(file_name_pub, second_file['path'])
+        self.assertPathEqual(
+            _path(file_name_pub.decode('ascii')), second_file['path'])
         self.assertEqual('wb', second_file['mode'])
         self.assertEqual(
             key.public().toString('openssh', 'this is a comment'),
@@ -2505,7 +2644,7 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
 
         # First it writes the private key.
         first_file = open_method.calls.pop(0)
-        self.assertPathEqual(u'id_rsa', first_file['path'])
+        self.assertPathEqual(_path(u'id_rsa'), first_file['path'])
         self.assertEqual('wb', first_file['mode'])
         self.assertEqual(
             key.toString('openssh'), first_file['stream'].getvalue())

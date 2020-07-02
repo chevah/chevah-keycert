@@ -45,10 +45,12 @@ def ssh_load_key(options, open_method=None):
 
     try:
         with open_method(path, 'rb') as file_handler:
-            key = Key.fromString(file_handler.read().strip())
-            return (0, 'OK', key)
+            key_content = file_handler.read().strip()
+            key = Key.fromString(key_content)
+            result = '%r\nKey type %s' % (key, Key.getKeyFormat(key_content))
+            return result
     except Exception as error:
-            return (1, str(error), None)
+            return str(error)
 
 
 parser = argparse.ArgumentParser(prog='PROG')
