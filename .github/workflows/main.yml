@@ -25,10 +25,10 @@ jobs:
       run: ./brink.sh deps
 
     - name: Lint
-        run: ./brink.sh lint
+      run: ./brink.sh lint
 
     - name: Rename build to unicode
-        run: mv build-keycert build-keycert-ț
+      run: mv build-keycert build-keycert-ț
 
     - name: Test
       run: ./brink.sh test
