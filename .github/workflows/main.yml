@@ -12,7 +12,7 @@ on:
 
 jobs:
 
-  linux-unicode-path:
+  ubuntu:
     # The type of runner that the job will run on
     runs-on: ubuntu-20.04
 
@@ -25,12 +25,14 @@ jobs:
       run: ./brink.sh deps
 
     - name: Test
-      run: ./brink.sh test_ci
+      run: ./brink.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+    - name: Lint
+      run: ./brink.sh lint
 
-  osx-unicode-path:
+  macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
@@ -39,7 +41,7 @@ jobs:
       run: ./brink.sh deps
 
     - name: Test
-      run: ./brink.sh test_ci
+      run: ./brink.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -53,6 +55,6 @@ jobs:
       run: sh ./brink.sh deps
 
     - name: Test
-      run: sh ./brink.sh test_ci
+      run: sh ./brink.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

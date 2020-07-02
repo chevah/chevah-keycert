@@ -400,19 +400,25 @@ class Key(object):
             return 'public_sshcom'
         elif data.startswith(b'---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----'):
             return 'private_sshcom'
+        elif data.startswith(b'-----BEGIN RSA PUBLIC'):
+            return 'public_pkcs1_rsa'
         elif (
-            data.startswith(b'-----BEGIN RSA') or
-            data.startswith(b'-----BEGIN DSA') or
-            data.startswith(b'-----BEGIN EC')
+            data.startswith(b'-----BEGIN RSA PRIVATE') or
+            data.startswith(b'-----BEGIN DSA PRIVATE') or
+            data.startswith(b'-----BEGIN EC PRIVATE')
                 ):
             # This is also private PKCS#1 format.
             return 'private_openssh'
         elif data.startswith(b'-----BEGIN OPENSSH PRIVATE KEY-----'):
-            return 'private_openssh_v2'
+            return 'private_openssh_v1'
+
         elif data.startswith(b'-----BEGIN CERTIFICATE-----'):
-            return 'public_x509'
+            return 'public_x509_certificate'
+
         elif data.startswith(b'-----BEGIN PUBLIC KEY-----'):
-            return 'public_pkcs1'
+            # Public Key in X.509 format it's as follows
+            return 'public_x509'
+
         elif data.startswith(b'-----BEGIN PRIVATE KEY-----'):
             return 'private_pkcs8'
         elif data.startswith(b'-----BEGIN ENCRYPTED PRIVATE KEY-----'):
@@ -448,8 +454,9 @@ class Key(object):
             'private_putty': 'PuTTY Private',
             'public_lsh': 'LSH Public',
             'private_lsh': 'LSH Private',
-            'public_x509': 'X509 Certificate',
-            'public_pkcs1': 'PKCS#1 Public',
+            'public_x509_certificate': 'X509 Certificate',
+            'public_x509': 'X509 Public',
+            'public_pkcs1_rsa': 'PKCS#1 RSA Public',
             'private_pkcs8': 'PKCS#8 Private',
             'private_encrypted_pkcs8': 'PKCS#8 Encrypted Private',
             }
@@ -770,6 +777,29 @@ class Key(object):
         return cls._fromString_BLOB(blob)
 
     @classmethod
+    def _fromString_PUBLIC_PKCS1_RSA(cls, data):
+        """
+        Read the public key from PKCS1 PEM format.
+
+        This is also the OpenSSH public PEM.
+
+        RSAPublicKey ::= SEQUENCE {
+            modulus           INTEGER,  -- n
+            publicExponent    INTEGER   -- e
+            }
+
+        """
+        lines = data.strip().splitlines()
+        data = base64.decodestring(b''.join(lines[1:-1]))
+        decodedKey = berDecoder.decode(data)[0]
+        if len(decodedKey) != 2:
+            raise BadKeyError('Invalid ASN.1 payload for PKCS1 PEM.')
+
+        n = long(decodedKey[0])
+        e = long(decodedKey[1])
+        return cls(RSA.construct((n, e)))
+
+    @classmethod
     def _fromString_PRIVATE_OPENSSH(cls, data, passphrase):
         """
         Return a private key object corresponding to this OpenSSH private key
@@ -798,7 +828,7 @@ class Key(object):
         @raises EncryptedKeyError: if
             * a passphrase is not provided for an encrypted key
         """
-        lines = data.strip().split(b'\n')
+        lines = data.strip().splitlines()
         kind = lines[0].split(b' ')[1]
         if lines[1].startswith(b'Proc-Type: 4,ENCRYPTED'):  # encrypted key
             if not passphrase:
@@ -921,7 +951,7 @@ class Key(object):
             return b'\n'.join(lines)
 
     @classmethod
-    def _fromString_PRIVATE_OPENSSH_V2(cls, data, passphrase):
+    def _fromString_PRIVATE_OPENSSH_V1(cls, data, passphrase):
         """
         PEM wrap and base64 encoded for:
 
@@ -981,10 +1011,7 @@ class Key(object):
             u, data = common.getMP(data)
             q, data = common.getMP(data)
             p, data = common.getMP(data)
-            comment, data = common.getNS(data)
-            if data != '\x01\x02\x03':
-                raise BadKeyError('Invalid padding for OpneSSH v1.')
-
+            comment, _ = common.getNS(data)
             return cls(RSA.construct((n, e, d, p, q, u)))
 
         if key_type == 'ssh-dss':
@@ -993,9 +1020,7 @@ class Key(object):
             g, data = common.getMP(data)
             y, data = common.getMP(data)
             x, data = common.getMP(data)
-            comment, data = common.getNS(data)
-            if data != '\x01\x02\x03':
-                raise BadKeyError('Invalid padding for OpneSSH v1.')
+            comment, _ = common.getNS(data)
             return cls(DSA.construct((y, g, p, q, x)))
 
         raise BadKeyError('Unsupported OpenSSH v1 key type.')
@@ -1755,7 +1780,7 @@ class Key(object):
         return '\r\n'.join(lines)
 
     @classmethod
-    def _fromString_PUBLIC_X509(cls, data):
+    def _fromString_PUBLIC_X509_CERTIFICATE(cls, data):
         """
         Read the public key from X509 Certificates in PEM format.
         """
@@ -1767,9 +1792,9 @@ class Key(object):
         return cls._fromOpenSSLPublic(cert.get_pubkey(), 'certificate')
 
     @classmethod
-    def _fromString_PUBLIC_PKCS1(cls, data):
+    def _fromString_PUBLIC_X509(cls, data):
         """
-        Read the public key from PKCS1 PEM format.
+        Read the public key from X509 public key PEM format.
         """
         try:
             pkey = crypto.load_publickey(crypto.FILETYPE_PEM, data)
@@ -1777,7 +1802,7 @@ class Key(object):
             raise BadKeyError(
                 'Failed to load PKCS#1 public key. %s' % (error,))
 
-        return cls._fromOpenSSLPublic(pkey, 'PKCS#1 public PEM file')
+        return cls._fromOpenSSLPublic(pkey, 'X509 public PEM file')
 
     @classmethod
     def _fromOpenSSLPublic(cls, pkey, source_type):

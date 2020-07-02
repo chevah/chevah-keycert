@@ -46,19 +46,6 @@ def test():
 
 
 @task
-def test_ci():
-    """
-    Run tests in the Buildbot CI environment.
-    """
-    test_type = os.environ.get('TEST_TYPE', '')
-    if test_type == "os-independent":
-        call_task('lint')
-    else:
-        call_task('test')
-
-
-
-@task
 def lint():
     """
     Run the static code analyzer.

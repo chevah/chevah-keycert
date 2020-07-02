@@ -2,6 +2,13 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.11.1 - 2020-07-02
+===================
+
+* Load OpenSSH v1 private keys without any padding checks.
+* Add support for PKCS#1 RSA public key PEM format.
+
+
 1.11.0 - 2020-06-29
 ===================
 

@@ -15,7 +15,7 @@ from nose.plugins.attrib import attr
 import Crypto
 
 # Twisted test compatibility.
-from chevah.keycert import ssh as keys, common, sexpy
+from chevah.keycert import ssh as keys, common, sexpy, _path
 from chevah.keycert.exceptions import (
     BadKeyError,
     KeyCertException,
@@ -85,12 +85,17 @@ wNe7YoLXxnuszUFaBAWthJuOsE1JVAScqo7oClPc1CHX8qEZz5vihkEploAOGe0hj5Kjt6
 vLDBLhI7ag==
 -----END OPENSSH PRIVATE KEY-----''')
 
-
 OPENSSH_RSA_PUBLIC = (
     'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTKA'
     'PkPAWzlu5BRHcmAu0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk+X6Lc4+lAf'
     'p1YxCR9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcjRToF6/jpLw=='
     )
+
+PKCS1_RSA_PUBLIC = ('''-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBALh9Xq1JqQNIHpmi/KAux/WIL0/e0kd49MoA+Q8BbOW7kFEdyYC7S5OO
+fsaGunFuONYzANU3Q7HPDu14jQ4QhWSmeVzIzovmYaT5fotzj6UB+nVjEJH2j34V
+cxZIk/faNHAj7guFZjGdhSV28A7ksPP1B5HTIqKbByNFOgXr+OkvAgMBAAE=
+-----END RSA PUBLIC KEY-----''')
 
 OPENSSH_DSA_PRIVATE = ('''-----BEGIN DSA PRIVATE KEY-----
 MIIBugIBAAKBgQDOwkKGnmVZ9bRl7ZCn/wSELV0n5ELsqVZFOtBpHleEOitsvjEB
@@ -658,11 +663,11 @@ class TestKey(ChevahTestCase):
 
         result = Key._guessStringType(content)
 
-        self.assertEqual('public_x509', result)
+        self.assertEqual('public_x509_certificate', result)
 
-    def test_guessStringType_PKCS1_PUBLIC(self):
+    def test_guessStringType_X509_PUBLIC(self):
         """
-        PEM PKCS@ public PEM are recognized as public keys.
+        x509 public PEM are recognized as public keys.
         """
         content = (
             '-----BEGIN PUBLIC KEY-----\n'
@@ -672,7 +677,7 @@ class TestKey(ChevahTestCase):
 
         result = Key._guessStringType(content)
 
-        self.assertEqual('public_pkcs1', result)
+        self.assertEqual('public_x509', result)
 
     def test_guessStringType_PKCS8_PRIVATE(self):
         """
@@ -733,6 +738,14 @@ class TestKey(ChevahTestCase):
         result = Key._guessStringType(OPENSSH_RSA_PUBLIC)
 
         self.assertEqual('public_openssh', result)
+
+    def test_guessStringType_public_PKCS1(self):
+        """
+        Can recognize an PKCS1 PEM public key.
+        """
+        result = Key._guessStringType(PKCS1_RSA_PUBLIC)
+
+        self.assertEqual('public_pkcs1_rsa', result)
 
     def test_guessStringType_public_OpenSSH_ECDSA(self):
         """
@@ -1094,6 +1107,14 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         Can load public RSA OpenSSH key.
         """
         sut = Key.fromString(OPENSSH_RSA_PUBLIC)
+
+        self.checkParsedRSAPublic1024(sut)
+
+    def test_fromString_PUBLIC_PKC1_RSA(self):
+        """
+        Can load public RSA PKC1 key.
+        """
+        sut = Key.fromString(PKCS1_RSA_PUBLIC)
 
         self.checkParsedRSAPublic1024(sut)
 
@@ -1663,7 +1684,7 @@ MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEc6VKUjy6I6MqLmB+x4UhVeutcFCq
             Key.fromString(data)
 
         self.assertEqual(
-            'Unsupported key found in the PKCS#1 public PEM file.',
+            'Unsupported key found in the X509 public PEM file.',
             context.exception.message,
             )
 
@@ -2568,14 +2589,15 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
 
         # First it writes the private key.
         first_file = open_method.calls.pop(0)
-        self.assertPathEqual(file_name, first_file['path'])
+
+        self.assertPathEqual(_path(file_name), first_file['path'])
         self.assertEqual('wb', first_file['mode'])
         self.assertEqual(
             key.toString('openssh'), first_file['stream'].getvalue())
 
         # Second it writes the public key.
         second_file = open_method.calls.pop(0)
-        self.assertPathEqual(file_name_pub, second_file['path'])
+        self.assertPathEqual(_path(file_name_pub), second_file['path'])
         self.assertEqual('wb', second_file['mode'])
         self.assertEqual(
             key.public().toString('openssh', 'this is a comment'),
@@ -2610,7 +2632,7 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
 
         # First it writes the private key.
         first_file = open_method.calls.pop(0)
-        self.assertPathEqual(u'id_rsa', first_file['path'])
+        self.assertPathEqual(_path(u'id_rsa'), first_file['path'])
         self.assertEqual('wb', first_file['mode'])
         self.assertEqual(
             key.toString('openssh'), first_file['stream'].getvalue())
