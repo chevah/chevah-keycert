@@ -2620,7 +2620,7 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         When no path and no comment are provided, it will use default
         values.
         """
-        self.assertEqual(u'bla', sys.platform)
+        self.assertEqual(sys.platform, u'bla')
         options = self.parseArguments([
             self.sub_command_name,
             '--key-size=1024',

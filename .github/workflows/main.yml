@@ -41,6 +41,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Cache build
+      uses: actions/cache@v2
+      with:
+        path: |
+          build-keycert
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+
     - name: Deps
       run: ./brink.sh deps
 
@@ -54,6 +61,13 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
+
+    - name: Cache build
+      uses: actions/cache@v2
+      with:
+        path: |
+          build-keycert
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
       run: sh ./brink.sh deps
