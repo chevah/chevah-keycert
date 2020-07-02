@@ -9,7 +9,6 @@ from hashlib import sha1
 from StringIO import StringIO
 import base64
 import textwrap
-import sys
 
 from chevah.compat.testing import mk, ChevahTestCase
 from nose.plugins.attrib import attr
@@ -395,6 +394,16 @@ class TestHelpers(ChevahTestCase, CommandLineMixin):
             keys.objectType(keys.Key.fromString(
                 keydata.privateDSA_openssh).keyObject), 'ssh-dss')
         self.assertRaises(keys.BadKeyError, keys.objectType, None)
+
+    def test_path(self):
+        """
+        Will take an unicode and will return the os encoded path.
+        """
+        result = _path(u'path-\N{sun}')
+        if self.os_name == 'windows':
+            self.assertEqual(u'path-\N{sun}', result)
+        else:
+            self.assertEqual(b'path-\xe2\x98\x89', result)
 
 
 class TestKey(ChevahTestCase):
@@ -2571,8 +2580,8 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         When custom values are provided, the key is generated using those
         values.
         """
-        file_name = mk.ascii()
-        file_name_pub = file_name + b'.pub'
+        file_name = mk.ascii().decode('ascii')
+        file_name_pub = file_name + '.pub'
         options = self.parseArguments([
             self.sub_command_name,
             u'--key-size=512',
@@ -2592,7 +2601,7 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         first_file = open_method.calls.pop(0)
 
         self.assertPathEqual(
-            _path(file_name.decode('ascii')), first_file['path'])
+            _path(file_name), first_file['path'])
         self.assertEqual('wb', first_file['mode'])
         self.assertEqual(
             key.toString('openssh'), first_file['stream'].getvalue())
