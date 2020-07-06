@@ -2,6 +2,13 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.12.1 - 2020-07-06
+===================
+
+* Allow defining key usage and constraints for CSR and self signed certificate
+  generation.
+
+
 1.12.0 - 2020-07-06
 ===================
 

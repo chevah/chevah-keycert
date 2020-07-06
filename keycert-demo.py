@@ -75,8 +75,12 @@ sub.add_argument(
     )
 sub.set_defaults(handler=ssh_load_key)
 
-sub = generate_csr_parser(subparser, 'ssl-gen-key')
-sub.set_defaults(handler=generate_and_store_csr)
+sub = generate_csr_parser(subparser, 'ssl-csr')
+sub.set_defaults(handler=lambda o: (
+    generate_and_store_csr(o)
+    or print('CSR generated in files.')
+    or ''
+    ))
 
 sub = generate_self_signed_parser(subparser, 'ssl-self-signed')
 sub.set_defaults(handler=lambda o:

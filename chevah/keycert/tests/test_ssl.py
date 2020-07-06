@@ -151,6 +151,9 @@ class Test_generate_csr_parser(
             'locality': None,
             'state': None,
             'country': None,
+            'constraints': '',
+            'key_usage': '',
+            'sign_algorithm': 'sha256',
             }, options)
 
     def test_value(self):
@@ -172,6 +175,9 @@ class Test_generate_csr_parser(
             '--locality=somewhere',
             '--state=without',
             '--country=GB',
+            '--constraints=critical,CA:FALSE',
+            '--key-usage=crl-sign',
+            '--sign-algorithm=sha1',
             ])
 
         self.assertNamespaceEqual({
@@ -188,6 +194,10 @@ class Test_generate_csr_parser(
             'locality': 'somewhere',
             'state': 'without',
             'country': 'GB',
+            'constraints': 'critical,CA:FALSE',
+            'key_usage': 'crl-sign',
+            'sign_algorithm': 'sha1',
+
             }, options)
 
     def test_default_overwrite(self):
@@ -218,6 +228,9 @@ class Test_generate_csr_parser(
             'locality': None,
             'state': None,
             'country': None,
+            'constraints': '',
+            'key_usage': '',
+            'sign_algorithm': 'sha256',
             }, options)
 
 
