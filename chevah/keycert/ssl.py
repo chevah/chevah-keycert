@@ -39,9 +39,17 @@ def generate_ssl_self_signed_certificate(options):
 
     Returns a tuple of (certificate_pem, key_pem)
     """
-    key_size = options.key_size
-    sign_algorithm = options.sign_algorithm
-    key_usage = options.key_usage.lower()
+    common_name = options.common_name
+
+    key_size = getattr(options, 'key_size', 2048)
+    sign_algorithm = getattr(options, 'sign_algorithm', 'sha256')
+    key_usage = getattr(options, 'key_usage', '').lower()
+    alternative_name = getattr(options, 'alternative_name', '')
+    country = getattr(options, 'country', '')
+    state = getattr(options, 'state', '')
+    locality = getattr(options, 'locality', '')
+    organization = getattr(options, 'organization', '')
+    organization_unit = getattr(options, 'organization_unit', '')
 
     serial = randint(0, 1000000000000)
 
@@ -51,22 +59,22 @@ def generate_ssl_self_signed_certificate(options):
     # create a self-signed cert
     cert = crypto.X509()
 
-    cert.get_subject().CN = options.common_name.encode('idna')
+    cert.get_subject().CN = common_name.encode('idna')
 
-    if options.country:
-        cert.get_subject().C = options.country.encode('ascii')
+    if country:
+        cert.get_subject().C = country.encode('ascii')
 
-    if options.state:
-        cert.get_subject().ST = options.state.encode('ascii')
+    if state:
+        cert.get_subject().ST = state.encode('ascii')
 
-    if options.locality:
-        cert.get_subject().L = options.locality.encode('ascii')
+    if locality:
+        cert.get_subject().L = locality.encode('ascii')
 
-    if options.organization:
-        cert.get_subject().O = options.organization.encode('ascii')
+    if organization:
+        cert.get_subject().O = organization.encode('ascii')
 
-    if options.organization_unit:
-        cert.get_subject().OU = options.organization_unit.encode('ascii')
+    if organization_unit:
+        cert.get_subject().OU = organization_unit.encode('ascii')
 
     critical_usage = False
     standard_usage = []
@@ -102,11 +110,11 @@ def generate_ssl_self_signed_certificate(options):
             ))
 
     # Alternate name is optional.
-    if options.alternative_name:
+    if alternative_name:
         extensions.append(crypto.X509Extension(
             b'subjectAltName',
             False,
-            options.alternative_name.encode('idna')))
+            alternative_name.encode('idna')))
     cert.add_extensions(extensions)
 
     cert.set_serial_number(serial)

@@ -65,6 +65,7 @@ class Test_generate_ssl_self_signed_certificate(CommandLineTestBase):
         options = self.parseArguments([
             'self-gen',
             '--common-name', 'domain.com',
+            '--key-size=1024',
             '--country=UN',
             ])
 
@@ -72,9 +73,28 @@ class Test_generate_ssl_self_signed_certificate(CommandLineTestBase):
 
         key = crypto.load_privatekey(crypto.FILETYPE_PEM, key_pem)
         cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert_pem)
+        self.assertEqual(1024, key.bits())
+        self.assertEqual(crypto.TYPE_RSA, key.type())
+        self.assertEqual(u'domain.com', cert.get_subject().CN)
+        self.assertEqual(u'UN', cert.get_subject().C)
+        self.assertNotEqual(0, cert.get_serial_number())
+        issuer = cert.get_issuer()
+        self.assertEqual(cert.subject_name_hash(), issuer.hash())
+
+    def test_generate_basic_options(self):
+        """
+        Can generate using just common name as the options.
+        """
+        options = Bunch(common_name='test')
+
+        cert_pem, key_pem = generate_ssl_self_signed_certificate(options)
+
+        key = crypto.load_privatekey(crypto.FILETYPE_PEM, key_pem)
+        cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert_pem)
         self.assertEqual(2048, key.bits())
         self.assertEqual(crypto.TYPE_RSA, key.type())
-        self.assertEqual(u'UN', cert.get_subject().C)
+        self.assertEqual(u'test', cert.get_subject().CN)
+        self.assertIsNone(cert.get_subject().C)
         self.assertNotEqual(0, cert.get_serial_number())
         issuer = cert.get_issuer()
         self.assertEqual(cert.subject_name_hash(), issuer.hash())
