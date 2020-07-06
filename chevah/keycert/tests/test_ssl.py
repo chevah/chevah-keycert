@@ -66,6 +66,15 @@ class Test_generate_ssl_self_signed_certificate(CommandLineTestBase):
             'self-gen',
             '--common-name', 'domain.com',
             '--key-size=1024',
+            '--alternative-name=DNS:ex.com,IP:1.2.3.4',
+            '--constraints=critical,CA:TRUE',
+            '--key-usage=server-authentication,crl-sign',
+            '--sign-algorithm=sha512',
+            '--email=dev@chevah.com',
+            '--state=MS',
+            '--locality=Cluj',
+            '--organization=Chevah Team',
+            '--organization-unit=DevTeam',
             '--country=UN',
             ])
 
@@ -76,10 +85,38 @@ class Test_generate_ssl_self_signed_certificate(CommandLineTestBase):
         self.assertEqual(1024, key.bits())
         self.assertEqual(crypto.TYPE_RSA, key.type())
         self.assertEqual(u'domain.com', cert.get_subject().CN)
+
+        self.assertEqual(u'dev@chevah.com', cert.get_subject().emailAddress)
+
+        self.assertEqual(u'MS', cert.get_subject().ST)
+        self.assertEqual(u'Cluj', cert.get_subject().L)
+        self.assertEqual(u'Chevah Team', cert.get_subject().O)
+        self.assertEqual(u'DevTeam', cert.get_subject().OU)
         self.assertEqual(u'UN', cert.get_subject().C)
+
         self.assertNotEqual(0, cert.get_serial_number())
         issuer = cert.get_issuer()
         self.assertEqual(cert.subject_name_hash(), issuer.hash())
+
+        constraints = cert.get_extension(0)
+        self.assertEqual('basicConstraints', constraints.get_short_name())
+        self.assertTrue(constraints.get_critical())
+        self.assertEqual(b'0\x03\x01\x01\xff', constraints.get_data())
+
+        key_usage = cert.get_extension(1)
+        self.assertEqual('keyUsage', key_usage.get_short_name())
+        self.assertFalse(key_usage.get_critical())
+
+        extended_usage = cert.get_extension(2)
+        self.assertEqual('extendedKeyUsage', extended_usage.get_short_name())
+        self.assertFalse(extended_usage.get_critical())
+
+        alt_name = cert.get_extension(3)
+        self.assertEqual('subjectAltName', alt_name.get_short_name())
+        self.assertFalse(alt_name.get_critical())
+        self.assertEqual(
+            b'0\x0e\x82\x06ex.com\x87\x04\x01\x02\x03\x04',
+            alt_name.get_data())
 
     def test_generate_basic_options(self):
         """
@@ -98,6 +135,8 @@ class Test_generate_ssl_self_signed_certificate(CommandLineTestBase):
         self.assertNotEqual(0, cert.get_serial_number())
         issuer = cert.get_issuer()
         self.assertEqual(cert.subject_name_hash(), issuer.hash())
+        # No extensions are set.
+        self.assertEqual(0, cert.get_extension_count())
 
 
 class Test_generate_csr_parser(

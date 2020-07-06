@@ -193,7 +193,7 @@ def generate_csr(options):
         raise KeyCertException(message)
 
 
-def  _set_subject_and_extensions(target, options):
+def _set_subject_and_extensions(target, options):
     """
     Set the subject and option for `target` CRS or certificate.
     """
@@ -345,6 +345,7 @@ def _generate_csr(options):
         'csr': csr,
         'key': key,
         }
+
 
 def generate_ssl_self_signed_certificate(options):
     """
