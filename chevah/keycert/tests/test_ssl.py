@@ -14,6 +14,7 @@ from chevah.keycert.ssl import (
     generate_and_store_csr,
     generate_csr,
     generate_csr_parser,
+    generate_self_signed_parser,
     generate_ssl_self_signed_certificate,
     )
 from chevah.keycert.tests.helpers import CommandLineMixin
@@ -48,9 +49,10 @@ class CommandLineTestBase(ChevahTestCase, CommandLineMixin):
             help='Available sub-commands', dest='sub_command')
         self.command_name = 'gen-csr'
         generate_csr_parser(subparser, self.command_name)
+        generate_self_signed_parser(subparser, 'self-gen')
 
 
-class Test_generate_ssl_self_signed_certificate(ChevahTestCase):
+class Test_generate_ssl_self_signed_certificate(CommandLineTestBase):
     """
     Unit tests for generate_ssl_self_signed_certificate.
     """
@@ -60,16 +62,17 @@ class Test_generate_ssl_self_signed_certificate(ChevahTestCase):
         Will generate the key and self signed certificate for current
         hostname.
         """
-        options = Bunch(
-            serial=0,
-            key_size=1024,
-            sign_algorithm='sha1'
-            )
+        options = self.parseArguments([
+            'self-gen',
+            '--common-name', 'domain.com',
+            '--country=UN',
+            ])
+
         cert_pem, key_pem = generate_ssl_self_signed_certificate(options)
 
         key = crypto.load_privatekey(crypto.FILETYPE_PEM, key_pem)
         cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert_pem)
-        self.assertEqual(1024, key.bits())
+        self.assertEqual(2048, key.bits())
         self.assertEqual(crypto.TYPE_RSA, key.type())
         self.assertEqual(u'UN', cert.get_subject().C)
         self.assertNotEqual(0, cert.get_serial_number())

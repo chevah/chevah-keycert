@@ -3,7 +3,6 @@
 """
 SSL keys and certificates.
 """
-from socket import gethostname
 import os
 from random import randint
 
@@ -14,6 +13,25 @@ from chevah.keycert.exceptions import KeyCertException
 
 _DEFAULT_SSL_KEY_CYPHER = b'aes-256-cbc'
 
+# See https://www.openssl.org/docs/manmaster/man5/x509v3_config.html
+_KEY_USAGE_STANDARD = {
+    'digital-signature': b'digitalSignature',
+    'non-repudiation': b'nonRepudiation',
+    'key-encipherment': b'keyEncipherment',
+    'data-encipherment': b'dataEncipherment',
+    'key-agreement': b'keyAgreement',
+    'key-cert-sign': b'keyCertSign',
+    'crl-sign': b'cRLSign',
+    'encipher-only': b'encipherOnly',
+    'decipher-only': b'decipherOnly',
+    }
+_KEY_USAGE_EXTENDED = {
+    'server-authentication': b'serverAuth',
+    'client-authentication': b'clientAuth',
+    'code-signing': b'codeSigning',
+    'email-protection': b'emailProtection',
+    }
+
 
 def generate_ssl_self_signed_certificate(options):
     """
@@ -21,27 +39,80 @@ def generate_ssl_self_signed_certificate(options):
 
     Returns a tuple of (certificate_pem, key_pem)
     """
-    serial = options.serial
     key_size = options.key_size
     sign_algorithm = options.sign_algorithm
+    key_usage = options.key_usage.lower()
 
-    if not serial:
-        serial = randint(0, 1000000000000)
+    serial = randint(0, 1000000000000)
 
     key = crypto.PKey()
     key.generate_key(crypto.TYPE_RSA, key_size)
 
     # create a self-signed cert
     cert = crypto.X509()
-    cert.get_subject().C = "UN"
-    cert.get_subject().ST = "Oceania"
-    cert.get_subject().L = "Pitcairn Islands"
-    cert.get_subject().O = "ACME Inc."
-    cert.get_subject().OU = "Henderson"
-    cert.get_subject().CN = gethostname()
+
+    cert.get_subject().CN = options.common_name.encode('idna')
+
+    if options.country:
+        cert.get_subject().C = options.country.encode('ascii')
+
+    if options.state:
+        cert.get_subject().ST = options.state.encode('ascii')
+
+    if options.locality:
+        cert.get_subject().L = options.locality.encode('ascii')
+
+    if options.organization:
+        cert.get_subject().O = options.organization.encode('ascii')
+
+    if options.organization_unit:
+        cert.get_subject().OU = options.organization_unit.encode('ascii')
+
+    critical_usage = False
+    standard_usage = []
+    extended_usage = []
+
+    if key_usage.startswith('critical:'):
+        critical_usage = True
+        key_usage = key_usage[9:]
+    for usage in key_usage.split(','):
+        usage = usage.strip()
+        if not usage:
+            continue
+        if usage in _KEY_USAGE_STANDARD:
+            standard_usage.append(_KEY_USAGE_STANDARD[usage])
+        if usage in _KEY_USAGE_EXTENDED:
+            extended_usage.append(_KEY_USAGE_EXTENDED[usage])
+
+    extensions = [
+        crypto.X509Extension(b'basicConstraints', False, b'CA:FALSE'),
+        ]
+    if standard_usage:
+        extensions.append(crypto.X509Extension(
+            b'keyUsage',
+            critical_usage,
+            b','.join(standard_usage),
+            ))
+
+    if extended_usage:
+        extensions.append(crypto.X509Extension(
+            b'extendedKeyUsage',
+            critical_usage,
+            b','.join(extended_usage),
+            ))
+
+    # Alternate name is optional.
+    if options.alternative_name:
+        extensions.append(crypto.X509Extension(
+            b'subjectAltName',
+            False,
+            options.alternative_name.encode('idna')))
+    cert.add_extensions(extensions)
+
     cert.set_serial_number(serial)
     cert.gmtime_adj_notBefore(0)
     cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
+
     cert.set_issuer(cert.get_subject())
     cert.set_pubkey(key)
     cert.sign(key, sign_algorithm)
@@ -135,6 +206,86 @@ def generate_csr_parser(subparsers, name, default_key_size=2048):
     return sub_command
 
 
+def generate_self_signed_parser(subparsers, name, default_key_size=2048):
+    """
+    Create an argparse sub-command for generating self signed options with
+    `name` attached to `subparsers`.
+    """
+    sub_command = subparsers.add_parser(
+        name,
+        help=(
+            'Create a SSL private key '
+            'and associated self signed certificate.'),
+        )
+    sub_command.add_argument(
+        '--common-name',
+        help='Common name associated with the certificate.',
+        required=True,
+        )
+
+    sub_command.add_argument(
+        '--key-size',
+        type=int, metavar="SIZE", default=default_key_size,
+        help='Size of the generate RSA private key. Default %(default)s',
+        )
+
+    sub_command.add_argument(
+        '--sign-algorithm',
+        default='sha256',
+        metavar='STRING',
+        help='Signature algorithm: sha1, sha256, sha512. Default: sha256.'
+        )
+
+    sub_command.add_argument(
+        '--key-usage',
+        default='',
+        help=(
+            'Comma separated key usage. '
+            'The following usage extension are supported: %s. '
+            'To mark usage as critical, prefix the values with `critical:`. '
+            'For example: "critical:key-agreement,digital-signature".'
+            ) % (', '.join(
+                _KEY_USAGE_STANDARD.keys() + _KEY_USAGE_EXTENDED.keys())),
+        )
+
+    sub_command.add_argument(
+        '--email',
+        help='Email address.',
+        )
+    sub_command.add_argument(
+        '--alternative-name',
+        help=(
+            'Optional list of alternative names. '
+            'Use "DNS:your.domain.tld" for domain names. '
+            'Use "IP:1.2.3.4" for IP addresses. '
+            'Example: "DNS:top.com,DNS:www.top.com,IP:11.0.21.12".'
+            )
+        )
+    sub_command.add_argument(
+        '--organization',
+        help='Organization.',
+        )
+    sub_command.add_argument(
+        '--organization-unit',
+        help='Organization unit.',
+        )
+    sub_command.add_argument(
+        '--locality',
+        help='Full name of the locality.',
+        )
+    sub_command.add_argument(
+        '--state',
+        help=(
+            'Full name of the state/county/region/province.'),
+        )
+    sub_command.add_argument(
+        '--country',
+        help=(
+            'Two letter code of the country.'),
+        )
+    return sub_command
+
+
 def generate_csr(options):
     """
     Generate a new SSL key and the associated SSL cert signing.
@@ -209,6 +360,8 @@ def _generate_csr(options):
             False,
             options.alternative_name.encode('idna')))
 
+    csr.add_extensions(extensions)
+
     key_pem = None
     private_key = options.key
     if private_key:
@@ -223,7 +376,6 @@ def _generate_csr(options):
         key = crypto.PKey()
         key.generate_key(key_type, options.key_size)
 
-    csr.add_extensions(extensions)
     csr.set_pubkey(key)
 
     try:

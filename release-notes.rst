@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.12.0 - 2020-07-06
+===================
+
+* Allow creating self signed certificate with various attributes.
+
+
 1.11.1 - 2020-07-02
 ===================
 
