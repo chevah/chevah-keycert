@@ -5,14 +5,14 @@ Release notes for Chevah KeyCert
 1.12.1 - 2020-07-06
 ===================
 
-* Allow defining key usage and constraints for CSR and self signed certificate
-  generation.
+* Allow defining key usage and constraints for Certificate Signing Requests
+  and self-signed certificates.
 
 
 1.12.0 - 2020-07-06
 ===================
 
-* Allow creating self signed certificate with various attributes.
+* Allow creating self-signed certificates with custom attributes.
 
 
 1.11.1 - 2020-07-02

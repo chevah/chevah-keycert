@@ -60,8 +60,8 @@ def _generate_self_csr_parser(sub_command, default_key_size):
         '--key-usage',
         default='',
         help=(
-            'Comma separated key usage. '
-            'The following usage extension are supported: %s. '
+            'Comma-separated key usage. '
+            'The following key usage extensions are supported: %s. '
             'To mark usage as critical, prefix the values with `critical,`. '
             'For example: "critical,key-agreement,digital-signature".'
             ) % (', '.join(
@@ -72,8 +72,8 @@ def _generate_self_csr_parser(sub_command, default_key_size):
         '--constraints',
         default='',
         help=(
-            'Comma separated basic constraints. '
-            'To mark the constraints as critical, prefix the values with '
+            'Comma-separated basic constraints. '
+            'To mark constraints as critical, prefix the values with '
             '`critical,`. '
             'For example: "critical,CA:TRUE,pathlen:0".'
             ),
@@ -112,7 +112,7 @@ def _generate_self_csr_parser(sub_command, default_key_size):
     sub_command.add_argument(
         '--country',
         help=(
-            'Two letter code of the country.'),
+            'Two-letter country code.'),
         )
 
 
@@ -124,7 +124,7 @@ def generate_csr_parser(subparsers, name, default_key_size=2048):
     sub_command = subparsers.add_parser(
         name,
         help=(
-            'Create a SSL private key and associated certificate '
+            'Create an SSL private key and an associated certificate '
             'signing request.'),
         )
 
@@ -142,10 +142,10 @@ def generate_csr_parser(subparsers, name, default_key_size=2048):
         metavar="FILE",
         default='server.key',
         help=(
-            'Store the keys/csr pair in FILE and FILE.csr. '
+            'Store the keys/CSR pair in FILE and FILE.csr. '
             'Private key stored using PEM PKCS#8 format. '
             'CSR file stored in PEM x509 format. '
-            'Default server.key and server.csr.'),
+            'Default names: server.key and server.csr.'),
         )
 
     sub_command.add_argument(
@@ -169,8 +169,8 @@ def generate_self_signed_parser(subparsers, name, default_key_size=2048):
     sub_command = subparsers.add_parser(
         name,
         help=(
-            'Create a SSL private key '
-            'and associated self signed certificate.'),
+            'Create an SSL private key '
+            'and an associated self-signed certificate.'),
         )
     _generate_self_csr_parser(sub_command, default_key_size)
     return sub_command
