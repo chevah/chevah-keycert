@@ -3,6 +3,7 @@
 """
 SSL keys and certificates.
 """
+from __future__ import unicode_literals
 import os
 from random import randint
 
@@ -187,7 +188,7 @@ def generate_csr(options):
         return _generate_csr(options)
     except crypto.Error as error:
         try:
-            message = error[0][0][2]
+            message = error[0][0][2].decode('utf-8', errors='replace')
         except IndexError:  # pragma: no cover
             message = 'no error details.'
         raise KeyCertException(message)
@@ -295,7 +296,7 @@ def _sign_cert_or_csr(target, key, options):
     """
     sign_algorithm = getattr(options, 'sign_algorithm', 'sha256')
     target.set_pubkey(key)
-    target.sign(key, sign_algorithm)
+    target.sign(key, sign_algorithm.encode('ascii'))
 
 
 def _generate_csr(options):
@@ -397,5 +398,5 @@ def generate_and_store_csr(options, encoding='utf-8'):
 
         with open(_path(csr_name, encoding), 'wb') as store_file:
             store_file.write(result['csr_pem'])
-    except Exception, error:
-        raise KeyCertException(str(error))
+    except Exception as error:
+        raise KeyCertException(str(error).decode('utf-8', errors='replace'))

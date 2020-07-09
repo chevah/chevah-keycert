@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.12.3 - 2020-07-09
+===================
+
+* Fix unicode handling for certificate signature.
+
+
 1.12.2 - 2020-07-09
 ===================
 
