@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.12.2 - 2020-07-09
+===================
+
+* Update command line help messages.
+
+
 1.12.1 - 2020-07-06
 ===================
 
