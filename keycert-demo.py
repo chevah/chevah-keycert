@@ -1,7 +1,7 @@
 """
 Demo command line for chevah-keycert.
 """
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 # Fix namespaced package import.
 import chevah
 import os
@@ -18,6 +18,7 @@ from chevah.keycert.ssh import (
 from chevah.keycert.ssl import (
     generate_csr_parser,
     generate_and_store_csr,
+    generate_self_signed_parser,
     generate_ssl_self_signed_certificate,
     )
 
@@ -74,36 +75,16 @@ sub.add_argument(
     )
 sub.set_defaults(handler=ssh_load_key)
 
-sub = generate_csr_parser(subparser, 'ssl-gen-key')
-sub.set_defaults(handler=generate_and_store_csr)
+sub = generate_csr_parser(subparser, 'ssl-csr')
+sub.set_defaults(handler=lambda o: (
+    generate_and_store_csr(o)
+    or print('CSR generated in files.')
+    or ''
+    ))
 
-
-sub = subparser.add_parser(
-    'ssl-self-signed',
-    help='Generate a self signed certificate.',
-    )
-sub.add_argument(
-    '--serial',
-    type=int,
-    default=1234,
-    metavar='DECIMAL_NUMBER',
-    help='Serial number for the self signed certificate.'
-    )
-sub.add_argument(
-    '--key-size',
-    type=int,
-    default=1024,
-    metavar='BITS',
-    help='Size of the newly generated ssl key.'
-    )
-sub.add_argument(
-    '--sign-algorithm',
-    default='sha1',
-    metavar='STRING',
-    help='Algorithm used for the self-signed certificate: sha1, sha256, etc.'
-    )
-sub.set_defaults(handler=lambda o: print(
-    '\n'.join(generate_ssl_self_signed_certificate(o))))
+sub = generate_self_signed_parser(subparser, 'ssl-self-signed')
+sub.set_defaults(handler=lambda o:
+    b'\n'.join(generate_ssl_self_signed_certificate(o)))
 
 options = parser.parse_args()
 

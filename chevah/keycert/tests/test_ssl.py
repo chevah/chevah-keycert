@@ -14,6 +14,7 @@ from chevah.keycert.ssl import (
     generate_and_store_csr,
     generate_csr,
     generate_csr_parser,
+    generate_self_signed_parser,
     generate_ssl_self_signed_certificate,
     )
 from chevah.keycert.tests.helpers import CommandLineMixin
@@ -48,9 +49,10 @@ class CommandLineTestBase(ChevahTestCase, CommandLineMixin):
             help='Available sub-commands', dest='sub_command')
         self.command_name = 'gen-csr'
         generate_csr_parser(subparser, self.command_name)
+        generate_self_signed_parser(subparser, 'self-gen')
 
 
-class Test_generate_ssl_self_signed_certificate(ChevahTestCase):
+class Test_generate_ssl_self_signed_certificate(CommandLineTestBase):
     """
     Unit tests for generate_ssl_self_signed_certificate.
     """
@@ -60,21 +62,81 @@ class Test_generate_ssl_self_signed_certificate(ChevahTestCase):
         Will generate the key and self signed certificate for current
         hostname.
         """
-        options = Bunch(
-            serial=0,
-            key_size=1024,
-            sign_algorithm='sha1'
-            )
+        options = self.parseArguments([
+            'self-gen',
+            '--common-name', 'domain.com',
+            '--key-size=1024',
+            '--alternative-name=DNS:ex.com,IP:1.2.3.4',
+            '--constraints=critical,CA:TRUE',
+            '--key-usage=server-authentication,crl-sign',
+            '--sign-algorithm=sha512',
+            '--email=dev@chevah.com',
+            '--state=MS',
+            '--locality=Cluj',
+            '--organization=Chevah Team',
+            '--organization-unit=DevTeam',
+            '--country=UN',
+            ])
+
         cert_pem, key_pem = generate_ssl_self_signed_certificate(options)
 
         key = crypto.load_privatekey(crypto.FILETYPE_PEM, key_pem)
         cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert_pem)
         self.assertEqual(1024, key.bits())
         self.assertEqual(crypto.TYPE_RSA, key.type())
+        self.assertEqual(u'domain.com', cert.get_subject().CN)
+
+        self.assertEqual(u'dev@chevah.com', cert.get_subject().emailAddress)
+
+        self.assertEqual(u'MS', cert.get_subject().ST)
+        self.assertEqual(u'Cluj', cert.get_subject().L)
+        self.assertEqual(u'Chevah Team', cert.get_subject().O)
+        self.assertEqual(u'DevTeam', cert.get_subject().OU)
         self.assertEqual(u'UN', cert.get_subject().C)
+
         self.assertNotEqual(0, cert.get_serial_number())
         issuer = cert.get_issuer()
         self.assertEqual(cert.subject_name_hash(), issuer.hash())
+
+        constraints = cert.get_extension(0)
+        self.assertEqual('basicConstraints', constraints.get_short_name())
+        self.assertTrue(constraints.get_critical())
+        self.assertEqual(b'0\x03\x01\x01\xff', constraints.get_data())
+
+        key_usage = cert.get_extension(1)
+        self.assertEqual('keyUsage', key_usage.get_short_name())
+        self.assertFalse(key_usage.get_critical())
+
+        extended_usage = cert.get_extension(2)
+        self.assertEqual('extendedKeyUsage', extended_usage.get_short_name())
+        self.assertFalse(extended_usage.get_critical())
+
+        alt_name = cert.get_extension(3)
+        self.assertEqual('subjectAltName', alt_name.get_short_name())
+        self.assertFalse(alt_name.get_critical())
+        self.assertEqual(
+            b'0\x0e\x82\x06ex.com\x87\x04\x01\x02\x03\x04',
+            alt_name.get_data())
+
+    def test_generate_basic_options(self):
+        """
+        Can generate using just common name as the options.
+        """
+        options = Bunch(common_name='test')
+
+        cert_pem, key_pem = generate_ssl_self_signed_certificate(options)
+
+        key = crypto.load_privatekey(crypto.FILETYPE_PEM, key_pem)
+        cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert_pem)
+        self.assertEqual(2048, key.bits())
+        self.assertEqual(crypto.TYPE_RSA, key.type())
+        self.assertEqual(u'test', cert.get_subject().CN)
+        self.assertIsNone(cert.get_subject().C)
+        self.assertNotEqual(0, cert.get_serial_number())
+        issuer = cert.get_issuer()
+        self.assertEqual(cert.subject_name_hash(), issuer.hash())
+        # No extensions are set.
+        self.assertEqual(0, cert.get_extension_count())
 
 
 class Test_generate_csr_parser(
@@ -128,6 +190,9 @@ class Test_generate_csr_parser(
             'locality': None,
             'state': None,
             'country': None,
+            'constraints': '',
+            'key_usage': '',
+            'sign_algorithm': 'sha256',
             }, options)
 
     def test_value(self):
@@ -149,6 +214,9 @@ class Test_generate_csr_parser(
             '--locality=somewhere',
             '--state=without',
             '--country=GB',
+            '--constraints=critical,CA:FALSE',
+            '--key-usage=crl-sign',
+            '--sign-algorithm=sha1',
             ])
 
         self.assertNamespaceEqual({
@@ -165,6 +233,10 @@ class Test_generate_csr_parser(
             'locality': 'somewhere',
             'state': 'without',
             'country': 'GB',
+            'constraints': 'critical,CA:FALSE',
+            'key_usage': 'crl-sign',
+            'sign_algorithm': 'sha1',
+
             }, options)
 
     def test_default_overwrite(self):
@@ -195,6 +267,9 @@ class Test_generate_csr_parser(
             'locality': None,
             'state': None,
             'country': None,
+            'constraints': '',
+            'key_usage': '',
+            'sign_algorithm': 'sha256',
             }, options)
 
 
