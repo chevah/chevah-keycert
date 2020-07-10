@@ -309,7 +309,7 @@ class Test_generate_csr(CommandLineTestBase):
         with self.assertRaises(KeyCertException) as context:
             generate_csr(options)
 
-        self.assertEqual('string too long', context.exception.message)
+        self.assertEqual('Invalid country code.', context.exception.message)
 
     def test_bad_country_short(self):
         """
@@ -324,7 +324,40 @@ class Test_generate_csr(CommandLineTestBase):
         with self.assertRaises(KeyCertException) as context:
             generate_csr(options)
 
-        self.assertEqual('string too short', context.exception.message)
+        self.assertEqual('Invalid country code.', context.exception.message)
+
+    def test_sign_algorithm_invalid(self):
+        """
+        Raise an exception when the signing algorithm is not correct.
+        """
+        options = self.parseArguments([
+            self.command_name,
+            '--common-name=domain.com',
+            '--sign-algorithm=unknown',
+            ])
+
+        with self.assertRaises(KeyCertException) as context:
+            generate_csr(options)
+
+        self.assertEqual(
+            'Invalid signing algorithm. '
+            'Supported values: md5, sha1, sha256, sha512.',
+            context.exception.message)
+
+    def test_email_invalid(self):
+        """
+        Raise an exception when the email adress is not correct.
+        """
+        options = self.parseArguments([
+            self.command_name,
+            '--common-name=domain.com',
+            '--email=invalid',
+            ])
+
+        with self.assertRaises(KeyCertException) as context:
+            generate_csr(options)
+
+        self.assertEqual('Invalid email address.', context.exception.message)
 
     def test_default_gen(self):
         """
