@@ -13,6 +13,7 @@ from chevah.keycert import _path
 from chevah.keycert.exceptions import KeyCertException
 
 _DEFAULT_SSL_KEY_CYPHER = b'aes-256-cbc'
+_SUPPORTED_SIGN_ALGORITHMS = [b'md5', b'sha1', b'sha256', b'sha512']
 
 # See https://www.openssl.org/docs/manmaster/man5/x509v3_config.html
 _KEY_USAGE_STANDARD = {
@@ -301,9 +302,16 @@ def _sign_cert_or_csr(target, key, options):
     """
     Sign the certificate or CSR.
     """
-    sign_algorithm = getattr(options, 'sign_algorithm', 'sha256')
+    sign_algorithm = getattr(
+        options, 'sign_algorithm', 'sha256').encode('ascii')
+
+    if sign_algorithm not in _SUPPORTED_SIGN_ALGORITHMS:
+        raise KeyCertException(
+            'Invalid signing algorithm. Supported values: %s.' % (
+                ', '.join(_SUPPORTED_SIGN_ALGORITHMS)))
+
     target.set_pubkey(key)
-    target.sign(key, sign_algorithm.encode('ascii'))
+    target.sign(key, sign_algorithm)
 
 
 def _generate_csr(options):
