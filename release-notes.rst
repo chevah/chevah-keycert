@@ -2,6 +2,24 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.12.4 - 2020-07-10
+===================
+
+* Add better error messages for invalid sign algorithm.
+
+
+1.12.4 - 2020-07-10
+===================
+
+* Add better error messages for invalid country code and email address.
+
+
+1.12.3 - 2020-07-09
+===================
+
+* Fix unicode handling for certificate signature.
+
+
 1.12.2 - 2020-07-09
 ===================
 

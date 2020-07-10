@@ -3,6 +3,7 @@
 """
 SSL keys and certificates.
 """
+from __future__ import unicode_literals
 import os
 from random import randint
 
@@ -12,6 +13,7 @@ from chevah.keycert import _path
 from chevah.keycert.exceptions import KeyCertException
 
 _DEFAULT_SSL_KEY_CYPHER = b'aes-256-cbc'
+_SUPPORTED_SIGN_ALGORITHMS = [b'md5', b'sha1', b'sha256', b'sha512']
 
 # See https://www.openssl.org/docs/manmaster/man5/x509v3_config.html
 _KEY_USAGE_STANDARD = {
@@ -187,7 +189,7 @@ def generate_csr(options):
         return _generate_csr(options)
     except crypto.Error as error:
         try:
-            message = error[0][0][2]
+            message = error[0][0][2].decode('utf-8', errors='replace')
         except IndexError:  # pragma: no cover
             message = 'no error details.'
         raise KeyCertException(message)
@@ -218,6 +220,9 @@ def _set_subject_and_extensions(target, options):
     subject.CN = common_name.encode('idna')
 
     if country:
+        if len(country) != 2:
+            raise KeyCertException('Invalid country code.')
+
         subject.C = country
 
     if state:
@@ -233,7 +238,11 @@ def _set_subject_and_extensions(target, options):
         subject.OU = organization_unit
 
     if email:
-        address, domain = options.email.split('@', 1)
+        try:
+            address, domain = options.email.split('@', 1)
+        except ValueError:
+            raise KeyCertException('Invalid email address.')
+
         subject.emailAddress = u'%s@%s' % (address, domain.encode('idna'))
 
     critical_constraints = False
@@ -293,7 +302,14 @@ def _sign_cert_or_csr(target, key, options):
     """
     Sign the certificate or CSR.
     """
-    sign_algorithm = getattr(options, 'sign_algorithm', 'sha256')
+    sign_algorithm = getattr(
+        options, 'sign_algorithm', 'sha256').encode('ascii')
+
+    if sign_algorithm not in _SUPPORTED_SIGN_ALGORITHMS:
+        raise KeyCertException(
+            'Invalid signing algorithm. Supported values: %s.' % (
+                ', '.join(_SUPPORTED_SIGN_ALGORITHMS)))
+
     target.set_pubkey(key)
     target.sign(key, sign_algorithm)
 
@@ -397,5 +413,5 @@ def generate_and_store_csr(options, encoding='utf-8'):
 
         with open(_path(csr_name, encoding), 'wb') as store_file:
             store_file.write(result['csr_pem'])
-    except Exception, error:
-        raise KeyCertException(str(error))
+    except Exception as error:
+        raise KeyCertException(str(error).decode('utf-8', errors='replace'))

@@ -3,6 +3,7 @@
 """
 Test for SSL keys/cert management.
 """
+from __future__ import unicode_literals
 from argparse import ArgumentParser
 
 from bunch import Bunch
@@ -19,7 +20,7 @@ from chevah.keycert.ssl import (
     )
 from chevah.keycert.tests.helpers import CommandLineMixin
 
-RSA_PRIVATE = """-----BEGIN RSA PRIVATE KEY-----
+RSA_PRIVATE = b"""-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTKAPkPAWzlu5BRHcmA
 u0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk+X6Lc4+lAfp1YxCR
 9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcjRToF6/jpLwIDAQAB
@@ -99,20 +100,20 @@ class Test_generate_ssl_self_signed_certificate(CommandLineTestBase):
         self.assertEqual(cert.subject_name_hash(), issuer.hash())
 
         constraints = cert.get_extension(0)
-        self.assertEqual('basicConstraints', constraints.get_short_name())
+        self.assertEqual(b'basicConstraints', constraints.get_short_name())
         self.assertTrue(constraints.get_critical())
         self.assertEqual(b'0\x03\x01\x01\xff', constraints.get_data())
 
         key_usage = cert.get_extension(1)
-        self.assertEqual('keyUsage', key_usage.get_short_name())
+        self.assertEqual(b'keyUsage', key_usage.get_short_name())
         self.assertFalse(key_usage.get_critical())
 
         extended_usage = cert.get_extension(2)
-        self.assertEqual('extendedKeyUsage', extended_usage.get_short_name())
+        self.assertEqual(b'extendedKeyUsage', extended_usage.get_short_name())
         self.assertFalse(extended_usage.get_critical())
 
         alt_name = cert.get_extension(3)
-        self.assertEqual('subjectAltName', alt_name.get_short_name())
+        self.assertEqual(b'subjectAltName', alt_name.get_short_name())
         self.assertFalse(alt_name.get_critical())
         self.assertEqual(
             b'0\x0e\x82\x06ex.com\x87\x04\x01\x02\x03\x04',
@@ -308,7 +309,7 @@ class Test_generate_csr(CommandLineTestBase):
         with self.assertRaises(KeyCertException) as context:
             generate_csr(options)
 
-        self.assertEqual('string too long', context.exception.message)
+        self.assertEqual('Invalid country code.', context.exception.message)
 
     def test_bad_country_short(self):
         """
@@ -323,7 +324,40 @@ class Test_generate_csr(CommandLineTestBase):
         with self.assertRaises(KeyCertException) as context:
             generate_csr(options)
 
-        self.assertEqual('string too short', context.exception.message)
+        self.assertEqual('Invalid country code.', context.exception.message)
+
+    def test_sign_algorithm_invalid(self):
+        """
+        Raise an exception when the signing algorithm is not correct.
+        """
+        options = self.parseArguments([
+            self.command_name,
+            '--common-name=domain.com',
+            '--sign-algorithm=unknown',
+            ])
+
+        with self.assertRaises(KeyCertException) as context:
+            generate_csr(options)
+
+        self.assertEqual(
+            'Invalid signing algorithm. '
+            'Supported values: md5, sha1, sha256, sha512.',
+            context.exception.message)
+
+    def test_email_invalid(self):
+        """
+        Raise an exception when the email adress is not correct.
+        """
+        options = self.parseArguments([
+            self.command_name,
+            '--common-name=domain.com',
+            '--email=invalid',
+            ])
+
+        with self.assertRaises(KeyCertException) as context:
+            generate_csr(options)
+
+        self.assertEqual('Invalid email address.', context.exception.message)
 
     def test_default_gen(self):
         """
@@ -528,6 +562,6 @@ class Test_generate_and_store_csr(CommandLineTestBase):
         with self.assertRaises(KeyCertException) as context:
             generate_and_store_csr(options)
 
-        self.assertEqual(
-            "[Errno 2] No such file or directory: 'no-such/parent/key.file'",
+        self.assertStartsWith(
+            "[Errno 2] No such file or directory: ",
             context.exception.message)
