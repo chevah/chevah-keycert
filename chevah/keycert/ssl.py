@@ -219,6 +219,9 @@ def _set_subject_and_extensions(target, options):
     subject.CN = common_name.encode('idna')
 
     if country:
+        if len(country) != 2:
+            raise KeyCertException('Invalid country code.')
+
         subject.C = country
 
     if state:
@@ -234,7 +237,11 @@ def _set_subject_and_extensions(target, options):
         subject.OU = organization_unit
 
     if email:
-        address, domain = options.email.split('@', 1)
+        try:
+            address, domain = options.email.split('@', 1)
+        except ValueError:
+            raise KeyCertException('Invalid email address.')
+
         subject.emailAddress = u'%s@%s' % (address, domain.encode('idna'))
 
     critical_constraints = False
