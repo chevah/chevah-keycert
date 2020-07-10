@@ -562,6 +562,6 @@ class Test_generate_and_store_csr(CommandLineTestBase):
         with self.assertRaises(KeyCertException) as context:
             generate_and_store_csr(options)
 
-        self.assertEqual(
-            "[Errno 2] No such file or directory: 'no-such/parent/key.file'",
+        self.assertStartsWith(
+            "[Errno 2] No such file or directory: ",
             context.exception.message)
