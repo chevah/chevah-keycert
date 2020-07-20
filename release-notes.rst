@@ -2,6 +2,19 @@ Release notes for Chevah KeyCert
 ################################
 
 
+1.12.5 - 2020-07-20
+===================
+
+* Set version 3 to CSR and self signed certificates, as only version 3 can
+  have extensions.
+
+
+1.12.5 - 2020-07-10
+===================
+
+* Untracked change.
+
+
 1.12.4 - 2020-07-10
 ===================
 
