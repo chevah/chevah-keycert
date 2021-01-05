@@ -295,6 +295,71 @@ Private-Lines: 1\r
 AAAAFE5O2kb+uaE3nWLAMovNC/KYWATe\r
 Private-MAC: 1b98c142780beaa5555ad5c23a0469e36f24b6f9"""
 
+PUTTY_ED25519_PRIVATE_NO_PASSWORD = """PuTTY-User-Key-File-2: ssh-ed25519\r
+Encryption: none\r
+Comment: ed25519-key-20210106\r
+Public-Lines: 2\r
+AAAAC3NzaC1lZDI1NTE5AAAAIEjwKguKHPrqp3UEqSP7XTmOhBavcTxkHwnzQveQ\r
+2MGG\r
+Private-Lines: 1\r
+AAAAINWl263e/oNph4x7jM94kE7BaSNcXD7G6bbWatylw61A\r
+Private-MAC: ead2308fe2f6be87941f17e9d61ede28da2cde8a\r
+"""
+
+# Password is: chevah
+PUTTY_ED25519_PRIVATE_WITH_PASSWORD = """PuTTY-User-Key-File-2: ssh-ed25519\r
+Encryption: aes256-cbc\r
+Comment: ed25519-key-20210106\r
+Public-Lines: 2\r
+AAAAC3NzaC1lZDI1NTE5AAAAIKY6CzyQPkESUswMjxdbK7XgpfAExYRc0ydzwzco\r
+bmlL\r
+Private-Lines: 1\r
+jvO/yHUJlgjCCzEFlkYwDeSIYggO3Ry1/iP1lm49BU6GljU/miaUemDBHT9umt0o\r
+Private-MAC: 6b753f6180f48d153a700c6734b46b2e52f1f7e9\r
+"""
+
+PUTTY_ECDSA_SHA2_NISTP256_PRIVATE_NO_PASSWORD = (
+"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp256\r
+Encryption: none\r
+Comment: ecdsa-key-20210106\r
+Public-Lines: 3\r
+AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPA3+gjOpajd\r
+9iRVm72ArvQfjVW+3bz9IMrPNMIANSmwTj+0NuFgXZGLaxT8BKslZLZvJX+XuUr/\r
+Yvgn32oS7Iw=\r
+Private-Lines: 1\r
+AAAAIDe7fQUAaorrEkedXTSmXrCY4vabtFV7e4Z8xBSvty8Q\r
+Private-MAC: a84b17c5dead6fed8f474406929312d45c096dfc\r
+""")
+
+PUTTY_ECDSA_SHA2_NISTP384_PRIVATE_NO_PASSWORD = (
+"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp384\r
+Encryption: none\r
+Comment: ecdsa-key-20210106\r
+Public-Lines: 3\r
+AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBEjK280ap/RD\r
+R916Q00OI1LIHyRG1fcH6twBjmynTgl0uGlcb8bnbpGO1JOgbhBqqzVQHVckHzqT\r
+fUif6rRRQuiUJEenXRmgjQ0uEcj21Rdomz7TJPz1k8tHmOZCHgJx6g==\r
+Private-Lines: 2\r
+AAAAMQCNcgWtnEeeTqFN383FBJdM90keHkJwproyLPgWQLlbZe+r8py0Pl7mUHvj\r
+SGmXUVc=\r
+Private-MAC: 1464df777d20427e2b99adb148ed4b8a1a839409\r
+""")
+
+PUTTY_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD = (
+"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp521\r
+Encryption: none\r
+Comment: ecdsa-key-20210106\r
+Public-Lines: 4\r
+AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBAGtj24Kr7OY\r
+21mtlHTFuH0NmrhI1mco0nND4FvDbNTTU/87t1ZDqbPEnRqmYBM6/dGPyOK82PH8\r
+NmCrCjj0rmckNgC3+Jg/+ok1bJG7/WeTOObnIdDBJklxksIjMF6LG6hVngIibxgF\r
+V3iBGD5eWUr40AK+6+wN7uKsaFHMBCg8lde5Mg==\r
+Private-Lines: 2\r
+AAAAQgE64XtEewBVYUz+sfojvHmsiwdT+2BBBw1IAcKuozuhsz8EkOEOBJGZqCBP\r
+B9pAqlHsVHQJF/uVpFbJFUnjEokJ4w==\r
+Private-MAC: e828d7207e0e73453005d606216ca36c64d1e304\r
+""")
+
 
 class DummyOpenContext(object):
     """
@@ -352,12 +417,12 @@ class TestHelpers(ChevahTestCase, CommandLineMixin):
     def _signRSA(self, data):
         key = keys.Key.fromString(keydata.privateRSA_openssh)
         sig = key.sign(data)
-        return key.keyObject, sig
+        return key._keyObject, sig
 
     def _signDSA(self, data):
         key = keys.Key.fromString(keydata.privateDSA_openssh)
         sig = key.sign(data)
-        return key.keyObject, sig
+        return key._keyObject, sig
 
     def test_signRSA(self):
         """
@@ -382,18 +447,6 @@ class TestHelpers(ChevahTestCase, CommandLineMixin):
             Crypto.Util.number.long_to_bytes(v[0], 20) +
             Crypto.Util.number.long_to_bytes(v[1], 20)))
         return key, sig
-
-    def test_objectType(self):
-        """
-        Test that objectType, returns the correct type for objects.
-        """
-        self.assertEqual(
-            keys.objectType(keys.Key.fromString(
-                keydata.privateRSA_openssh).keyObject), 'ssh-rsa')
-        self.assertEqual(
-            keys.objectType(keys.Key.fromString(
-                keydata.privateDSA_openssh).keyObject), 'ssh-dss')
-        self.assertRaises(keys.BadKeyError, keys.objectType, None)
 
     def test_path(self):
         """
@@ -504,7 +557,7 @@ class TestKey(ChevahTestCase):
         """
         obj = Crypto.PublicKey.RSA.construct((1L, 2L))
         key = keys.Key(obj)
-        self.assertEqual(key.keyObject, obj)
+        self.assertEqual(key._keyObject, obj)
 
     def test_equal(self):
         """

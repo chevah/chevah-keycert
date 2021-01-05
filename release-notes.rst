@@ -1,6 +1,13 @@
 Release notes for Chevah KeyCert
 ################################
 
+2.0.0 - 2021-01-05
+==================
+
+* Initial migration to cryptography.
+* Add support for ECDSA and ED25519.
+* SSH.com file format only support RSA and DSA key for now.
+
 
 1.12.5 - 2020-07-20
 ===================

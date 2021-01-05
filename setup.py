@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '1.12.6'
+VERSION = '2.0.0'
 
 
 class NoseTestCommand(TestCommand):
@@ -105,9 +105,9 @@ setup(
 
     install_requires=[
         'pyopenssl >=0.13',
-        'pyCrypto >=2.6',
         'pyasn1 >=0.1.7',
-        'chevah-compat >=0.49.3',
+        'cryptography >= 3.2',
+        'chevah-compat >=0.58.2',
         'scandir >= 1.7',
         'constantly >=15.1.0',
         ],

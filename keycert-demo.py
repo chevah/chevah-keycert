@@ -40,18 +40,72 @@ def ssh_load_key(options, open_method=None):
         open_method = open
 
     path = options.file
+    output_format = options.type
+    extra = options.extra
 
     if not path:
         return (1, 'No path specified', None)
 
-    try:
-        with open_method(path, 'rb') as file_handler:
-            key_content = file_handler.read().strip()
-            key = Key.fromString(key_content)
-            result = '%r\nKey type %s' % (key, Key.getKeyFormat(key_content))
-            return result
-    except Exception as error:
-            return str(error)
+    with open_method(path, 'rb') as file_handler:
+        key_content = file_handler.read().strip()
+        key = Key.fromString(key_content)
+
+        if key.isPublic():
+            to_string = key.toString(output_format, comment=extra)
+        else:
+            to_string = key.toString(output_format, passphrase=extra)
+
+        result = '%r\nKey type %s\n\n%s' % (
+            key,
+            Key.getKeyFormat(key_content),
+            to_string,
+            )
+        return result
+
+def ssh_sign_data(options):
+    """
+    Sign data with SSH private key.
+    """
+    key = None
+
+    path = options.file
+    data = options.data
+
+    if not path:
+        return (1, 'No path specified', None)
+
+    with open(path, 'rb') as file_handler:
+        key_content = file_handler.read().strip()
+        key = Key.fromString(key_content)
+        if key.isPublic():
+            raise AssertionError('A private key must be used.')
+
+        return key.sign(
+            data.encode('utf-8')).encode('base64').replace('\n', '')
+
+
+def ssh_verify_data(options):
+    """
+    Verify data with SSH public key.
+    """
+    key = None
+
+    path = options.file
+    signature = options.signature
+    data = options.data
+
+    if not path:
+        return (1, 'No path specified', None)
+
+    with open(path, 'rb') as file_handler:
+        key_content = file_handler.read().strip()
+        key = Key.fromString(key_content)
+
+        if not key.verify(
+                signature.decode('base64'), data.encode('utf-8')):
+            return 'INVALID Signature'
+
+        return 'VALID Signature'
 
 
 parser = argparse.ArgumentParser(prog='PROG')
@@ -61,8 +115,6 @@ subparser = parser.add_subparsers(
 sub = generate_ssh_key_parser(subparser, 'ssh-gen-key')
 sub.set_defaults(handler=generate_ssh_key)
 
-sub = generate_ssh_key_parser(subparser, 'ssh-load-key')
-sub.set_defaults(handler=ssh_load_key)
 
 sub = subparser.add_parser(
     'ssh-load-key',
@@ -73,7 +125,61 @@ sub.add_argument(
     metavar='FILE',
     help='Path the the SSH key to load.'
     )
+sub.add_argument(
+    '--type',
+    metavar='[openssh|openssh_v1|putty|sshcom]',
+    default='openssh_v1',
+    help='Format use to show the loaded key.'
+    )
+sub.add_argument(
+    '--extra',
+    metavar='[PASSWORD|COMMENT]',
+    default=None,
+    help='Option password or commented used when re-encoding the loaded key.'
+    )
 sub.set_defaults(handler=ssh_load_key)
+
+
+sub = subparser.add_parser(
+    'ssh-sign-data',
+    help='Sign data using SSH private key.',
+    )
+sub.add_argument(
+    '--file',
+    metavar='FILE',
+    help='Path the the SSH private key to use.'
+    )
+sub.add_argument(
+    '--data',
+    metavar='PLAIN-DATA',
+    default='test-value',
+    help='Data that is signed.'
+    )
+sub.set_defaults(handler=ssh_sign_data)
+
+sub = subparser.add_parser(
+    'ssh-verify-data',
+    help='Verify data using SSH public key.',
+    )
+sub.add_argument(
+    '--file',
+    metavar='FILE',
+    help='Path the the SSH public key to load.'
+    )
+sub.add_argument(
+    '--signature',
+    metavar='BASE64',
+    default='',
+    help='Signed data to be verified.'
+    )
+sub.add_argument(
+    '--data',
+    metavar='PLAIN-DATA',
+    default='test-value',
+    help='Data for which the signature is verified.'
+    )
+sub.set_defaults(handler=ssh_verify_data)
+
 
 sub = generate_csr_parser(subparser, 'ssl-csr')
 sub.set_defaults(handler=lambda o: (
