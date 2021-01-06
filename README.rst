@@ -6,17 +6,14 @@ SSH Keys and SSL key/csr/certificates handling.
 The functions are designed to integrate with command line tools but also with
 other user interfaces (for example from a web based control panel).
 
-It depends on these C modules:
-
-* pyCrypto
-* pyOpenSSL
+It depends on cryptography.
 
 It provides the following functionalities:
 
 * Generate SSL key and self signed SSL certificate signed with SHA1.
 * Generate SSL key and CSR. Signed with SHA256 or fall back to SHA1.
-* Generate RSA/DSA keys.
-* Convert OpenSSH, SSH.com, Putty, LSH.
+* Generate RSA/DSA/ECDSA/ED keys.
+* Convert OpenSSH, SSH.com, Putty.
 * Read SSH public keys from X.509 PEM Certificate
 * Read SSH public and private keys from PKCS#1 PEM
 * Read SSH private keys from PKCS#8 PEM
