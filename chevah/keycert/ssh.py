@@ -1796,7 +1796,7 @@ class Key(object):
                     )
             elif key_type == u'dsa':
                 key = dsa.generate_private_key(key_size=key_size)
-            elif key_type == 'ec':
+            elif key_type == 'ecdsa':
                 try:
                     curve = _ecSizeTable[key_size]
                 except KeyError:
@@ -2603,7 +2603,7 @@ def generate_ssh_key_parser(
         )
     generate_ssh_key.add_argument(
         '--key-type',
-        metavar="[rsa|dsa|ec|ed25519]", default=default_key_type,
+        metavar="[rsa|dsa|ecdsa|ed25519]", default=default_key_type,
         help='Generate a new SSH private and public key. Default %(default)s.',
         )
     generate_ssh_key.add_argument(
@@ -2611,6 +2611,11 @@ def generate_ssh_key_parser(
         metavar="COMMENT_TEXT",
         help=(
             'Generate the public key using this comment. Default no comment.'),
+        )
+    generate_ssh_key.add_argument(
+        '--key-format',
+        metavar="[openssh|openssh_v1|putty]", default=default_key_type,
+        help='Generate a new SSH private and public key. Default %(default)s.',
         )
     generate_ssh_key.add_argument(
         '--key-skip',
@@ -2642,6 +2647,7 @@ def generate_ssh_key(options, open_method=None):
     try:
         key_size = options.key_size
         key_type = options.key_type.lower()
+        key_format = options.key_format.lower()
 
         if not hasattr(options, 'key_file') or options.key_file is None:
             options.key_file = u'id_%s' % (key_type)
@@ -2658,7 +2664,8 @@ def generate_ssh_key(options, open_method=None):
         key = Key.generate(key_type=key_type, key_size=key_size)
 
         with open_method(_path(private_file), 'wb') as file_handler:
-            _store_OpenSSH(key, private_file=file_handler)
+            _store_SSHKey(
+                key, private_file=file_handler, key_format=key_format)
 
         key_comment = None
         if hasattr(options, 'key_comment') and options.key_comment:
@@ -2668,7 +2675,12 @@ def generate_ssh_key(options, open_method=None):
             message_comment = u'without a comment'
 
         with open_method(_path(public_file), 'wb') as file_handler:
-            _store_OpenSSH(key, public_file=file_handler, comment=key_comment)
+            _store_SSHKey(
+                key,
+                public_file=file_handler,
+                comment=key_comment,
+                key_format=key_format,
+                )
 
         message = (
             u'SSH key of type "%s" and length "%d" generated as '
@@ -2692,13 +2704,17 @@ def generate_ssh_key(options, open_method=None):
     return (exit_code, message, key)
 
 
-def _store_OpenSSH(key, public_file=None, private_file=None, comment=None):
+def _store_SSHKey(
+    key,
+    public_file=None, private_file=None,
+    comment=None, key_format='openssh_v1',
+        ):
     """
     Store the public and private key into a file like object using
     OpenSSH format.
     """
     if public_file:
-        public_openssh = key.public().toString(type='openssh')
+        public_openssh = key.public().toString(type=key_format)
         if comment:
             public_content = '%s %s' % (
                 public_openssh, comment.encode('utf-8'))
@@ -2707,7 +2723,7 @@ def _store_OpenSSH(key, public_file=None, private_file=None, comment=None):
         public_file.write(public_content)
 
     if private_file:
-        private_file.write(key.toString(type='openssh_v1'))
+        private_file.write(key.toString(type=key_format))
 
 
 def _skip_key_generation(options, private_file, public_file):
