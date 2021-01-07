@@ -614,7 +614,7 @@ class TestKey(ChevahTestCase):
         key = Key.generate(key_type='rSA', key_size=1024)
 
         self.assertEqual('RSA', key.type())
-        self.assertEqual(1024, key.size)
+        self.assertEqual(1024, key.size())
 
     @attr('slow')
     def test_generate_dsa(self):
@@ -624,7 +624,7 @@ class TestKey(ChevahTestCase):
         key = Key.generate(key_type='dSA', key_size=1024)
 
         self.assertEqual('DSA', key.type())
-        self.assertEqual(1024, key.size)
+        self.assertEqual(1024, key.size())
 
     def test_generate_failed(self):
         """
@@ -1074,7 +1074,8 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         badBlob = common.NS('ssh-\xbd\xbd\xbd')
         self.assertBadKey(
             badBlob,
-            'Unknown blob type: \'ssh-\\xbd\\xbd\\xbd\''
+            "Cannot guess the type for "
+            r"'\x00\x00\x00\nssh-\xc2\xbd\xc2\xbd\xc2\xbd'"
             )
 
     def test_fromString_PRIVATE_BLOB(self):
@@ -1293,15 +1294,18 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         self._testPublicPrivateFromString(
             keydata.publicRSA_openssh,
             keydata.privateRSA_openssh, 'RSA', keydata.RSAData)
+
         self.assertEqual(
             keys.Key.fromString(
                 keydata.privateRSA_openssh_encrypted,
                 passphrase='encrypted'),
             keys.Key.fromString(keydata.privateRSA_openssh))
+
         self.assertEqual(
             keys.Key.fromString(
                 keydata.privateRSA_openssh_alternate),
             keys.Key.fromString(keydata.privateRSA_openssh))
+
         self._testPublicPrivateFromString(
             keydata.publicDSA_openssh,
             keydata.privateDSA_openssh, 'DSA', keydata.DSAData)
@@ -1410,7 +1414,7 @@ SUrCyZXsNh6VXwjs3gKQ
 
         This is a shared test for parsing DSA key from various formats.
         """
-        self.assertEqual(1024, sut.size)
+        self.assertEqual(1024, sut.size())
         self.assertEqual('DSA', sut.type())
         self.assertTrue(sut.isPublic())
         self.checkParsedDSAPublic1024Data(sut)
@@ -1449,7 +1453,7 @@ SUrCyZXsNh6VXwjs3gKQ
         """
         Check the default private DSA key of size 1024.
         """
-        self.assertEqual(1024, sut.size)
+        self.assertEqual(1024, sut.size())
         self.assertEqual('DSA', sut.type())
         self.assertFalse(sut.isPublic())
         data = sut.data()
@@ -1462,7 +1466,7 @@ SUrCyZXsNh6VXwjs3gKQ
         """
         Check the default public RSA key of size 1024.
         """
-        self.assertEqual(1024, sut.size)
+        self.assertEqual(1024, sut.size())
         self.assertEqual('RSA', sut.type())
         self.assertTrue(sut.isPublic())
         self.checkParsedRSAPublic1024Data(sut)
@@ -1485,7 +1489,7 @@ SUrCyZXsNh6VXwjs3gKQ
         """
         Check the default private RSA key of size 1024.
         """
-        self.assertEqual(1024, sut.size)
+        self.assertEqual(1024, sut.size())
         self.assertEqual('RSA', sut.type())
         self.assertFalse(sut.isPublic())
         data = sut.data()
@@ -1536,7 +1540,7 @@ SUrCyZXsNh6VXwjs3gKQ
             )
         sut = Key.fromString(key_content)
 
-        self.assertEqual(1024, sut.size)
+        self.assertEqual(1024, sut.size())
         self.assertEqual('RSA', sut.type())
         self.assertTrue(sut.isPublic())
         data = sut.data()
@@ -1861,7 +1865,7 @@ JZQaMjV9XxNTFOlNUTWswff3uE677wSVDPSuNkxo2FLRcGfPUxAQGsgL5Ts=
 
         self.assertTrue(sut.isPublic())
         self.assertEqual('RSA', sut.type())
-        self.assertEqual(1024, sut.size)
+        self.assertEqual(1024, sut.size())
 
         components = sut.data()
         self.assertEqual(65537L, components['e'])
@@ -1909,7 +1913,7 @@ O1u6TvSz6Of7rB5clQIDAQAB
 
         self.assertTrue(sut.isPublic())
         self.assertEqual('RSA', sut.type())
-        self.assertEqual(1024, sut.size)
+        self.assertEqual(1024, sut.size())
 
         components = sut.data()
         self.assertEqual(65537L, components['e'])
@@ -1949,7 +1953,7 @@ HNkVqo/9uKhSFkhbG6uKWUnOky0=
 
         self.assertTrue(sut.isPublic())
         self.assertEqual('DSA', sut.type())
-        self.assertEqual(1024, sut.size)
+        self.assertEqual(1024, sut.size())
 
         components = sut.data()
         y = long(
@@ -2003,7 +2007,7 @@ k9c9iA5IfqqbMp0=
 
         self.assertTrue(sut.isPublic())
         self.assertEqual('DSA', sut.type())
-        self.assertEqual(1024, sut.size)
+        self.assertEqual(1024, sut.size())
 
         components = sut.data()
         y = long(
@@ -2643,6 +2647,7 @@ class Test_generate_ssh_key_parser(ChevahTestCase, CommandLineMixin):
             'key_file': None,
             'key_size': 2048,
             'key_type': 'rsa',
+            'key_format': 'openssh_v1',
             'key_skip': False,
             }, options)
 
@@ -2667,6 +2672,7 @@ class Test_generate_ssh_key_parser(ChevahTestCase, CommandLineMixin):
             'key_file': 'id_dsa',
             'key_size': 1024,
             'key_type': 'dsa',
+            'key_format': 'openssh_v1',
             'key_skip': True,
             }, options)
 
@@ -2688,6 +2694,7 @@ class Test_generate_ssh_key_parser(ChevahTestCase, CommandLineMixin):
             'key_file': None,
             'key_size': 1024,
             'key_type': 'dsa',
+            'key_format': 'openssh_v1',
             'key_skip': False,
             }, options)
 
@@ -2733,7 +2740,7 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
             options, open_method=open_method)
 
         self.assertEqual('DSA', key.type())
-        self.assertEqual(512, key.size)
+        self.assertEqual(512, key.size())
 
         # First it writes the private key.
         first_file = open_method.calls.pop(0)
@@ -2777,8 +2784,8 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         exit_code, message, key = generate_ssh_key(
             options, open_method=open_method)
 
-        self.assertEqual(b'RSA', key.type())
-        self.assertEqual(1024, key.size)
+        self.assertEqual('RSA', key.type())
+        self.assertEqual(1024, key.size())
 
         # First it writes the private key.
         first_file = open_method.calls.pop(0)

@@ -2616,7 +2616,7 @@ def generate_ssh_key_parser(
         )
     generate_ssh_key.add_argument(
         '--key-format',
-        metavar="[openssh|openssh_v1|putty]", default=default_key_type,
+        metavar="[openssh|openssh_v1|putty]", default='openssh_v1',
         help='Generate a new SSH private and public key. Default %(default)s.',
         )
     generate_ssh_key.add_argument(
@@ -2701,7 +2701,7 @@ def generate_ssh_key(options, open_method=None):
         message = error.message
     except Exception as error:
         exit_code = 1
-        message = str(error)
+        message = unicode(error)
 
     return (exit_code, message, key)
 
