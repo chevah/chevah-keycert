@@ -1517,9 +1517,9 @@ class Key(object):
                 serialization.PrivateFormat.TraditionalOpenSSL,
                 encryptor)
         elif self.type() == 'Ed25519':
-            raise ValueError(
-                'cannot serialize Ed25519 key to OpenSSH PEM format; use v1 '
-                'instead'
+            raise BadKeyError(
+                'Cannot serialize Ed25519 key to openssh format; '
+                'use openssh_v1 instead.'
             )
 
         data = self.data()
