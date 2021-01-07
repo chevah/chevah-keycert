@@ -65,7 +65,7 @@ from chevah.keycert.exceptions import (
 from constantly import NamedConstant, Names
 
 DEFAULT_PUBLIC_KEY_EXTENSION = u'.pub'
-DEFAULT_KEY_SIZE = 1024
+DEFAULT_KEY_SIZE = 2048
 DEFAULT_KEY_TYPE = 'rsa'
 SSHCOM_MAGIC_NUMBER = int('3f6ff9eb', base=16)
 PUTTY_HMAC_KEY = 'putty-private-key-file-mac-key'
@@ -489,8 +489,8 @@ class Key(object):
         check1 = struct.unpack('!L', privKeyList[:4])[0]
         check2 = struct.unpack('!L', privKeyList[4:8])[0]
         if check1 != check2:
-            raise BadKeyError('check values do not match: %d != %d' %
-                              (check1, check2))
+            raise BadKeyError(
+                'Private key sanity check failed. Maybe invalid passphrase.')
         return cls._fromString_PRIVATE_BLOB(privKeyList[8:])
 
 
@@ -1781,13 +1781,23 @@ class Key(object):
         return urandom(n)
 
     @classmethod
-    def generate(cls, key_type=DEFAULT_KEY_TYPE, key_size=DEFAULT_KEY_SIZE):
+    def generate(cls, key_type=DEFAULT_KEY_TYPE, key_size=None):
         """
         Return a new private key.
+
+        When `key_size` is None, the default value is used.
+
+        `key_size` is ignored for ed25519.
         """
         if not key_type:
             key_type = 'not-specified'
         key_type = key_type.lower()
+
+        if not key_size:
+            if key_type == 'ecdsa':
+                key_size = 384
+            else:
+                key_size = DEFAULT_KEY_SIZE
 
         key = None
         try:
@@ -2583,8 +2593,7 @@ class Key(object):
         return cls._fromRSAComponents(n=n, e=e)
 
 
-def generate_ssh_key_parser(
-        subparsers, name, default_key_size=2048, default_key_type='rsa'):
+def generate_ssh_key_parser(subparsers, name, default_key_type='rsa'):
     """
     Create an argparse sub-command with `name` attached to `subparsers`.
     """
@@ -2600,8 +2609,8 @@ def generate_ssh_key_parser(
         )
     generate_ssh_key.add_argument(
         '--key-size',
-        type=int, metavar="SIZE", default=default_key_size,
-        help='Generate a RSA or DSA key of size SIZE. Default %(default)s',
+        type=int, metavar="SIZE", default=None,
+        help='Generate a SSH key of size SIZE',
         )
     generate_ssh_key.add_argument(
         '--key-type',
@@ -2618,6 +2627,11 @@ def generate_ssh_key_parser(
         '--key-format',
         metavar="[openssh|openssh_v1|putty]", default='openssh_v1',
         help='Generate a new SSH private and public key. Default %(default)s.',
+        )
+    generate_ssh_key.add_argument(
+        '--key-password',
+        metavar="PLAIN-PASS", default=None,
+        help='Password used to store the SSH private key.',
         )
     generate_ssh_key.add_argument(
         '--key-skip',
@@ -2667,7 +2681,11 @@ def generate_ssh_key(options, open_method=None):
 
         with open_method(_path(private_file), 'wb') as file_handler:
             _store_SSHKey(
-                key, private_file=file_handler, key_format=key_format)
+                key,
+                private_file=file_handler,
+                key_format=key_format,
+                password=options.key_password,
+                )
 
         key_comment = None
         if hasattr(options, 'key_comment') and options.key_comment:
@@ -2687,8 +2705,8 @@ def generate_ssh_key(options, open_method=None):
         message = (
             u'SSH key of type "%s" and length "%d" generated as '
             u'public key file "%s" and private key file "%s" %s.') % (
-            key_type,
-            key_size,
+            key.sshType(),
+            key.size(),
             public_file,
             private_file,
             message_comment,
@@ -2709,23 +2727,24 @@ def generate_ssh_key(options, open_method=None):
 def _store_SSHKey(
     key,
     public_file=None, private_file=None,
-    comment=None, key_format='openssh_v1',
+    comment=None, password=None, key_format='openssh_v1',
         ):
     """
     Store the public and private key into a file like object using
     OpenSSH format.
     """
     if public_file:
-        public_openssh = key.public().toString(type=key_format)
+        public_serialization = key.public().toString(
+            type=key_format)
         if comment:
             public_content = '%s %s' % (
-                public_openssh, comment.encode('utf-8'))
+                public_serialization, comment.encode('utf-8'))
         else:
-            public_content = public_openssh
+            public_content = public_serialization
         public_file.write(public_content)
 
     if private_file:
-        private_file.write(key.toString(type=key_format))
+        private_file.write(key.toString(type=key_format, passphrase=password))
 
 
 def _skip_key_generation(options, private_file, public_file):
