@@ -1086,9 +1086,11 @@ class Key(object):
         @rtype: L{str}
         """
         if format is FingerprintFormats.SHA256_BASE64:
-            return base64.b64encode(sha256(self.blob()).digest())
+            return base64.b64encode(
+                sha256(self.blob()).digest()).decode('ascii')
         elif format is FingerprintFormats.SHA1_BASE64:
-            return base64.b64encode(sha1(self.blob()).digest())
+            return base64.b64encode(
+                sha1(self.blob()).digest()).decode('ascii')
         elif format is FingerprintFormats.MD5_HEX:
             return ':'.join([binascii.hexlify(x)
                              for x in iterbytes(md5(self.blob()).digest())])

@@ -30,15 +30,15 @@ def deps():
 
 
 @task
-def test():
+@consume_args
+def test(args):
     """
     Run the test tests.
     """
     import nose
 
     nose_args = ['nosetests']
-    nose_args.extend([
-        ])
+    nose_args.extend(args)
     nose_code = nose.run(argv=nose_args)
     nose_code = 0 if nose_code else 1
 
