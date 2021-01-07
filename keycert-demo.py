@@ -1,5 +1,11 @@
 """
 Demo command line for chevah-keycert.
+
+Usage:
+
+* ssh-gen-key - Generate key, various formats, with or without password.
+* ssh-load-key  - Load key, various formats, with or without password.
+
 """
 from __future__ import print_function, unicode_literals
 # Fix namespaced package import.
@@ -41,19 +47,19 @@ def ssh_load_key(options, open_method=None):
 
     path = options.file
     output_format = options.type
-    extra = options.extra
+    password = options.password
 
     if not path:
         return (1, 'No path specified', None)
 
     with open_method(path, 'rb') as file_handler:
         key_content = file_handler.read().strip()
-        key = Key.fromString(key_content)
+        key = Key.fromString(key_content, passphrase=password)
 
         if key.isPublic():
-            to_string = key.toString(output_format, comment=extra)
+            to_string = key.toString(output_format)
         else:
-            to_string = key.toString(output_format, passphrase=extra)
+            to_string = key.toString(output_format)
 
         result = '%r\nKey type %s\n\n%s' % (
             key,
@@ -132,8 +138,8 @@ sub.add_argument(
     help='Format use to show the loaded key.'
     )
 sub.add_argument(
-    '--extra',
-    metavar='[PASSWORD|COMMENT]',
+    '--password',
+    metavar='PASSWORD',
     default=None,
     help='Option password or commented used when re-encoding the loaded key.'
     )
