@@ -1,6 +1,13 @@
 Release notes for Chevah KeyCert
 ################################
 
+
+2.0.1 - 2021-01-12
+==================
+
+* Add ECDSA/ED support for PKCS#8 format.
+
+
 2.0.0 - 2021-01-05
 ==================
 

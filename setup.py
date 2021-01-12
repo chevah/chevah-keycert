@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '2.0.0'
+VERSION = '2.0.1'
 
 
 class NoseTestCommand(TestCommand):
