@@ -177,7 +177,7 @@ class Key(object):
     SSH Key:
        * fromString / __init__
        * toString
-       * getFormat - human readable representaiton of internal guess type
+       * getFormat - human readable representation of internal guessed type
        * getCryptographyObject
 
     generate_ssh_key(type, size) -> external helper
@@ -2526,10 +2526,6 @@ class Key(object):
         """
         type_id = pkey.type()
 
-        if type_id not in [6, 116]:
-            raise BadKeyError(
-                'Unsupported key found in the %s.' % (source_type,))
-
         return cls(pkey.to_cryptography_key())
 
     @classmethod
@@ -2560,12 +2556,6 @@ class Key(object):
                 crypto.FILETYPE_PEM, data, passphrase=passphrase)
         except crypto.Error as error:
             raise BadKeyError('Failed to load PKCS#8 PEM. %s' % (error,))
-
-        type_id = key.type()
-
-        if type_id not in [6, 116]:
-            raise BadKeyError(
-                'Unsupported key found in the PKCS#8 private PEM file.')
 
         return cls(key.to_cryptography_key())
 
