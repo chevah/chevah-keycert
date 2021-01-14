@@ -7,7 +7,7 @@ set -euo pipefail
 keycert_cmd="./build-keycert/bin/python keycert-demo.py"
 
 # Types to get with supported generators: ssh-keygen, ssh-keygen-g3, puttygen.
-key_types="ed25519 ecdsa" # Add "rsa dsa" for more coverage.
+key_types="ed25519 ecdsa" # Add "rsa" and "dsa" for more coverage.
 
 # The "default" option is more of a placeholder for not using an extra format.
 openssh_formats="default RFC4716 PKCS8 PEM"
@@ -155,17 +155,19 @@ for key in $key_types; do
     done
 done
 
+errors=$(cat ssh_keys_tests_errors)
+
 echo -ne "\nCombinations tested: "
 ls -1 openssh_* putty_* | wc -l
 ls -1 openssh_* putty_*
 
 # Cleanup test files.
-rm pass_file_* openssh_* putty_*
+rm pass_file_* openssh_* putty_* ssh_keys_tests_errors
 
 if [ -s ssh_keys_tests_errors ]; then
     echo -ne "\nCombinations with errors: "
-    cat ssh_keys_tests_errors | wc -l
-    cat ssh_keys_tests_errors
+    cat $errors | wc -l
+    cat $errors
     exit 13
 else
     echo -e "\nThere were no errors."
