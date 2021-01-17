@@ -213,23 +213,23 @@ for key in $KEY_TYPES; do
     esac
 done
 
-# Tectia's ssh-keygen-g3 tests.
-for key in $KEY_TYPES; do
-    case $key in
-        "ed25519")
-            tectia_keys_test "256"
-            ;;
-        "ecdsa")
-            tectia_keys_test "256 384 521"
-            ;;
-        "rsa")
-            tectia_keys_test "512 1024 2048 3072 4096 8192"
-            ;;
-        "dsa")
-            tectia_keys_test "1024 2048 3072 4096"
-            ;;
-    esac
-done
+# # Tectia's ssh-keygen-g3 tests.
+# for key in $KEY_TYPES; do
+#     case $key in
+#         "ed25519")
+#             tectia_keys_test "256"
+#             ;;
+#         "ecdsa")
+#             tectia_keys_test "256 384 521"
+#             ;;
+#         "rsa")
+#             tectia_keys_test "512 1024 2048 3072 4096 8192"
+#             ;;
+#         "dsa")
+#             tectia_keys_test "1024 2048 3072 4096"
+#             ;;
+#     esac
+# done
 
 echo -ne "\nCombinations tested: "
 ls -1 openssh_* tectia_* putty_* | wc -l
