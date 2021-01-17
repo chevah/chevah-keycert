@@ -4,9 +4,10 @@ Build file for the project.
 import os
 import re
 import sys
+from subprocess import call
 from pkg_resources import load_entry_point
 
-from paver.easy import call_task, consume_args, task
+from paver.easy import call_task, consume_args, task, pushd
 
 EXTRA_PYPI_INDEX = 'https://pypi.chevah.com/simple'
 
@@ -43,6 +44,25 @@ def test(args):
     nose_code = 0 if nose_code else 1
 
     sys.exit(nose_code)
+
+
+@task
+@consume_args
+def test_interoperability(args):
+    """
+    Run the SSH key interoperability tests.
+    """
+    try:
+        os.mkdir('build')
+    except OSError:
+        """Already exists"""
+
+    exit_code = 1
+    with pushd('build'):
+        exit_code = call(
+            "../chevah/keycert/tests/ssh_keys_tests.sh", shell=True)
+
+    sys.exit(exit_code)
 
 
 @task
