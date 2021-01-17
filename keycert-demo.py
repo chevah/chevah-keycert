@@ -204,5 +204,10 @@ try:
     result = options.handler(options)
     print(result)
 except KeyCertException as error:
+    print('EXPECTED ERROR')
+    print(error)
+    sys.exit(1)
+except Exception as error:
+    print('UNEXPECTED ERROR. A bug should be reported.')
     print(error)
     sys.exit(1)

@@ -46,13 +46,11 @@ jobs:
     - name: Rename build from unicode for cache
       run: mv build-keycert-ț build-keycert
 
-  ssh-key-interoperability:
-    # The type of runner that the job will run on
+
+  ssh-key-interop:
     runs-on: ubuntu-20.04
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
 
     - name: Cache build
@@ -63,7 +61,9 @@ jobs:
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
-      run: ./brink.sh deps
+      run: |
+        sudo apt-get install putty-tools
+        ./brink.sh deps
 
     - name: Test
       run: ./brink.sh test_interoperability
