@@ -873,13 +873,18 @@ class Key(object):
         """
         publicNumbers = dsa.DSAPublicNumbers(
             y=y, parameter_numbers=dsa.DSAParameterNumbers(p=p, q=q, g=g))
+
         if x is None:
             # We have public components.
             keyObject = publicNumbers.public_key(default_backend())
-        else:
+            return cls(keyObject)
+
+        try:
             privateNumbers = dsa.DSAPrivateNumbers(
                 x=x, public_numbers=publicNumbers)
             keyObject = privateNumbers.private_key(default_backend())
+        except ValueError as error:
+            raise BadKeyError('Unsupported DSA key size: %s' % (error,))
 
         return cls(keyObject)
 
