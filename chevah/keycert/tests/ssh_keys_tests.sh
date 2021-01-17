@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-KEYCERT_CMD="./build-keycert/bin/python keycert-demo.py"
+KEYCERT_CMD="../build-keycert/bin/python ../keycert-demo.py"
 KEYCERT_ERRORS_FILE="ssh_keys_tests_errors"
 
 # Key types to generate with: puttygen, ssh-keygen, ssh-keygen-g3.
