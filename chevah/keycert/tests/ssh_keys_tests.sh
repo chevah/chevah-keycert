@@ -5,6 +5,7 @@
 set -euo pipefail
 
 KEYCERT_CMD="../build-keycert/bin/python ../keycert-demo.py"
+KEYCERT_NOERRORS_FILE="ssh_keys_tests_noerrors"
 KEYCERT_ERRORS_FILE="ssh_keys_tests_errors"
 
 # Key types to generate with: puttygen, ssh-keygen, ssh-keygen-g3.
@@ -21,7 +22,8 @@ OPENSSH_FORMATS="default RFC4716 PKCS8 PEM"
 TECTIA_FORMATS="secsh2 pkcs1 pkcs8 pkcs12 openssh2 openssh2-aes"
 TECTIA_HASHES="sha1 sha224 sha256 sha384 sha512"
 
-# Empty file holding test errors.
+# Empty the files holding test results, if present.
+> $KEYCERT_NOERRORS_FILE
 > $KEYCERT_ERRORS_FILE
 
 # Files holding passwords.
@@ -41,7 +43,9 @@ keycert_load_key(){
     fi
     set +e
     $KEYCERT_CMD $keycert_opts
-    if [ $? -ne 0 ]; then
+    if [ $? -eq 0 ]; then
+        echo $1 >> $KEYCERT_NOERRORS_FILE
+    else
         echo $1 >> $KEYCERT_ERRORS_FILE
     fi
     set -e
@@ -68,7 +72,9 @@ putty_keys_test(){
                 pub_key_file="putty_${key}_${bits}_${pub_output}"
                 puttygen --old-passphrase $pass_file -O $pub_output -o $pub_key_file $priv_key_file
                 keycert_load_key $pub_key_file
+                rm $pub_key_file
             done
+            rm $priv_key_file
         done
     done
 }
@@ -111,6 +117,7 @@ openssh_keys_test(){
                 fi
                 keycert_load_key $priv_key_file $(cat $pass_file)
                 keycert_load_key $pub_key_file
+                rm $priv_key_file $pub_key_file
             done
         done
     done
@@ -153,6 +160,7 @@ tectia_keys_test(){
                         fi
                         keycert_load_key $priv_key_file $(cat $pass_file)
                         keycert_load_key $pub_key_file
+                        rm $priv_key_file $pub_key_file
                     done
                 done
             done
@@ -188,6 +196,7 @@ for key in $KEY_TYPES; do
                 putty_keys_test "1024 2048 2111 3072 4096 8192"
                 ;;
             "dsa")
+                # An unusual prime size is also tested.
                 putty_keys_test "1024 2048 2111 3072 4096"
                 ;;
         esac
@@ -231,12 +240,16 @@ done
 #     esac
 # done
 
-echo -ne "\nCombinations tested: "
-ls -1 openssh_* tectia_* putty_* | wc -l
-ls -1 openssh_* tectia_* putty_*
-
 # Cleanup test files.
-rm pass_file_* openssh_* tectia_* putty_*
+rm pass_file_*
+
+echo -ne "\nCombinations tested: "
+cat $KEYCERT_NOERRORS_FILE $KEYCERT_ERRORS_FILE | wc -l
+
+echo -ne "\nCombinations with no errors: "
+cat $KEYCERT_NOERRORS_FILE | wc -l
+cat $KEYCERT_NOERRORS_FILE
+rm $KEYCERT_NOERRORS_FILE
 
 if [ -s $KEYCERT_ERRORS_FILE ]; then
     echo -ne "\nCombinations with errors: "
