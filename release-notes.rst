@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+2.0.2 - 2021-01-21
+==================
+
+* Show an error when loading DSA keys with unsupported sizes.
+
+
 2.0.1 - 2021-01-12
 ==================
 

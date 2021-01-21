@@ -876,7 +876,10 @@ class Key(object):
 
         if x is None:
             # We have public components.
-            keyObject = publicNumbers.public_key(default_backend())
+            try:
+                keyObject = publicNumbers.public_key(default_backend())
+            except ValueError as error:
+                raise BadKeyError('Unsupported DSA public key: %s' % (error,))
             return cls(keyObject)
 
         try:
@@ -884,7 +887,7 @@ class Key(object):
                 x=x, public_numbers=publicNumbers)
             keyObject = privateNumbers.private_key(default_backend())
         except ValueError as error:
-            raise BadKeyError('Unsupported DSA key size: %s' % (error,))
+            raise BadKeyError('Unsupported DSA private key: %s' % (error,))
 
         return cls(keyObject)
 
