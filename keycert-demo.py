@@ -11,6 +11,7 @@ from __future__ import print_function, unicode_literals
 # Fix namespaced package import.
 import chevah
 import os
+import sys
 chevah.__path__.insert(0, os.path.join(os.getcwd(), 'chevah'))
 
 import argparse
@@ -27,6 +28,14 @@ from chevah.keycert.ssl import (
     generate_self_signed_parser,
     generate_ssl_self_signed_certificate,
     )
+
+
+def print_error(*args, **kwargs):
+    """
+    Print to standard error.
+    """
+    print(*args, file=sys.stderr, **kwargs)
+
 
 def ssh_load_key(options, open_method=None):
     """
@@ -204,10 +213,10 @@ try:
     result = options.handler(options)
     print(result)
 except KeyCertException as error:
-    print('EXPECTED ERROR')
-    print(error)
+    print_error('EXPECTED ERROR')
+    print_error(error)
     sys.exit(1)
 except Exception as error:
-    print('UNEXPECTED ERROR. A bug should be reported.')
-    print(error)
-    sys.exit(1)
+    print_error('UNEXPECTED ERROR. A bug should be reported.',)
+    print_error(error)
+    sys.exit(2)
