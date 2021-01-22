@@ -4,12 +4,19 @@
 
 set -euo pipefail
 
-KEYCERT_CMD="../build-keycert/bin/python ../keycert-demo.py"
-KEYCERT_NOERRORS_FILE="ssh_keys_tests_noerrors"
-KEYCERT_ERRORS_FILE="ssh_keys_tests_errors"
+# Key types to generate with puttygen, ssh-keygen, ssh-keygen-g3.
+# Accepted parameters (one or more): ed25519, ecdsa, rsa, dsa.
+# Generating large size RSA and DSA keys takes a lot of CPU time.
+KEY_TYPES=$*
+if [ -z "$KEY_TYPES" ]; then
+    # If no parameters given, test only EC/ED keys.
+    KEY_TYPES="ed25519 ecdsa"
+fi
 
-# Key types to generate with: puttygen, ssh-keygen, ssh-keygen-g3.
-KEY_TYPES="ed25519 ecdsa" # Add "rsa" and "dsa" for more coverage.
+KEYCERT_CMD="../build-keycert/bin/python ../keycert-demo.py"
+KEYCERT_NO_ERRORS_FILE="ssh_keys_tests_errors_none"
+KEYCERT_EXPECTED_ERRORS_FILE="ssh_keys_tests_errors_expected"
+KEYCERT_UNEXPECTED_ERRORS_FILE="ssh_keys_tests_errors_unexpected"
 
 # puttygen supports key type "rsa1", but it's not used here.
 # private-sshcom doesn't work with ed25519 and ecdsa in puttygen 0.74.
@@ -23,14 +30,16 @@ TECTIA_FORMATS="secsh2 pkcs1 pkcs8 pkcs12 openssh2 openssh2-aes"
 TECTIA_HASHES="sha1 sha224 sha256 sha384 sha512"
 
 # Empty the files holding test results, if present.
-> $KEYCERT_NOERRORS_FILE
-> $KEYCERT_ERRORS_FILE
+> $KEYCERT_NO_ERRORS_FILE
+> $KEYCERT_EXPECTED_ERRORS_FILE
+> $KEYCERT_UNEXPECTED_ERRORS_FILE
 
 # Files holding passwords.
 > pass_file_empty
 echo 'chevah' > pass_file_simple
 echo 'V^#ev1uj#kq$N' > pass_file_complex
-PASS_TYPES="empty simple complex"
+# No difference in testing simple and complex passwords, so we skip the former.
+PASS_TYPES="empty complex"
 
 
 
@@ -43,10 +52,13 @@ keycert_load_key(){
     fi
     set +e
     $KEYCERT_CMD $keycert_opts
-    if [ $? -eq 0 ]; then
-        echo $1 >> $KEYCERT_NOERRORS_FILE
+    local keycert_err_code=$?
+    if [ $keycert_err_code -eq 0 ]; then
+        echo $1 >> $KEYCERT_NO_ERRORS_FILE
+    elif [ $keycert_err_code -eq 1 ]; then
+        echo $1 >> $KEYCERT_EXPECTED_ERRORS_FILE
     else
-        echo $1 >> $KEYCERT_ERRORS_FILE
+        echo $1 >> $KEYCERT_UNEXPECTED_ERRORS_FILE
     fi
     set -e
 }
@@ -192,12 +204,11 @@ for key in $KEY_TYPES; do
                 putty_keys_test "256 384 521"
                 ;;
             "rsa")
-                # An unusual prime size is also tested.
-                putty_keys_test "1024 2048 2111 3072 4096 8192"
+                putty_keys_test "512 2048 4096"
                 ;;
             "dsa")
                 # An unusual prime size is also tested.
-                putty_keys_test "1024 2048 2111 3072 4096"
+                putty_keys_test "2111 3072 4096"
                 ;;
         esac
     done
@@ -214,7 +225,7 @@ for key in $KEY_TYPES; do
             ;;
         "rsa")
             # An unusual prime size is also tested.
-            openssh_keys_test "1024 2048 2111 3072 4096 8192"
+            openssh_keys_test "1024 2111 3072 8192"
             ;;
         "dsa")
             openssh_keys_test "1024"
@@ -244,20 +255,25 @@ done
 rm pass_file_*
 
 echo -ne "\nCombinations tested: "
-cat $KEYCERT_NOERRORS_FILE $KEYCERT_ERRORS_FILE | wc -l
+cat $KEYCERT_NO_ERRORS_FILE $KEYCERT_EXPECTED_ERRORS_FILE $KEYCERT_UNEXPECTED_ERRORS_FILE | wc -l
 
 echo -ne "\nCombinations with no errors: "
-cat $KEYCERT_NOERRORS_FILE | wc -l
-cat $KEYCERT_NOERRORS_FILE
-rm $KEYCERT_NOERRORS_FILE
+cat $KEYCERT_NO_ERRORS_FILE | wc -l
+cat $KEYCERT_NO_ERRORS_FILE
+rm $KEYCERT_NO_ERRORS_FILE
 
-if [ -s $KEYCERT_ERRORS_FILE ]; then
-    echo -ne "\nCombinations with errors: "
-    cat $KEYCERT_ERRORS_FILE | wc -l
-    cat $KEYCERT_ERRORS_FILE
-    rm $KEYCERT_ERRORS_FILE
+echo -ne "\nCombinations with expected errors: "
+cat $KEYCERT_EXPECTED_ERRORS_FILE | wc -l
+cat $KEYCERT_EXPECTED_ERRORS_FILE
+rm $KEYCERT_EXPECTED_ERRORS_FILE
+
+echo -ne "\nCombinations with unexpected errors: "
+cat $KEYCERT_UNEXPECTED_ERRORS_FILE | wc -l
+cat $KEYCERT_UNEXPECTED_ERRORS_FILE
+
+if [ -s $KEYCERT_UNEXPECTED_ERRORS_FILE ]; then
+    rm $KEYCERT_UNEXPECTED_ERRORS_FILE
     exit 13
 else
-    rm $KEYCERT_ERRORS_FILE
-    echo -e "\nThere were no errors."
+    rm $KEYCERT_UNEXPECTED_ERRORS_FILE
 fi
