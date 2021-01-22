@@ -256,6 +256,7 @@ class Key(object):
     def _fromString_BLOB(cls, blob):
         """
         Return a public key object corresponding to this public key blob.
+
         The format of a RSA public key blob is::
             string 'ssh-rsa'
             integer e
@@ -289,26 +290,13 @@ class Key(object):
         keyType, rest = common.getNS(blob)
         if keyType == b'ssh-rsa':
             e, n, rest = common.getMP(rest, 2)
-            return cls(
-                rsa.RSAPublicNumbers(e, n).public_key(default_backend()))
+            return cls._fromRSAComponents(n, e)
         elif keyType == b'ssh-dss':
             p, q, g, y, rest = common.getMP(rest, 4)
-            return cls(
-                dsa.DSAPublicNumbers(
-                    y=y,
-                    parameter_numbers=dsa.DSAParameterNumbers(
-                        p=p,
-                        q=q,
-                        g=g
-                    )
-                ).public_key(default_backend())
-            )
+            return cls._fromDSAComponents( y, p, q, g)
         elif keyType in _curveTable:
-            return cls(
-                ec.EllipticCurvePublicKey.from_encoded_point(
-                    _curveTable[keyType], common.getNS(rest, 2)[1]
-                )
-            )
+            return cls._fromECEncodedPoint(
+                encodedPoint=common.getNS(rest, 2)[1], curve=_curveTable[keyType])
         elif keyType == b'ssh-ed25519':
             a, rest = common.getNS(rest)
             return cls._fromEd25519Components(a)
@@ -613,19 +601,7 @@ class Key(object):
             p, q, g, y, x = [long(value) for value in decodedKey[1: 6]]
             if len(decodedKey) < 6:
                 raise BadKeyError('DSA key failed to decode properly')
-            return cls(
-                dsa.DSAPrivateNumbers(
-                    x=x,
-                    public_numbers=dsa.DSAPublicNumbers(
-                        y=y,
-                        parameter_numbers=dsa.DSAParameterNumbers(
-                            p=p,
-                            q=q,
-                            g=g
-                        )
-                    )
-                ).private_key(backend=default_backend())
-            )
+            return cls._fromDSAComponents(y, p, q, g, x)
         else:
             raise BadKeyError("unknown key type %s" % (kind,))
 
@@ -875,12 +851,12 @@ class Key(object):
             y=y, parameter_numbers=dsa.DSAParameterNumbers(p=p, q=q, g=g))
 
         if x is None:
-            # We have public components.
             try:
+                # We have public components.
                 keyObject = publicNumbers.public_key(default_backend())
+                return cls(keyObject)
             except ValueError as error:
                 raise BadKeyError('Unsupported DSA public key: %s' % (error,))
-            return cls(keyObject)
 
         try:
             privateNumbers = dsa.DSAPrivateNumbers(
