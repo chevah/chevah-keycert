@@ -296,7 +296,9 @@ class Key(object):
             return cls._fromDSAComponents( y, p, q, g)
         elif keyType in _curveTable:
             return cls._fromECEncodedPoint(
-                encodedPoint=common.getNS(rest, 2)[1], curve=_curveTable[keyType])
+                encodedPoint=common.getNS(rest, 2)[1],
+                curve=keyType,
+                )
         elif keyType == b'ssh-ed25519':
             a, rest = common.getNS(rest)
             return cls._fromEd25519Components(a)
