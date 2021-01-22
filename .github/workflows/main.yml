@@ -47,9 +47,14 @@ jobs:
       run: mv build-keycert-ț build-keycert
 
 
-  ssh-key-interop:
+  ssh-key-interop-tests:
     runs-on: ubuntu-20.04
-
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { test_type: load }
+          - { test_type: generate }
     steps:
     - uses: actions/checkout@v2
 
@@ -66,7 +71,7 @@ jobs:
         ./brink.sh deps
 
     - name: Test
-      run: ./brink.sh test_interoperability
+      run: ./brink.sh test_interop_${{ matrix.config.test_type }}
 
 
   macos:

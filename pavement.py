@@ -48,9 +48,9 @@ def test(args):
 
 @task
 @consume_args
-def test_interoperability(args):
+def test_interop_load(args):
     """
-    Run the SSH key interoperability tests.
+    Run the SSH key interoperability tests for loading external keys.
     """
     try:
         os.mkdir('build')
@@ -60,7 +60,25 @@ def test_interoperability(args):
     exit_code = 1
     with pushd('build'):
         exit_code = call(
-            "../chevah/keycert/tests/ssh_keys_tests.sh", shell=True)
+            "../chevah/keycert/tests/ssh_load_keys_tests.sh", shell=True)
+
+    sys.exit(exit_code)
+
+@task
+@consume_args
+def test_interop_generate(args):
+    """
+    Run the SSH key interoperability tests for internally-generated keys.
+    """
+    try:
+        os.mkdir('build')
+    except OSError:
+        """Already exists"""
+
+    exit_code = 1
+    with pushd('build'):
+        exit_code = call(
+            "../chevah/keycert/tests/ssh_gen_keys_tests.sh", shell=True)
 
     sys.exit(exit_code)
 
