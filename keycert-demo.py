@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 import chevah
 import os
 import sys
+import traceback
 chevah.__path__.insert(0, os.path.join(os.getcwd(), 'chevah'))
 
 import argparse
@@ -217,6 +218,6 @@ except KeyCertException as error:
     print_error(error)
     sys.exit(1)
 except Exception as error:
+    print_error(traceback.format_exc())
     print_error('UNEXPECTED ERROR. A bug should be reported.',)
-    print_error(error)
     sys.exit(2)
