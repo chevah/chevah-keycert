@@ -2510,8 +2510,6 @@ class Key(object):
         """
         Load the SSH from an OpenSSL Public Key object.
         """
-        type_id = pkey.type()
-
         return cls(pkey.to_cryptography_key())
 
     @classmethod
@@ -2667,6 +2665,10 @@ def generate_ssh_key(options, open_method=None):
         if hasattr(options, 'key_comment') and options.key_comment:
             key_comment = options.key_comment
             message_comment = u'having comment "%s"' % key_comment
+            if key_format != 'openssh':
+                key_comment = None
+                message_comment = (
+                    'without comment as not supported by the output format')
         else:
             message_comment = u'without a comment'
 
