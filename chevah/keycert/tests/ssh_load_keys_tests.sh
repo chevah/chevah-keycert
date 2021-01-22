@@ -9,14 +9,14 @@ set -euo pipefail
 # Generating large size RSA and DSA keys takes a lot of CPU time.
 KEY_TYPES=$*
 if [ -z "$KEY_TYPES" ]; then
-    # If no parameters given, test only EC/ED keys.
-    KEY_TYPES="ed25519 ecdsa"
+    # If no parameters given, test all.
+    KEY_TYPES="ed25519 ecdsa dsa rsa"
 fi
 
 KEYCERT_CMD="../build-keycert/bin/python ../keycert-demo.py"
-KEYCERT_NO_ERRORS_FILE="ssh_keys_tests_errors_none"
-KEYCERT_EXPECTED_ERRORS_FILE="ssh_keys_tests_errors_expected"
-KEYCERT_UNEXPECTED_ERRORS_FILE="ssh_keys_tests_errors_unexpected"
+KEYCERT_NO_ERRORS_FILE="load_keys_tests_errors_none"
+KEYCERT_EXPECTED_ERRORS_FILE="load_keys_tests_errors_expected"
+KEYCERT_UNEXPECTED_ERRORS_FILE="load_keys_tests_errors_unexpected"
 
 # puttygen supports key type "rsa1", but it's not used here.
 # private-sshcom doesn't work with ed25519 and ecdsa in puttygen 0.74.
@@ -53,6 +53,7 @@ keycert_load_key(){
     set +e
     $KEYCERT_CMD $keycert_opts
     local keycert_err_code=$?
+    set -e
     if [ $keycert_err_code -eq 0 ]; then
         echo $1 >> $KEYCERT_NO_ERRORS_FILE
     elif [ $keycert_err_code -eq 1 ]; then
@@ -60,7 +61,6 @@ keycert_load_key(){
     else
         echo $1 >> $KEYCERT_UNEXPECTED_ERRORS_FILE
     fi
-    set -e
 }
 
 putty_keys_test(){
