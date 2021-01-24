@@ -89,3 +89,95 @@ def ffs(c, s):
     for i in c:
         if i in s:
             return i
+
+
+
+def force_unicode(value):
+    """
+    Decode the `value` to unicode.
+
+    It will try to extract the message from an exception.
+
+    In case there are encoding errors when converting the invalid characters
+    are replaced.
+    """
+    import errno
+
+    def str_or_repr(value):
+
+        if isinstance(value, unicode):
+            return value
+
+        try:
+            return unicode(value, encoding='utf-8')
+        except Exception:
+            """
+            Not UTF-8 encoded value.
+            """
+
+        try:
+            return unicode(value, encoding='windows-1252')
+        except Exception:
+            """
+            Not Windows encoded value.
+            """
+
+        try:
+            return unicode(str(value), encoding='utf-8', errors='replace')
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            """
+            Not UTF-8 encoded value.
+            """
+
+        try:
+            return unicode(
+                str(value), encoding='windows-1252', errors='replace')
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            pass
+
+        # No luck with str, try repr()
+        return unicode(repr(value), encoding='windows-1252', errors='replace')
+
+    if value is None:
+        return u'None'
+
+    if isinstance(value, unicode):
+        return value
+
+    if isinstance(value, EnvironmentError) and value.errno:
+        # IOError, OSError, WindowsError.
+        code = value.errno
+        message = value.strerror
+        # Convert to Unix message to help with testing.
+        if code == errno.ENOENT:
+            # On Windows it is:
+            # The system cannot find the file specified.
+            message = b'No such file or directory'
+        if code == errno.EEXIST:
+            # On Windows it is:
+            # Cannot create a file when that file already exists
+            message = b'File exists'
+        if code == errno.EBADF:
+            # On AIX: Bad file number
+            message = b'Bad file descriptor'
+
+        if code and message:
+            if value.filename:
+                return "[Errno %s] %s: '%s'" % (
+                    code,
+                    str_or_repr(message),
+                    str_or_repr(value.filename),
+                    )
+            return '[Errno %s] %s.' % (code, str_or_repr(message))
+
+    if isinstance(value, Exception):
+        try:
+            details = str(value)
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            details = getattr(value, 'message', '')
+        result = str_or_repr(details)
+        if result:
+            return result
+        return str_or_repr(repr(value))
+
+    return str_or_repr(value)
