@@ -74,7 +74,7 @@ putty_keys_test(){
     for bits in $bit_lengths; do
         for pass_type in $PASS_TYPES; do
             echo "Generating $key key of type $priv_output and size $bits with $pass_type password:"
-            priv_key_file="putty_${key}_${bits}_${priv_output}"
+            priv_key_file="putty_${key}_${bits}_${priv_output}_${pass_type}"
             pass_file="pass_file_${pass_type}"
             puttygen --random-device /dev/random -C "$(cat $pass_file)" --new-passphrase $pass_file \
                 -t $key -O $priv_output -b $bits -o $priv_key_file
@@ -116,7 +116,7 @@ openssh_keys_test(){
                         if [ $key = "ecdsa" -o $key = "rsa" -o $key = "dsa" ]; then
                             # Minimum 5 characters required for these combinations.
                             (>&2 echo "Not generating $format $key key with $pass_type password.")
-                            break
+                            continue
                         fi
                     fi
                     OPENSSH_OPTS=""
@@ -151,12 +151,12 @@ tectia_keys_test(){
             for format in $TECTIA_FORMATS; do
                 for fips_mode in nofips fips; do
                     if [ $fips_mode = "fips" -a $key = "ed25519" ]; then
-                        break
+                        continue
                     elif [ $fips_mode = "fips" -a $pass_type = "empty" ]; then
-                        break
+                        continue
                     elif [ $fips_mode = "fips" -a "${format%openssh2*}" = "" ]; then
                         # "OpenSSH2 keys operations are forbidden when in FIPS mode."
-                        break
+                        continue
                     fi
                     for hash in $TECTIA_HASHES; do
                         gen_opts="-b $bits -t $key --key-format $format --key-hash $hash"
@@ -187,12 +187,12 @@ for key in $KEY_TYPES; do
     for priv_output in $PUTTY_PRIV_OUTPUTs; do
         if [ $key = "ed25519" -a $priv_output = "private-openssh-new" ]; then
             # No need to force new OpenSSH format for ED25519 keys.
-            break
+            continue
         fi
         if [ $priv_output = "private-sshcom" ]; then
             if [ $key = "ed25519" -o $key = "ecdsa" ]; then
                 # Not working in puttygen 0.74.
-                break
+                continue
             fi
         fi
         # Test specific numbers of bits per key type.
