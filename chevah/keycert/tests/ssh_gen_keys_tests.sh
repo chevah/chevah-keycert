@@ -53,16 +53,20 @@ puttygen_tests(){
     local priv_key=$1
     local pub_key=${1}.pub
     
-    sort_tests_per_error puttygen -O fingerprint $priv_key
     sort_tests_per_error puttygen -O fingerprint $pub_key
+    sort_tests_per_error puttygen -o /dev/null --old-passphrase pass_file_${2} -L $priv_key
 }
 
 sshkeygen_tests(){
     local priv_key=$1
     local pub_key=${1}.pub
     
-    sort_tests_per_error ssh-keygen -l -f $priv_key
     sort_tests_per_error ssh-keygen -l -f $pub_key
+    if [ $2 = "empty" ]; then
+        sort_tests_per_error ssh-keygen -y -f $priv_key
+    else
+        sort_tests_per_error ssh-keygen -y -P "$(cat pass_file_${2})" -f $priv_key
+    fi
 }
 
 # First parameter is the key type.
@@ -81,7 +85,7 @@ keycert_gen_keys(){
         # First remaining parameter is the password, as it starts with a non-digit.
         keycert_opts="$keycert_opts --key-password $1 --key-comment $1"
         # Check password type by password length.
-        if [ ${#1} > 10 ]; then
+        if [ ${#1} -ge 10 ]; then
             key_pass_type="complex"
         else
             key_pass_type="simple"
@@ -99,16 +103,16 @@ keycert_gen_keys(){
             else
                 final_keycert_opts="$keycert_opts --key-size $key_size --key-format $key_format"
                 # An associated public key is also generated with same name + '.pub'.
-                key_file=${key_type}_${key_format}_${key_size}_${key_pass_type}
+                key_file=${key_type}_${key_size}_${key_format}_${key_pass_type}
                 $KEYCERT_CMD $final_keycert_opts --key-file $key_file
                 # OpenSSH's tool will complain of unsafe permissions.
                 chmod 600 $key_file
                 case $key_format in
                     openssh*)
-                        sshkeygen_tests $key_file
+                        sshkeygen_tests $key_file $key_pass_type
                         ;;
                     putty)
-                        puttygen_tests $key_file
+                        puttygen_tests $key_file $key_pass_type
                         ;;
                 esac
                 rm $key_file ${key_file}.pub
