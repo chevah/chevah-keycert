@@ -9,8 +9,8 @@ set -euo pipefail
 # Generating large size RSA and DSA keys takes a lot of CPU time.
 KEY_TYPES=$*
 if [ -z "$KEY_TYPES" ]; then
-    # If no parameters given, test only EC/ED keys.
-    KEY_TYPES="ed25519 ecdsa"
+    # If no parameters given, test all key types.
+    KEY_TYPES="ed25519 ecdsa rsa dsa"
 fi
 
 KEYCERT_CMD="../build-keycert/bin/python ../keycert-demo.py"
@@ -26,6 +26,7 @@ ERROR_FILE="gen_keys_tests_error"
 # Files holding passwords. Non-empty passwords MUST start with a letter.
 > pass_file_empty
 echo 'chevah' > pass_file_simple
+# Complex passwords must be at least 10 characters long.
 echo 'V^#ev1uj#kq$N' > pass_file_complex
 # No difference in testing simple and complex passwords, so we skip the former. XXX
 PASS_TYPES="empty simple complex"
@@ -70,14 +71,24 @@ keycert_gen_keys(){
     local key_size
     local key_format
     local key_type=$1
-    shift
+    local key_pass_type
     local keycert_opts="ssh-gen-key --key-type $key_type"
 
+    # Remove first parameter, the password should be now first, if existing.
+    shift
     # Check if there is a password to be used.
     if [[ "${1:0:1}" =~ [a-zA-Z] ]]; then
         # First remaining parameter is the password, as it starts with a non-digit.
         keycert_opts="$keycert_opts --key-password $1 --key-comment $1"
+        # Check password type by password length.
+        if [ ${#1} > 10 ]; then
+            key_pass_type="complex"
+        else
+            key_pass_type="simple"
+        fi
         shift
+    else
+        key_pass_type="empty"
     fi
 
     for key_size in $*; do
@@ -86,18 +97,21 @@ keycert_gen_keys(){
                 # "Cannot serialize Ed25519 key to openssh format".
                 (>&2 echo "Not generating $key_type key with the $key_format format.")
             else
-                final_keycert_opts="$keycert_opts --key-size $1 --key-format $key_format"
+                final_keycert_opts="$keycert_opts --key-size $key_size --key-format $key_format"
                 # An associated public key is also generated with same name + '.pub'.
-                $KEYCERT_CMD $final_keycert_opts --key-file ${key_type}_${key_format}_${key_size}
+                key_file=${key_type}_${key_format}_${key_size}_${key_pass_type}
+                $KEYCERT_CMD $final_keycert_opts --key-file $key_file
+                # OpenSSH's tool will complain of unsafe permissions.
+                chmod 600 $key_file
                 case $key_format in
                     openssh*)
-                        sshkeygen_tests ${key_type}_${key_format}_${key_size}
+                        sshkeygen_tests $key_file
                         ;;
                     putty)
-                        puttygen_tests ${key_type}_${key_format}_${key_size}
+                        puttygen_tests $key_file
                         ;;
                 esac
-                rm ${key_type}_${key_format}_${key_size} ${key_type}_${key_format}_${key_size}.pub
+                rm $key_file ${key_file}.pub
             fi
         done
     done
@@ -118,10 +132,10 @@ for pass_type in $PASS_TYPES; do
                 ;;
             "rsa")
                 # An unusual prime size is also tested.
-                keycert_gen_keys rsa $pass 512 1024 2111 3072 4096 8192
+                keycert_gen_keys rsa $pass 1024 2111 3072 4096 8192
                 ;;
             "dsa")
-                keycert_gen_keys dsa $pass 1024 2111 3072
+                keycert_gen_keys dsa $pass 1024 2048 3072 4096
                 ;;
         esac
     done
