@@ -100,23 +100,23 @@ keycert_gen_keys(){
             if [ $key_format = "openssh" -a $key_type = "ed25519" ]; then
                 # "Cannot serialize Ed25519 key to openssh format".
                 (>&2 echo "Not generating $key_type key with the $key_format format.")
-            else
-                final_keycert_opts="$keycert_opts --key-size $key_size --key-format $key_format"
-                # An associated public key is also generated with same name + '.pub'.
-                key_file=${key_type}_${key_size}_${key_format}_${key_pass_type}
-                $KEYCERT_CMD $final_keycert_opts --key-file $key_file
-                # OpenSSH's tool will complain of unsafe permissions.
-                chmod 600 $key_file
-                case $key_format in
-                    openssh*)
-                        sshkeygen_tests $key_file $key_pass_type
-                        ;;
-                    putty)
-                        puttygen_tests $key_file $key_pass_type
-                        ;;
-                esac
-                rm $key_file ${key_file}.pub
+                continue
             fi
+            final_keycert_opts="$keycert_opts --key-size $key_size --key-format $key_format"
+            # An associated public key is also generated with same name + '.pub'.
+            key_file=${key_type}_${key_size}_${key_format}_${key_pass_type}
+            $KEYCERT_CMD $final_keycert_opts --key-file $key_file
+            # OpenSSH's tool will complain of unsafe permissions.
+            chmod 600 $key_file
+            case $key_format in
+                openssh*)
+                    sshkeygen_tests $key_file $key_pass_type
+                    ;;
+                putty)
+                    puttygen_tests $key_file $key_pass_type
+                    ;;
+            esac
+            rm $key_file ${key_file}.pub
         done
     done
 }
