@@ -95,7 +95,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { test_type: load }
+          - { test_type: load_dsa }
+          - { test_type: load_rsa }
+          - { test_type: load_eced }
           - { test_type: generate }
     steps:
     - uses: actions/checkout@v2
