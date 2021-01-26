@@ -24,7 +24,7 @@ ERROR_FILE="gen_keys_tests_error"
 > $ERROR_FILE
 
 # Common routines like setting password files.
-source keycert/tests/ssh_keys_test_common.sh
+source ../chevah/keycert/tests/ssh_keys_test_common.sh
 
 sort_tests_per_error(){
     local cmd_to_test=$*

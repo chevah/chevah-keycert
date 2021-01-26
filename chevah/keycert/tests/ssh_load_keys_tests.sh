@@ -35,7 +35,7 @@ TECTIA_HASHES="sha1 sha224 sha256 sha384 sha512"
 > $KEYCERT_UNEXPECTED_ERRORS_FILE
 
 # Common routines like setting password files.
-source keycert/tests/ssh_keys_test_common.sh
+source ../chevah/keycert/tests/ssh_keys_test_common.sh
 
 
 # First parameter is the private or public key file.
