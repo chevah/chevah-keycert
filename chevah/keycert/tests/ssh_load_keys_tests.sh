@@ -71,7 +71,7 @@ putty_keys_test(){
             echo "Generating $key key of type $priv_output and size $bits with $pass_type password:"
             priv_key_file="putty_${key}_${bits}_${priv_output}_${pass_type}"
             pass_file="pass_file_${pass_type}"
-            puttygen --random-device /dev/random -C "$(cat $pass_file)" --new-passphrase $pass_file \
+            puttygen --random-device /dev/random -C "$(cat $pass_file) 🚀" --new-passphrase $pass_file \
                 -t $key -O $priv_output -b $bits -o $priv_key_file
             keycert_load_key $priv_key_file $(cat $pass_file)
             # Extract and test public key in all supported formats.
@@ -116,11 +116,11 @@ openssh_keys_test(){
                     fi
                     OPENSSH_OPTS=""
                     openssh_format_set
-                    ssh-keygen -C "$(cat $pass_file)" -t $key -b $bits $OPENSSH_OPTS -f $priv_key_file -N ""
+                    ssh-keygen -C "$(cat $pass_file) 🚀" -t $key -b $bits $OPENSSH_OPTS -f $priv_key_file -N ""
                 else
                     OPENSSH_OPTS="-N $(cat $pass_file)"
                     openssh_format_set
-                    ssh-keygen -C "$(cat $pass_file)" -t $key -b $bits $OPENSSH_OPTS -f $priv_key_file
+                    ssh-keygen -C "$(cat $pass_file) 🚀" -t $key -b $bits $OPENSSH_OPTS -f $priv_key_file
                 fi
                 keycert_load_key $priv_key_file $(cat $pass_file)
                 keycert_load_key $pub_key_file
@@ -161,9 +161,9 @@ tectia_keys_test(){
                         priv_key_file=tectia_${key}_${bits}_${format}_${hash}_${fips_mode}_${pass_type}
                         pub_key_file=$priv_key_file.pub
                         if [ $pass_type = "empty" ]; then
-                            ssh-keygen-g3 -c "$(cat $pass_file)" $gen_opts -P $(pwd)/$priv_key_file
+                            ssh-keygen-g3 -c "$(cat $pass_file) 🚀" $gen_opts -P $(pwd)/$priv_key_file
                         else
-                            ssh-keygen-g3 -c "$(cat $pass_file)" $gen_opts -p $(cat $pass_file) $(pwd)/$priv_key_file
+                            ssh-keygen-g3 -c "$(cat $pass_file) 🚀" $gen_opts -p $(cat $pass_file) $(pwd)/$priv_key_file
                         fi
                         keycert_load_key $priv_key_file $(cat $pass_file)
                         keycert_load_key $pub_key_file
