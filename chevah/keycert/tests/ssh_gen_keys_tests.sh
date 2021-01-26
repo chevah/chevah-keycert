@@ -23,14 +23,8 @@ ERROR_FILE="gen_keys_tests_error"
 > $SUCCESS_FILE
 > $ERROR_FILE
 
-# Files holding passwords. Non-empty passwords MUST start with a letter.
-> pass_file_empty
-echo 'chevah' > pass_file_simple
-# Complex passwords must be at least 10 characters long.
-echo 'V^#ev1uj#kq$N' > pass_file_complex
-# No difference in testing simple and complex passwords, so we skip the former. XXX
-PASS_TYPES="empty simple complex"
-
+# Common routines like setting password files.
+source keycert/tests/ssh_keys_test_common.sh
 
 sort_tests_per_error(){
     local cmd_to_test=$*
@@ -83,7 +77,7 @@ keycert_gen_keys(){
     # Check if there is a password to be used.
     if [[ "${1:0:1}" =~ [a-zA-Z] ]]; then
         # First remaining parameter is the password, as it starts with a non-digit.
-        keycert_opts="$keycert_opts --key-password $1 --key-comment $1"
+        keycert_opts="$keycert_opts --key-password ${1} --key-comment ${1}"
         # Check password type by password length.
         if [ ${#1} -ge 10 ]; then
             key_pass_type="complex"
@@ -102,10 +96,10 @@ keycert_gen_keys(){
                 (>&2 echo "Not generating $key_type key with the $key_format format.")
                 continue
             fi
-            final_keycert_opts="$keycert_opts --key-size $key_size --key-format $key_format"
+            final_keycert_opts="${keycert_opts} --key-size $key_size --key-format $key_format"
             # An associated public key is also generated with same name + '.pub'.
             key_file=${key_type}_${key_size}_${key_format}_${key_pass_type}
-            $KEYCERT_CMD $final_keycert_opts --key-file $key_file
+            $KEYCERT_CMD ${final_keycert_opts} --key-file $key_file
             # OpenSSH's tool will complain of unsafe permissions.
             chmod 600 $key_file
             case $key_format in
