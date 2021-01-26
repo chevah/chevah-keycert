@@ -34,13 +34,8 @@ TECTIA_HASHES="sha1 sha224 sha256 sha384 sha512"
 > $KEYCERT_EXPECTED_ERRORS_FILE
 > $KEYCERT_UNEXPECTED_ERRORS_FILE
 
-# Files holding passwords.
-> pass_file_empty
-echo 'chevah' > pass_file_simple
-echo 'V^#ev1uj#kq$N' > pass_file_complex
-# No difference in testing simple and complex passwords, so we skip the former.
-PASS_TYPES="empty complex"
-
+# Common routines like setting password files.
+source keycert/tests/ssh_keys_test_common.sh
 
 
 # First parameter is the private or public key file.
