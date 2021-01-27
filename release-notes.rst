@@ -2,11 +2,13 @@ Release notes for Chevah KeyCert
 ################################
 
 
-2.0.4 - 2021-01-22
+2.0.4 - 2021-01-26
 ==================
 
 * Don't add a comment for non OpenSSH public keys as comment is not yet
   supported for those formats.
+* Make sure all errors have valid unicode text.
+* Raise a custom exception when trying to sign using a public key.
 
 
 2.0.3 - 2021-01-22

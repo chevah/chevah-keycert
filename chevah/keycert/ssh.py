@@ -1641,7 +1641,7 @@ class Key(object):
 
     def sign(self, data):
         """
-        Sign some data with this key.
+        Sign some data with this private key.
 
         SECSH-TRANS RFC 4253 Section 6.6.
 
@@ -1651,6 +1651,9 @@ class Key(object):
         @rtype: L{bytes}
         @return: A signature for the given data.
         """
+        if self.isPublic():
+            raise KeyCertException('A private key is require to sign data.')
+
         keyType = self.type()
         if keyType == 'RSA':
             sig = self._keyObject.sign(data, padding.PKCS1v15(), hashes.SHA1())
