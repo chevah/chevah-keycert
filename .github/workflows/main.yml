@@ -89,13 +89,15 @@ jobs:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 
-  keys-interop-tests:
+  keys-interop:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         config:
-          - { test_type: load }
+          - { test_type: load_dsa }
+          - { test_type: load_rsa }
+          - { test_type: load_eced }
           - { test_type: generate }
     steps:
     - uses: actions/checkout@v2

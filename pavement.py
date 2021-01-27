@@ -48,9 +48,9 @@ def test(args):
 
 @task
 @consume_args
-def test_interop_load(args):
+def test_interop_load_dsa(args):
     """
-    Run the SSH key interoperability tests for loading external keys.
+    Run the SSH key interoperability tests for loading external DSA keys.
     """
     try:
         os.mkdir('build')
@@ -60,7 +60,43 @@ def test_interop_load(args):
     exit_code = 1
     with pushd('build'):
         exit_code = call(
-            "../chevah/keycert/tests/ssh_load_keys_tests.sh", shell=True)
+            "../chevah/keycert/tests/ssh_load_keys_tests.sh dsa", shell=True)
+
+    sys.exit(exit_code)
+
+@task
+@consume_args
+def test_interop_load_rsa(args):
+    """
+    Run the SSH key interoperability tests for loading external RSA keys.
+    """
+    try:
+        os.mkdir('build')
+    except OSError:
+        """Already exists"""
+
+    exit_code = 1
+    with pushd('build'):
+        exit_code = call(
+            "../chevah/keycert/tests/ssh_load_keys_tests.sh rsa", shell=True)
+
+    sys.exit(exit_code)
+
+@task
+@consume_args
+def test_interop_load_eced(args):
+    """
+    Run the SSH key interoperability tests for loading external ECDSA and Ed25519 keys.
+    """
+    try:
+        os.mkdir('build')
+    except OSError:
+        """Already exists"""
+
+    exit_code = 1
+    with pushd('build'):
+        exit_code = call(
+            "../chevah/keycert/tests/ssh_load_keys_tests.sh ecdsa ed25519", shell=True)
 
     sys.exit(exit_code)
 
