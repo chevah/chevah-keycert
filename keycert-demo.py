@@ -6,6 +6,11 @@ Usage:
 * ssh-gen-key - Generate key, various formats, with or without password.
 * ssh-load-key  - Load key, various formats, with or without password.
 
+Exit code:
+* 1 - Expected error raised by keycert
+* 2 - Unexpected error raised by keycert
+* 3 - Error raised by demo code itself.
+
 """
 from __future__ import print_function, unicode_literals
 # Fix namespaced package import.
@@ -60,23 +65,27 @@ def ssh_load_key(options, open_method=None):
     password = options.password
 
     if not path:
-        return (1, 'No path specified', None)
+        return print_error('No path specified')
 
-    with open_method(path, 'rb') as file_handler:
-        key_content = file_handler.read().strip()
-        key = Key.fromString(key_content, passphrase=password)
+    try:
+        with open_method(path, 'rb') as file_handler:
+            key_content = file_handler.read().strip()
+    except Exception:
+        return (3, 'Key path not found', None)
 
-        if key.isPublic():
-            to_string = key.toString(output_format)
-        else:
-            to_string = key.toString(output_format)
+    key = Key.fromString(key_content, passphrase=password)
 
-        result = '%r\nKey type %s\n\n%s' % (
-            key,
-            Key.getKeyFormat(key_content),
-            to_string,
-            )
-        return result
+    if key.isPublic():
+        to_string = key.toString(output_format)
+    else:
+        to_string = key.toString(output_format)
+
+    result = '%r\nKey type %s\n\n%s' % (
+        key,
+        Key.getKeyFormat(key_content),
+        to_string,
+        )
+    return result
 
 def ssh_sign_data(options):
     """
@@ -88,16 +97,20 @@ def ssh_sign_data(options):
     data = options.data
 
     if not path:
-        return (1, 'No path specified', None)
+        return print_error('No path specified')
 
-    with open(path, 'rb') as file_handler:
-        key_content = file_handler.read().strip()
-        key = Key.fromString(key_content)
-        if key.isPublic():
-            raise AssertionError('A private key must be used.')
+    try:
+        with open(path, 'rb') as file_handler:
+            key_content = file_handler.read().strip()
+    except Exception:
+        return (3, 'Key path not found', None)
 
-        return key.sign(
-            data.encode('utf-8')).encode('base64').replace('\n', '')
+    key = Key.fromString(key_content)
+    if key.isPublic():
+        raise AssertionError('A private key must be used.')
+
+    return key.sign(
+        data.encode('utf-8')).encode('base64').replace('\n', '')
 
 
 def ssh_verify_data(options):
@@ -111,10 +124,14 @@ def ssh_verify_data(options):
     data = options.data
 
     if not path:
-        return (1, 'No path specified', None)
+        return print_error('No path specified')
 
-    with open(path, 'rb') as file_handler:
-        key_content = file_handler.read().strip()
+    try:
+        with open(path, 'rb') as file_handler:
+            key_content = file_handler.read().strip()
+    except Exception:
+        return (3, 'Key path not found', None)
+
         key = Key.fromString(key_content)
 
         if not key.verify(
@@ -212,7 +229,12 @@ options = parser.parse_args()
 
 try:
     result = options.handler(options)
+    if result is None:
+        print_error('EXPECTED DEMO SCRIPT ERROR')
+        sys.exit(3)
+
     print(result)
+
 except KeyCertException as error:
     print_error('EXPECTED ERROR')
     print_error(error)
