@@ -22,7 +22,7 @@ KEYCERT_DEMOSCRIPT_ERRORS_FILE="load_keys_tests_errors_demoscript"
 # puttygen supports key type "rsa1", but it's not used here.
 # private-sshcom doesn't work with ed25519 and ecdsa in puttygen 0.74.
 PUTTY_PRIV_OUTPUTs="private private-openssh private-openssh-new private-sshcom"
-PUTTY_PUB_OUTPUTs="public public-openssh"
+PUTTY_PUB_OUTPUTS="public public-openssh"
 
 # The "default" option is more of a placeholder for not using an extra format.
 OPENSSH_FORMATS="default RFC4716 PKCS8 PEM"
@@ -81,9 +81,11 @@ putty_keys_test(){
             puttygen --random-device /dev/random -C "$(cat $pass_file) 🚀" --new-passphrase $pass_file \
                 -t $KEY -O $PUTTY_PRIV_OUTPUT -b $bits -o $priv_key_file
             keycert_load_key $priv_key_file $(cat $pass_file)
-            # Extract and test public key in all supported formats, but just for complex passwords.
-            if [ $pass_type = "complex" ]; then
-                for pub_output in $PUTTY_PUB_OUTPUTs; do
+            # Extract/test public key in all supported public formats, but only when:
+            #    1) The private key is in Putty's own format.
+            #    2) The complex password is used.
+            if [ "$PUTTY_PRIV_OUTPUT" = "private" -a $pass_type = "complex" ]; then
+                for pub_output in $PUTTY_PUB_OUTPUTS; do
                     pub_key_file="putty_${KEY}_${bits}_${pub_output}"
                     puttygen --old-passphrase $pass_file -O $pub_output -o $pub_key_file $priv_key_file
                     keycert_load_key $pub_key_file
