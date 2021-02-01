@@ -81,13 +81,15 @@ putty_keys_test(){
             puttygen --random-device /dev/random -C "$(cat $pass_file) 🚀" --new-passphrase $pass_file \
                 -t $key -O $priv_output -b $bits -o $priv_key_file
             keycert_load_key $priv_key_file $(cat $pass_file)
-            # Extract and test public key in all supported formats.
-            for pub_output in $PUTTY_PUB_OUTPUTs; do
-                pub_key_file="putty_${key}_${bits}_${pub_output}"
-                puttygen --old-passphrase $pass_file -O $pub_output -o $pub_key_file $priv_key_file
-                keycert_load_key $pub_key_file
-                rm $pub_key_file
-            done
+            # Extract and test public key in all supported formats, but just for complex passwords.
+            if [ $pass_type = "complex" ]; then
+                for pub_output in $PUTTY_PUB_OUTPUTs; do
+                    pub_key_file="putty_${key}_${bits}_${pub_output}"
+                    puttygen --old-passphrase $pass_file -O $pub_output -o $pub_key_file $priv_key_file
+                    keycert_load_key $pub_key_file
+                    rm $pub_key_file
+                done
+            fi
             rm $priv_key_file
         done
     done
