@@ -38,7 +38,12 @@ TECTIA_HASHES="sha1 sha224 sha256 sha384 sha512"
 
 # Common routines like setting password files.
 source ../chevah/keycert/tests/ssh_common_test_inc.sh
-
+# FIXME:50
+# Unicode comments are not supported.
+COMM_TYPES="empty simple complex"
+# FIXME:52
+# Comments starting with a blank are not supported.
+COMM_TYPES="empty simple"
 
 # First parameter is the private or public key file.
 # Second (optional) parameter is the password.
@@ -159,6 +164,7 @@ tectia_keys_test(){
     local gen_opts
 
     for bits in $bit_lengths; do
+        # FIXME:53
         # Tectia tests are currently disabled.
         break
         for pass_type in $PASS_TYPES; do

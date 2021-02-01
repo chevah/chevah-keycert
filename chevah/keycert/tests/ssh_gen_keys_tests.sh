@@ -141,6 +141,7 @@ for pass_type in $PASS_TYPES; do
     rm pass_file_${pass_type}
 done
 
+# FIXME:51:
 # This doesn't support testing type of comments independently yet.
 rm comm_file_*
 
