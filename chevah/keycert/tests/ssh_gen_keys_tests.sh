@@ -24,7 +24,7 @@ ERROR_FILE="gen_keys_tests_error"
 > $ERROR_FILE
 
 # Common routines like setting password files.
-source ../chevah/keycert/tests/ssh_keys_test_common.sh
+source ../chevah/keycert/tests/ssh_common_test_inc.sh
 
 sort_tests_per_error(){
     local cmd_to_test=$*
@@ -140,6 +140,9 @@ for pass_type in $PASS_TYPES; do
 
     rm pass_file_${pass_type}
 done
+
+# This doesn't support testing type of comments independently yet.
+rm comm_file_*
 
 echo -ne "\nCombinations tested: "
 cat $SUCCESS_FILE $ERROR_FILE | wc -l

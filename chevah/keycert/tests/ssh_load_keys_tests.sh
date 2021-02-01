@@ -37,7 +37,7 @@ TECTIA_HASHES="sha1 sha224 sha256 sha384 sha512"
 > $KEYCERT_DEMOSCRIPT_ERRORS_FILE
 
 # Common routines like setting password files.
-source ../chevah/keycert/tests/ssh_keys_test_common.sh
+source ../chevah/keycert/tests/ssh_common_test_inc.sh
 
 
 # First parameter is the private or public key file.
@@ -75,24 +75,28 @@ putty_keys_test(){
 
     for bits in $bit_lengths; do
         for pass_type in $PASS_TYPES; do
-            echo "Generating $KEY key of type $PUTTY_PRIV_OUTPUT and size $bits with $pass_type password:"
-            priv_key_file="putty_${KEY}_${bits}_${PUTTY_PRIV_OUTPUT}_${pass_type}"
-            pass_file="pass_file_${pass_type}"
-            puttygen --random-device /dev/random -C "$(cat $pass_file) 🚀" --new-passphrase $pass_file \
-                -t $KEY -O $PUTTY_PRIV_OUTPUT -b $bits -o $priv_key_file
-            keycert_load_key $priv_key_file $(cat $pass_file)
-            # Extract/test public key in all supported public formats, but only when:
-            #    1) The private key is in Putty's own format.
-            #    2) The complex password is used.
-            if [ "$PUTTY_PRIV_OUTPUT" = "private" -a $pass_type = "complex" ]; then
-                for pub_output in $PUTTY_PUB_OUTPUTS; do
-                    pub_key_file="putty_${KEY}_${bits}_${pub_output}"
-                    puttygen --old-passphrase $pass_file -O $pub_output -o $pub_key_file $priv_key_file
-                    keycert_load_key $pub_key_file
-                    rm $pub_key_file
-                done
-            fi
-            rm $priv_key_file
+            for comm_type in $COMM_TYPES; do
+                echo -n "Generating $KEY key of type $PUTTY_PRIV_OUTPUT and size $bits"
+                echo " with $pass_type password and $comm_type comment:"
+                priv_key_file="putty_${KEY}_${bits}_${PUTTY_PRIV_OUTPUT}_${pass_type}pass_${comm_type}comm"
+                pass_file="pass_file_${pass_type}"
+                comm_file="comm_file_${comm_type}"
+                puttygen --random-device /dev/random -C "$(cat $comm_file)" --new-passphrase $pass_file \
+                    -t $KEY -O $PUTTY_PRIV_OUTPUT -b $bits -o $priv_key_file
+                keycert_load_key $priv_key_file $(cat $pass_file)
+                # Extract/test public key in all supported public formats, but only when:
+                #    1) The private key is in Putty's own format.
+                #    2) The complex password is used.
+                if [ "$PUTTY_PRIV_OUTPUT" = "private" -a $pass_type = "complex" ]; then
+                    for pub_output in $PUTTY_PUB_OUTPUTS; do
+                        pub_key_file="putty_${KEY}_${bits}_${pub_output}_${pass_type}pass_${comm_type}comm"
+                        puttygen --old-passphrase $pass_file -O $pub_output -o $pub_key_file $priv_key_file
+                        keycert_load_key $pub_key_file
+                        rm $pub_key_file
+                    done
+                fi
+                rm $priv_key_file
+            done
         done
     done
 }
@@ -114,28 +118,31 @@ openssh_keys_test(){
     for bits in $bit_lengths; do
         for pass_type in $PASS_TYPES; do
             pass_file="pass_file_${pass_type}"
-            for format in $OPENSSH_FORMATS; do
-                priv_key_file=openssh_${KEY}_${bits}_${format}_${pass_type}
-                pub_key_file=$priv_key_file.pub
-                if [ $pass_type = "empty" ]; then
-                    if [ $format = "PKCS8" ]; then
-                        if [ $KEY = "ecdsa" -o $KEY = "rsa" -o $KEY = "dsa" ]; then
-                            # Minimum 5 characters required for these combinations.
-                            (>&2 echo "Not generating $format $KEY key with $pass_type password.")
-                            continue
+            for comm_type in $COMM_TYPES; do
+                comm_file="comm_file_${comm_type}"
+                for format in $OPENSSH_FORMATS; do
+                    priv_key_file=openssh_${KEY}_${bits}_${format}_${pass_type}pass_${comm_type}comm
+                    pub_key_file=$priv_key_file.pub
+                    if [ $pass_type = "empty" ]; then
+                        if [ $format = "PKCS8" ]; then
+                            if [ $KEY = "ecdsa" -o $KEY = "rsa" -o $KEY = "dsa" ]; then
+                                # Minimum 5 characters required for these combinations.
+                                (>&2 echo "Not generating $format $KEY key with $pass_type password.")
+                                continue
+                            fi
                         fi
+                        OPENSSH_OPTS=""
+                        openssh_format_set
+                        ssh-keygen -C "$(cat $comm_file)" -t $KEY -b $bits $OPENSSH_OPTS -f $priv_key_file -N ""
+                    else
+                        OPENSSH_OPTS="-N $(cat $pass_file)"
+                        openssh_format_set
+                        ssh-keygen -C "$(cat $comm_file)" -t $KEY -b $bits $OPENSSH_OPTS -f $priv_key_file
                     fi
-                    OPENSSH_OPTS=""
-                    openssh_format_set
-                    ssh-keygen -C "$(cat $pass_file) 🚀" -t $KEY -b $bits $OPENSSH_OPTS -f $priv_key_file -N ""
-                else
-                    OPENSSH_OPTS="-N $(cat $pass_file)"
-                    openssh_format_set
-                    ssh-keygen -C "$(cat $pass_file) 🚀" -t $KEY -b $bits $OPENSSH_OPTS -f $priv_key_file
-                fi
-                keycert_load_key $priv_key_file $(cat $pass_file)
-                keycert_load_key $pub_key_file
-                rm $priv_key_file $pub_key_file
+                    keycert_load_key $priv_key_file $(cat $pass_file)
+                    keycert_load_key $pub_key_file
+                    rm $priv_key_file $pub_key_file
+                done
             done
         done
     done
@@ -152,33 +159,38 @@ tectia_keys_test(){
     local gen_opts
 
     for bits in $bit_lengths; do
+        # Tectia tests are currently disabled.
+        break
         for pass_type in $PASS_TYPES; do
             pass_file="pass_file_${pass_type}"
-            for format in $TECTIA_FORMATS; do
-                for fips_mode in nofips fips; do
-                    if [ $fips_mode = "fips" -a $KEY = "ed25519" ]; then
-                        continue
-                    elif [ $fips_mode = "fips" -a $pass_type = "empty" ]; then
-                        continue
-                    elif [ $fips_mode = "fips" -a "${format%openssh2*}" = "" ]; then
-                        # "OpenSSH2 keys operations are forbidden when in FIPS mode."
-                        continue
-                    fi
-                    for hash in $TECTIA_HASHES; do
-                        gen_opts="-b $bits -t $KEY --key-format $format --key-hash $hash"
-                        if [ $fips_mode = "fips" ]; then
-                            gen_opts="$gen_opts --fips-mode"
+            for comm_type in $COMM_TYPES; do
+                comm_file="comm_file_${comm_type}"
+                for format in $TECTIA_FORMATS; do
+                    for fips_mode in nofips fips; do
+                        if [ $fips_mode = "fips" -a $KEY = "ed25519" ]; then
+                            continue
+                        elif [ $fips_mode = "fips" -a $pass_type = "empty" ]; then
+                            continue
+                        elif [ $fips_mode = "fips" -a "${format%openssh2*}" = "" ]; then
+                            # "OpenSSH2 keys operations are forbidden when in FIPS mode."
+                            continue
                         fi
-                        priv_key_file=tectia_${KEY}_${bits}_${format}_${hash}_${fips_mode}_${pass_type}
-                        pub_key_file=$priv_key_file.pub
-                        if [ $pass_type = "empty" ]; then
-                            ssh-keygen-g3 -c "$(cat $pass_file) 🚀" $gen_opts -P $(pwd)/$priv_key_file
-                        else
-                            ssh-keygen-g3 -c "$(cat $pass_file) 🚀" $gen_opts -p $(cat $pass_file) $(pwd)/$priv_key_file
-                        fi
-                        keycert_load_key $priv_key_file $(cat $pass_file)
-                        keycert_load_key $pub_key_file
-                        rm $priv_key_file $pub_key_file
+                        for hash in $TECTIA_HASHES; do
+                            gen_opts="-b $bits -t $KEY --key-format $format --key-hash $hash"
+                            if [ $fips_mode = "fips" ]; then
+                                gen_opts="$gen_opts --fips-mode"
+                            fi
+                            priv_key_file=tectia_${KEY}_${bits}_${format}_${hash}_${fips_mode}_${pass_type}_${comm_type}
+                            pub_key_file=$priv_key_file.pub
+                            if [ $pass_type = "empty" ]; then
+                                ssh-keygen-g3 -c "$(cat $comm_file)" $gen_opts -P $(pwd)/$priv_key_file
+                            else
+                                ssh-keygen-g3 -c "$(cat $comm_file)" $gen_opts -p $(cat $pass_file) $(pwd)/$priv_key_file
+                            fi
+                            keycert_load_key $priv_key_file $(cat $pass_file)
+                            keycert_load_key $pub_key_file
+                            rm $priv_key_file $pub_key_file
+                        done
                     done
                 done
             done
@@ -239,26 +251,26 @@ for KEY in $KEY_TYPES; do
     esac
 done
 
-# # Tectia's ssh-keygen-g3 tests.
-# for KEY in $KEY_TYPES; do
-#     case $KEY in
-#         "ed25519")
-#             tectia_keys_test "256"
-#             ;;
-#         "ecdsa")
-#             tectia_keys_test "256 384 521"
-#             ;;
-#         "rsa")
-#             tectia_keys_test "512 1024 2048 3072 4096 8192"
-#             ;;
-#         "dsa")
-#             tectia_keys_test "1024 2048 3072 4096"
-#             ;;
-#     esac
-# done
+# Tectia's ssh-keygen-g3 tests.
+for KEY in $KEY_TYPES; do
+    case $KEY in
+        "ed25519")
+            tectia_keys_test "256"
+            ;;
+        "ecdsa")
+            tectia_keys_test "256 384 521"
+            ;;
+        "rsa")
+            tectia_keys_test "512 1024 2048 3072 4096 8192"
+            ;;
+        "dsa")
+            tectia_keys_test "1024 2048 3072 4096"
+            ;;
+    esac
+done
 
 # Cleanup test files.
-rm pass_file_*
+rm pass_file_* comm_file_*
 
 echo -ne "\nCombinations tested: "
 cat $KEYCERT_NO_ERRORS_FILE $KEYCERT_EXPECTED_ERRORS_FILE $KEYCERT_UNEXPECTED_ERRORS_FILE | wc -l

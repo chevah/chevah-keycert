@@ -10,3 +10,9 @@
 echo 'chevah' > pass_file_simple
 echo 'V^#~(?)%&\/+-1.,="*`!>|<:$;@N' > pass_file_complex
 PASS_TYPES="empty simple complex"
+
+> comm_file_empty
+echo 'chevah' > comm_file_simple
+echo '    V^#~(?)%&\/+-1.    ,="*`!>|<:$;@N' > comm_file_complex
+echo 'âåæāăąǎǟȁȃȧȺαἀащѝѱҡҩժݐሀᠠァぁ妈媽✯➾♤♟⚅🂠⚇𓀀😀☠️👩🏿‍🦽🦺⛈🪐🥂🏁🏴‍☠️🐈‍⬛' > comm_file_unicode
+COMM_TYPES="empty simple complex unicode"
