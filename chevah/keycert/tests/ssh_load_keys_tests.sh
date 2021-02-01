@@ -75,16 +75,16 @@ putty_keys_test(){
 
     for bits in $bit_lengths; do
         for pass_type in $PASS_TYPES; do
-            echo "Generating $key key of type $priv_output and size $bits with $pass_type password:"
-            priv_key_file="putty_${key}_${bits}_${priv_output}_${pass_type}"
+            echo "Generating $KEY key of type $PUTTY_PRIV_OUTPUT and size $bits with $pass_type password:"
+            priv_key_file="putty_${KEY}_${bits}_${PUTTY_PRIV_OUTPUT}_${pass_type}"
             pass_file="pass_file_${pass_type}"
             puttygen --random-device /dev/random -C "$(cat $pass_file) 🚀" --new-passphrase $pass_file \
-                -t $key -O $priv_output -b $bits -o $priv_key_file
+                -t $KEY -O $PUTTY_PRIV_OUTPUT -b $bits -o $priv_key_file
             keycert_load_key $priv_key_file $(cat $pass_file)
             # Extract and test public key in all supported formats, but just for complex passwords.
             if [ $pass_type = "complex" ]; then
                 for pub_output in $PUTTY_PUB_OUTPUTs; do
-                    pub_key_file="putty_${key}_${bits}_${pub_output}"
+                    pub_key_file="putty_${KEY}_${bits}_${pub_output}"
                     puttygen --old-passphrase $pass_file -O $pub_output -o $pub_key_file $priv_key_file
                     keycert_load_key $pub_key_file
                     rm $pub_key_file
@@ -113,23 +113,23 @@ openssh_keys_test(){
         for pass_type in $PASS_TYPES; do
             pass_file="pass_file_${pass_type}"
             for format in $OPENSSH_FORMATS; do
-                priv_key_file=openssh_${key}_${bits}_${format}_${pass_type}
+                priv_key_file=openssh_${KEY}_${bits}_${format}_${pass_type}
                 pub_key_file=$priv_key_file.pub
                 if [ $pass_type = "empty" ]; then
                     if [ $format = "PKCS8" ]; then
-                        if [ $key = "ecdsa" -o $key = "rsa" -o $key = "dsa" ]; then
+                        if [ $KEY = "ecdsa" -o $KEY = "rsa" -o $KEY = "dsa" ]; then
                             # Minimum 5 characters required for these combinations.
-                            (>&2 echo "Not generating $format $key key with $pass_type password.")
+                            (>&2 echo "Not generating $format $KEY key with $pass_type password.")
                             continue
                         fi
                     fi
                     OPENSSH_OPTS=""
                     openssh_format_set
-                    ssh-keygen -C "$(cat $pass_file) 🚀" -t $key -b $bits $OPENSSH_OPTS -f $priv_key_file -N ""
+                    ssh-keygen -C "$(cat $pass_file) 🚀" -t $KEY -b $bits $OPENSSH_OPTS -f $priv_key_file -N ""
                 else
                     OPENSSH_OPTS="-N $(cat $pass_file)"
                     openssh_format_set
-                    ssh-keygen -C "$(cat $pass_file) 🚀" -t $key -b $bits $OPENSSH_OPTS -f $priv_key_file
+                    ssh-keygen -C "$(cat $pass_file) 🚀" -t $KEY -b $bits $OPENSSH_OPTS -f $priv_key_file
                 fi
                 keycert_load_key $priv_key_file $(cat $pass_file)
                 keycert_load_key $pub_key_file
@@ -154,7 +154,7 @@ tectia_keys_test(){
             pass_file="pass_file_${pass_type}"
             for format in $TECTIA_FORMATS; do
                 for fips_mode in nofips fips; do
-                    if [ $fips_mode = "fips" -a $key = "ed25519" ]; then
+                    if [ $fips_mode = "fips" -a $KEY = "ed25519" ]; then
                         continue
                     elif [ $fips_mode = "fips" -a $pass_type = "empty" ]; then
                         continue
@@ -163,11 +163,11 @@ tectia_keys_test(){
                         continue
                     fi
                     for hash in $TECTIA_HASHES; do
-                        gen_opts="-b $bits -t $key --key-format $format --key-hash $hash"
+                        gen_opts="-b $bits -t $KEY --key-format $format --key-hash $hash"
                         if [ $fips_mode = "fips" ]; then
                             gen_opts="$gen_opts --fips-mode"
                         fi
-                        priv_key_file=tectia_${key}_${bits}_${format}_${hash}_${fips_mode}_${pass_type}
+                        priv_key_file=tectia_${KEY}_${bits}_${format}_${hash}_${fips_mode}_${pass_type}
                         pub_key_file=$priv_key_file.pub
                         if [ $pass_type = "empty" ]; then
                             ssh-keygen-g3 -c "$(cat $pass_file) 🚀" $gen_opts -P $(pwd)/$priv_key_file
@@ -187,20 +187,20 @@ tectia_keys_test(){
 
 
 # Putty's puttygen tests.
-for key in $KEY_TYPES; do
-    for priv_output in $PUTTY_PRIV_OUTPUTs; do
-        if [ $key = "ed25519" -a $priv_output = "private-openssh-new" ]; then
+for KEY in $KEY_TYPES; do
+    for PUTTY_PRIV_OUTPUT in $PUTTY_PRIV_OUTPUTs; do
+        if [ $KEY = "ed25519" -a $PUTTY_PRIV_OUTPUT = "private-openssh-new" ]; then
             # No need to force new OpenSSH format for ED25519 keys.
             continue
         fi
-        if [ $priv_output = "private-sshcom" ]; then
-            if [ $key = "ed25519" -o $key = "ecdsa" ]; then
+        if [ $PUTTY_PRIV_OUTPUT = "private-sshcom" ]; then
+            if [ $KEY = "ed25519" -o $KEY = "ecdsa" ]; then
                 # Not working in puttygen 0.74.
                 continue
             fi
         fi
         # Test specific numbers of bits per key type.
-        case $key in
+        case $KEY in
             "ed25519")
                 putty_keys_test "256"
                 ;;
@@ -219,8 +219,8 @@ for key in $KEY_TYPES; do
 done
 
 # OpenSSH's ssh-keygen tests.
-for key in $KEY_TYPES; do
-    case $key in
+for KEY in $KEY_TYPES; do
+    case $KEY in
         "ed25519")
             openssh_keys_test "256"
             ;;
@@ -238,8 +238,8 @@ for key in $KEY_TYPES; do
 done
 
 # # Tectia's ssh-keygen-g3 tests.
-# for key in $KEY_TYPES; do
-#     case $key in
+# for KEY in $KEY_TYPES; do
+#     case $KEY in
 #         "ed25519")
 #             tectia_keys_test "256"
 #             ;;
