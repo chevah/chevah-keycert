@@ -17,6 +17,7 @@ KEYCERT_CMD="../build-keycert/bin/python ../keycert-demo.py"
 KEYCERT_NO_ERRORS_FILE="load_keys_tests_errors_none"
 KEYCERT_EXPECTED_ERRORS_FILE="load_keys_tests_errors_expected"
 KEYCERT_UNEXPECTED_ERRORS_FILE="load_keys_tests_errors_unexpected"
+KEYCERT_DEMOSCRIPT_ERRORS_FILE="load_keys_tests_errors_demoscript"
 
 # puttygen supports key type "rsa1", but it's not used here.
 # private-sshcom doesn't work with ed25519 and ecdsa in puttygen 0.74.
@@ -33,6 +34,7 @@ TECTIA_HASHES="sha1 sha224 sha256 sha384 sha512"
 > $KEYCERT_NO_ERRORS_FILE
 > $KEYCERT_EXPECTED_ERRORS_FILE
 > $KEYCERT_UNEXPECTED_ERRORS_FILE
+> $KEYCERT_DEMOSCRIPT_ERRORS_FILE
 
 # Common routines like setting password files.
 source ../chevah/keycert/tests/ssh_keys_test_common.sh
@@ -53,8 +55,13 @@ keycert_load_key(){
         echo $1 >> $KEYCERT_NO_ERRORS_FILE
     elif [ $keycert_err_code -eq 1 ]; then
         echo $1 >> $KEYCERT_EXPECTED_ERRORS_FILE
-    else
+    elif [ $keycert_err_code -eq 2 ]; then
         echo $1 >> $KEYCERT_UNEXPECTED_ERRORS_FILE
+    elif [ $keycert_err_code -eq 3 ]; then
+        echo $1 >> $KEYCERT_DEMOSCRIPT_ERRORS_FILE
+    else
+        (>&2 echo "Unexpected error code: $keycert_err_code")
+        exit 42
     fi
 }
 
@@ -256,6 +263,11 @@ echo -ne "\nCombinations with no errors: "
 cat $KEYCERT_NO_ERRORS_FILE | wc -l
 cat $KEYCERT_NO_ERRORS_FILE
 rm $KEYCERT_NO_ERRORS_FILE
+
+echo -ne "\nCombinations with demo script errors: "
+cat $KEYCERT_DEMOSCRIPT_ERRORS_FILE | wc -l
+cat $KEYCERT_DEMOSCRIPT_ERRORS_FILE
+rm $KEYCERT_DEMOSCRIPT_ERRORS_FILE
 
 echo -ne "\nCombinations with expected errors: "
 cat $KEYCERT_EXPECTED_ERRORS_FILE | wc -l
