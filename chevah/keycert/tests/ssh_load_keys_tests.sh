@@ -21,7 +21,7 @@ KEYCERT_DEMOSCRIPT_ERRORS_FILE="load_keys_tests_errors_demoscript"
 
 # puttygen supports key type "rsa1", but it's not used here.
 # private-sshcom doesn't work with ed25519 and ecdsa in puttygen 0.74.
-PUTTY_PRIV_OUTPUTs="private private-openssh private-openssh-new private-sshcom"
+PUTTY_PRIV_OUTPUTS="private private-openssh private-openssh-new private-sshcom"
 PUTTY_PUB_OUTPUTS="public public-openssh"
 
 # The "default" option is more of a placeholder for not using an extra format.
@@ -190,7 +190,7 @@ tectia_keys_test(){
 
 # Putty's puttygen tests.
 for KEY in $KEY_TYPES; do
-    for PUTTY_PRIV_OUTPUT in $PUTTY_PRIV_OUTPUTs; do
+    for PUTTY_PRIV_OUTPUT in $PUTTY_PRIV_OUTPUTS; do
         if [ $KEY = "ed25519" -a $PUTTY_PRIV_OUTPUT = "private-openssh-new" ]; then
             # No need to force new OpenSSH format for ED25519 keys.
             continue
