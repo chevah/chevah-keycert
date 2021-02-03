@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+2.0.5 - 2021-02-03
+==================
+
+* SSH.com private key is experted as bytes.
+
+
 2.0.4 - 2021-01-26
 ==================
 

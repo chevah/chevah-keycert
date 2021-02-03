@@ -2198,7 +2198,7 @@ class Key(object):
         lines.extend(textwrap.wrap(blob, 70))
 
         lines.append('---- END SSH2 ENCRYPTED PRIVATE KEY ----')
-        return '\n'.join(lines)
+        return '\n'.join(lines).encode('ascii')
 
     @classmethod
     def _fromString_PRIVATE_PUTTY(cls, data, passphrase):
