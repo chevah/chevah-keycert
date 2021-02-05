@@ -19,7 +19,7 @@ import struct
 import textwrap
 
 import bcrypt
-from cryptography.exceptions import InvalidSignature
+from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import (
@@ -956,12 +956,15 @@ class Key(object):
         @type k: L{bytes}
         """
 
-        if k is None:
-            keyObject = ed25519.Ed25519PublicKey.from_public_bytes(a)
-        else:
-            keyObject = ed25519.Ed25519PrivateKey.from_private_bytes(k)
+        try:
+            if k is None:
+                keyObject = ed25519.Ed25519PublicKey.from_public_bytes(a)
+            else:
+                keyObject = ed25519.Ed25519PrivateKey.from_private_bytes(k)
 
-        return cls(keyObject)
+            return cls(keyObject)
+        except UnsupportedAlgorithm:
+            raise BadKeyError('Ed25519 keys are not supported.')
 
     def __init__(self, keyObject):
         """

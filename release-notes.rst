@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+2.0.6 - 2021-02-05
+==================
+
+* Raise a dedicated error when ED keys are not supported.
+
+
 2.0.5 - 2021-02-03
 ==================
 
