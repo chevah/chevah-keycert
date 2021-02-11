@@ -87,3 +87,32 @@ jobs:
       run: sh ./brink.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+
+  keys-interop:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { test_type: load_dsa }
+          - { test_type: load_rsa }
+          - { test_type: load_eced }
+          - { test_type: generate }
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache build
+      uses: actions/cache@v2
+      with:
+        path: |
+          build-keycert
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+
+    - name: Deps
+      run: |
+        sudo apt-get --quiet install putty-tools
+        ./brink.sh deps
+
+    - name: Test
+      run: ./brink.sh test_interop_${{ matrix.config.test_type }}

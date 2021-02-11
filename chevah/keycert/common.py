@@ -1,5 +1,6 @@
 # Copyright (c) Twisted Matrix Laboratories.
 # See LICENSE for details.
+
 """
 Common functions for the all classes from this package.
 
@@ -7,43 +8,34 @@ Forked from twisted.conch.ssh.common
 """
 
 from __future__ import absolute_import, division
-from Crypto import Util
 
 import struct
-import sys
+import itertools
 
-_PY3 = sys.version_info > (3,)
+from cryptography.utils import int_from_bytes, int_to_bytes
 
-if _PY3:  # pragma: no cover
-    long = int
-    unicode = str
-    izip = zip
+# So we can import from this module
+long = long
+izip = itertools.izip
 
-    def native_string(s):
-        return s.decode("ascii")
 
-    def iterbytes(originalBytes):
-        for i in range(len(originalBytes)):
-            yield originalBytes[i:i + 1]
-else:
-    import itertools
-    # So we can import from this module
-    long = long
-    unicode = unicode
-    izip = itertools.izip
+def iterbytes(originalBytes):
+    return originalBytes
 
-    def native_string(s):
-        return s
 
-    def iterbytes(originalBytes):
-        return originalBytes
+def native_string(s):
+    return s
+
 
 
 def NS(t):
     """
     net string
     """
+    if isinstance(t, unicode):
+        t = t.encode("utf-8")
     return struct.pack('!L', len(t)) + t
+
 
 
 def getNS(s, count=1):
@@ -59,14 +51,16 @@ def getNS(s, count=1):
     return tuple(ns) + (s[c:],)
 
 
+
 def MP(number):
     if number == 0:
         return b'\000' * 4
     assert number > 0
-    bn = Util.number.long_to_bytes(number)
-    if ord(bn[0]) & 128:
+    bn = int_to_bytes(number)
+    if ord(bn[0:1]) & 128:
         bn = b'\000' + bn
     return struct.pack('>L', len(bn)) + bn
+
 
 
 def getMP(data, count=1):
@@ -81,65 +75,109 @@ def getMP(data, count=1):
     c = 0
     for i in range(count):
         length, = struct.unpack('>L', data[c:c + 4])
-        mp.append(Util.number.bytes_to_long(data[c + 4:c + 4 + length]))
+        mp.append(int_from_bytes(data[c + 4:c + 4 + length], 'big'))
         c += 4 + length
     return tuple(mp) + (data[c:],)
 
 
-def _MPpow(x, y, z):
+
+def ffs(c, s):
     """
-    Return the MP version of C{(x ** y) % z}.
+    first from second
+    goes through the first list, looking for items in the second, returns the first one
     """
-    return MP(pow(x, y, z))
+    for i in c:
+        if i in s:
+            return i
 
 
-getMP_py = getMP
-MP_py = MP
-_MPpow_py = _MPpow
-pyPow = pow
 
+def force_unicode(value):
+    """
+    Decode the `value` to unicode.
 
-def _fastgetMP(data, count=1):
-    mp = []
-    c = 0
-    for i in range(count):
-        length = struct.unpack('!L', data[c:c + 4])[0]
-        mp.append(
-            long(gmpy.mpz(data[c + 4:c + 4 + length][::-1] + b'\x00', 256)))
-        c += length + 4
-    return tuple(mp) + (data[c:],)
+    It will try to extract the message from an exception.
 
+    In case there are encoding errors when converting the invalid characters
+    are replaced.
+    """
+    import errno
 
-def _fastMP(i):
-    i2 = gmpy.mpz(i).binary()[::-1]
-    return struct.pack('!L', len(i2)) + i2
+    def str_or_repr(value):
 
+        if isinstance(value, unicode):
+            return value
 
-def _fastMPpow(x, y, z=None):
-    r = pyPow(gmpy.mpz(x), y, z).binary()[::-1]
-    return struct.pack('!L', len(r)) + r
+        try:
+            return unicode(value, encoding='utf-8')
+        except Exception:
+            """
+            Not UTF-8 encoded value.
+            """
 
+        try:
+            return unicode(value, encoding='windows-1252')
+        except Exception:
+            """
+            Not Windows encoded value.
+            """
 
-def install():
-    global getMP, MP, _MPpow
-    getMP = _fastgetMP
-    MP = _fastMP
-    _MPpow = _fastMPpow
+        try:
+            return unicode(str(value), encoding='utf-8', errors='replace')
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            """
+            Not UTF-8 encoded value.
+            """
 
-    # XXX: We override builtin pow so that PyCrypto can benefit from gmpy too.
-    def _fastpow(x, y, z=None, mpz=gmpy.mpz):
-        if type(x) in (long, int):
-            x = mpz(x)
-        return pyPow(x, y, z)
-    if not _PY3:
-        import __builtin__
-        __builtin__.pow = _fastpow  # Ugly way of patching pow.
-    else:
-        __builtins__['pow'] = _fastpow
+        try:
+            return unicode(
+                str(value), encoding='windows-1252', errors='replace')
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            pass
 
+        # No luck with str, try repr()
+        return unicode(repr(value), encoding='windows-1252', errors='replace')
 
-try:
-    import gmpy
-    install()
-except ImportError:
-    pass
+    if value is None:
+        return u'None'
+
+    if isinstance(value, unicode):
+        return value
+
+    if isinstance(value, EnvironmentError) and value.errno:
+        # IOError, OSError, WindowsError.
+        code = value.errno
+        message = value.strerror
+        # Convert to Unix message to help with testing.
+        if code == errno.ENOENT:
+            # On Windows it is:
+            # The system cannot find the file specified.
+            message = b'No such file or directory'
+        if code == errno.EEXIST:
+            # On Windows it is:
+            # Cannot create a file when that file already exists
+            message = b'File exists'
+        if code == errno.EBADF:
+            # On AIX: Bad file number
+            message = b'Bad file descriptor'
+
+        if code and message:
+            if value.filename:
+                return "[Errno %s] %s: '%s'" % (
+                    code,
+                    str_or_repr(message),
+                    str_or_repr(value.filename),
+                    )
+            return '[Errno %s] %s.' % (code, str_or_repr(message))
+
+    if isinstance(value, Exception):
+        try:
+            details = str(value)
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            details = getattr(value, 'message', '')
+        result = str_or_repr(details)
+        if result:
+            return result
+        return str_or_repr(repr(value))
+
+    return str_or_repr(value)

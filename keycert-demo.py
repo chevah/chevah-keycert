@@ -1,10 +1,23 @@
 """
 Demo command line for chevah-keycert.
+
+Usage:
+
+* ssh-gen-key - Generate key, various formats, with or without password.
+* ssh-load-key  - Load key, various formats, with or without password.
+
+Exit code:
+* 1 - Expected error raised by keycert
+* 2 - Unexpected error raised by keycert
+* 3 - Error raised by demo code itself.
+
 """
 from __future__ import print_function, unicode_literals
 # Fix namespaced package import.
 import chevah
 import os
+import sys
+import traceback
 chevah.__path__.insert(0, os.path.join(os.getcwd(), 'chevah'))
 
 import argparse
@@ -21,6 +34,14 @@ from chevah.keycert.ssl import (
     generate_self_signed_parser,
     generate_ssl_self_signed_certificate,
     )
+
+
+def print_error(*args, **kwargs):
+    """
+    Print to standard error.
+    """
+    print(*args, file=sys.stderr, **kwargs)
+
 
 def ssh_load_key(options, open_method=None):
     """
@@ -40,18 +61,84 @@ def ssh_load_key(options, open_method=None):
         open_method = open
 
     path = options.file
+    output_format = options.type
+    password = options.password
 
     if not path:
-        return (1, 'No path specified', None)
+        return print_error('No path specified')
 
     try:
         with open_method(path, 'rb') as file_handler:
             key_content = file_handler.read().strip()
-            key = Key.fromString(key_content)
-            result = '%r\nKey type %s' % (key, Key.getKeyFormat(key_content))
-            return result
-    except Exception as error:
-            return str(error)
+    except Exception:
+        return (3, 'Key path not found', None)
+
+    key = Key.fromString(key_content, passphrase=password)
+
+    if key.isPublic():
+        to_string = key.toString(output_format)
+    else:
+        to_string = key.toString(output_format)
+
+    result = '%r\nKey type %s\n\n%s' % (
+        key,
+        Key.getKeyFormat(key_content),
+        to_string,
+        )
+    return result
+
+def ssh_sign_data(options):
+    """
+    Sign data with SSH private key.
+    """
+    key = None
+
+    path = options.file
+    data = options.data
+
+    if not path:
+        return print_error('No path specified')
+
+    try:
+        with open(path, 'rb') as file_handler:
+            key_content = file_handler.read().strip()
+    except Exception:
+        return (3, 'Key path not found', None)
+
+    key = Key.fromString(key_content)
+    if key.isPublic():
+        raise AssertionError('A private key must be used.')
+
+    return key.sign(
+        data.encode('utf-8')).encode('base64').replace('\n', '')
+
+
+def ssh_verify_data(options):
+    """
+    Verify data with SSH public key.
+    """
+    key = None
+
+    path = options.file
+    signature = options.signature
+    data = options.data
+
+    if not path:
+        return print_error('No path specified')
+
+    try:
+        with open(path, 'rb') as file_handler:
+            key_content = file_handler.read().strip()
+    except Exception:
+        return (3, 'Key path not found', None)
+
+        key = Key.fromString(key_content)
+
+        if not key.verify(
+                signature.decode('base64'), data.encode('utf-8')):
+            return 'INVALID Signature'
+
+        return 'VALID Signature'
 
 
 parser = argparse.ArgumentParser(prog='PROG')
@@ -61,8 +148,6 @@ subparser = parser.add_subparsers(
 sub = generate_ssh_key_parser(subparser, 'ssh-gen-key')
 sub.set_defaults(handler=generate_ssh_key)
 
-sub = generate_ssh_key_parser(subparser, 'ssh-load-key')
-sub.set_defaults(handler=ssh_load_key)
 
 sub = subparser.add_parser(
     'ssh-load-key',
@@ -73,7 +158,61 @@ sub.add_argument(
     metavar='FILE',
     help='Path the the SSH key to load.'
     )
+sub.add_argument(
+    '--type',
+    metavar='[openssh|openssh_v1|putty|sshcom]',
+    default='openssh_v1',
+    help='Format use to show the loaded key.'
+    )
+sub.add_argument(
+    '--password',
+    metavar='PASSWORD',
+    default=None,
+    help='Option password or commented used when re-encoding the loaded key.'
+    )
 sub.set_defaults(handler=ssh_load_key)
+
+
+sub = subparser.add_parser(
+    'ssh-sign-data',
+    help='Sign data using SSH private key.',
+    )
+sub.add_argument(
+    '--file',
+    metavar='FILE',
+    help='Path the the SSH private key to use.'
+    )
+sub.add_argument(
+    '--data',
+    metavar='PLAIN-DATA',
+    default='test-value',
+    help='Data that is signed.'
+    )
+sub.set_defaults(handler=ssh_sign_data)
+
+sub = subparser.add_parser(
+    'ssh-verify-data',
+    help='Verify data using SSH public key.',
+    )
+sub.add_argument(
+    '--file',
+    metavar='FILE',
+    help='Path the the SSH public key to load.'
+    )
+sub.add_argument(
+    '--signature',
+    metavar='BASE64',
+    default='',
+    help='Signed data to be verified.'
+    )
+sub.add_argument(
+    '--data',
+    metavar='PLAIN-DATA',
+    default='test-value',
+    help='Data for which the signature is verified.'
+    )
+sub.set_defaults(handler=ssh_verify_data)
+
 
 sub = generate_csr_parser(subparser, 'ssl-csr')
 sub.set_defaults(handler=lambda o: (
@@ -90,7 +229,17 @@ options = parser.parse_args()
 
 try:
     result = options.handler(options)
+    if result is None:
+        print_error('EXPECTED DEMO SCRIPT ERROR')
+        sys.exit(3)
+
     print(result)
+
 except KeyCertException as error:
-    print(error)
+    print_error('EXPECTED ERROR')
+    print_error(error)
     sys.exit(1)
+except Exception as error:
+    print_error(traceback.format_exc())
+    print_error('UNEXPECTED ERROR. A bug should be reported.',)
+    sys.exit(2)

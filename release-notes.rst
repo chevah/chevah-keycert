@@ -2,6 +2,48 @@ Release notes for Chevah KeyCert
 ################################
 
 
+2.0.5 - 2021-02-03
+==================
+
+* SSH.com private key is experted as bytes.
+
+
+2.0.4 - 2021-01-26
+==================
+
+* Don't add a comment for non OpenSSH public keys as comment is not yet
+  supported for those formats.
+* Make sure all errors have valid unicode text.
+* Raise a custom exception when trying to sign using a public key.
+
+
+2.0.3 - 2021-01-22
+==================
+
+* Show an error when loading DSA keys with unsupported sizes.
+  It was not fixed in 2.0.2.
+
+
+2.0.2 - 2021-01-21
+==================
+
+* Show an error when loading DSA keys with unsupported sizes.
+
+
+2.0.1 - 2021-01-12
+==================
+
+* Add ECDSA/ED support for PKCS#8 format.
+
+
+2.0.0 - 2021-01-05
+==================
+
+* Initial migration to cryptography.
+* Add support for ECDSA and ED25519.
+* SSH.com file format only support RSA and DSA key for now.
+
+
 1.12.5 - 2020-07-20
 ===================
 

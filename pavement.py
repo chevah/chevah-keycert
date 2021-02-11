@@ -4,9 +4,10 @@ Build file for the project.
 import os
 import re
 import sys
+from subprocess import call
 from pkg_resources import load_entry_point
 
-from paver.easy import call_task, consume_args, task
+from paver.easy import call_task, consume_args, task, pushd
 
 EXTRA_PYPI_INDEX = 'https://pypi.chevah.com/simple'
 
@@ -30,19 +31,92 @@ def deps():
 
 
 @task
-def test():
+@consume_args
+def test(args):
     """
     Run the test tests.
     """
     import nose
 
     nose_args = ['nosetests']
-    nose_args.extend([
-        ])
+    nose_args.extend(args)
     nose_code = nose.run(argv=nose_args)
     nose_code = 0 if nose_code else 1
 
     sys.exit(nose_code)
+
+
+@task
+@consume_args
+def test_interop_load_dsa(args):
+    """
+    Run the SSH key interoperability tests for loading external DSA keys.
+    """
+    try:
+        os.mkdir('build')
+    except OSError:
+        """Already exists"""
+
+    exit_code = 1
+    with pushd('build'):
+        exit_code = call(
+            "../chevah/keycert/tests/ssh_load_keys_tests.sh dsa", shell=True)
+
+    sys.exit(exit_code)
+
+@task
+@consume_args
+def test_interop_load_rsa(args):
+    """
+    Run the SSH key interoperability tests for loading external RSA keys.
+    """
+    try:
+        os.mkdir('build')
+    except OSError:
+        """Already exists"""
+
+    exit_code = 1
+    with pushd('build'):
+        exit_code = call(
+            "../chevah/keycert/tests/ssh_load_keys_tests.sh rsa", shell=True)
+
+    sys.exit(exit_code)
+
+@task
+@consume_args
+def test_interop_load_eced(args):
+    """
+    Run the SSH key interoperability tests for loading external ECDSA and Ed25519 keys.
+    """
+    try:
+        os.mkdir('build')
+    except OSError:
+        """Already exists"""
+
+    exit_code = 1
+    with pushd('build'):
+        exit_code = call(
+            "../chevah/keycert/tests/ssh_load_keys_tests.sh ecdsa ed25519", shell=True)
+
+    sys.exit(exit_code)
+
+@task
+@consume_args
+def test_interop_generate(args):
+    """
+    Run the SSH key interoperability tests for internally-generated keys.
+    """
+    try:
+        os.mkdir('build')
+    except OSError:
+        """Already exists"""
+
+    exit_code = 1
+    with pushd('build'):
+        exit_code = call(
+            "../chevah/keycert/tests/ssh_gen_keys_tests.sh", shell=True)
+
+    sys.exit(exit_code)
 
 
 @task
