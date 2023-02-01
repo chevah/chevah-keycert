@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '2.0.6'
+VERSION = '2.1.0'
 
 
 class NoseTestCommand(TestCommand):
@@ -118,14 +118,14 @@ setup(
             'future',
 
             'pocketlint ==1.4.4.c10',
-            'pyflakes == 1.6.0',
+            'pyflakes >= 1.5.0',
             'pycodestyle ==2.3.1',
 
             'nose',
             'remote_pdb',
             'mock',
             'bunch',
-            'coverage',
+            'coverage==4.5.4',
             'codecov',
             'unidecode',
             'ld',

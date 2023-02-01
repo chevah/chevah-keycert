@@ -235,13 +235,13 @@ class Key(object):
             type = cls._guessStringType(data)
         if type is None:
             raise BadKeyError(
-                'Cannot guess the type for %r' % force_unicode(data[:80]))
+                'Cannot guess the type for %s' % force_unicode(data[:80]))
 
         try:
             method = getattr(cls, '_fromString_%s' % type.upper(), None)
             if method is None:
                 raise BadKeyError(
-                    'no _fromString method for %r' % force_unicode(type[:30]))
+                    'no _fromString method for %s' % force_unicode(type[:30]))
             if method.__code__.co_argcount == 2:  # no passphrase
                 if passphrase:
                     raise BadKeyError('key not encrypted')
@@ -368,7 +368,7 @@ class Key(object):
             curveName, q, rest = common.getNS(rest, 2)
             if curveName != _secToNist[curve.name.encode('ascii')]:
                 raise BadKeyError(
-                    'ECDSA curve name %r does not match key type %r' % (
+                    'ECDSA curve name %s does not match key type %s' % (
                         force_unicode(curveName), force_unicode(keyType)))
             privateValue, rest = common.getMP(rest)
             return cls._fromECEncodedPoint(
@@ -381,7 +381,7 @@ class Key(object):
             return cls._fromEd25519Components(a, k=k)
         else:
             raise BadKeyError(
-                'Unknown blob type: %r' % force_unicode(keyType[:30]))
+                'Unknown blob type: %s' % force_unicode(keyType[:30]))
 
 
     @classmethod
@@ -458,7 +458,7 @@ class Key(object):
                 keySize = int(cipher[3:6]) // 8
                 ivSize = blockSize
             else:
-                raise BadKeyError('unknown encryption type %r' % (
+                raise BadKeyError('unknown encryption type %s' % (
                     force_unicode(cipher),))
             if kdf == b'bcrypt':
                 salt, rest = common.getNS(kdfOptions)
@@ -469,7 +469,7 @@ class Key(object):
                     ignore_few_rounds=True)
             else:
                 raise BadKeyError(
-                    'unknown KDF type %r' % (force_unicode(kdf),))
+                    'unknown KDF type %s' % (force_unicode(kdf),))
             if (len(encPrivKeyList) % blockSize) != 0:
                 raise BadKeyError('bad padding')
             decryptor = Cipher(
@@ -481,7 +481,7 @@ class Key(object):
                 decryptor.update(encPrivKeyList) + decryptor.finalize())
         else:
             if kdf != b'none':
-                raise BadKeyError('private key specifies KDF %r but no '
+                raise BadKeyError('private key specifies KDF %s but no '
                                   'cipher' % (force_unicode(kdf),))
             privKeyList = encPrivKeyList
         check1 = struct.unpack('!L', privKeyList[:4])[0]
@@ -542,7 +542,7 @@ class Key(object):
                 cipher, ivdata = cipherIVInfo.rstrip().split(b',', 1)
             except ValueError:
                 raise BadKeyError(
-                    'invalid DEK-info %r' % (force_unicode(lines[2]),))
+                    'invalid DEK-info %s' % (force_unicode(lines[2]),))
 
             if cipher in (b'AES-128-CBC', b'AES-256-CBC'):
                 algorithmClass = algorithms.AES
@@ -556,7 +556,7 @@ class Key(object):
                     raise BadKeyError('DES encrypted key with a bad IV')
             else:
                 raise BadKeyError(
-                    'unknown encryption type %r' % (force_unicode(cipher),))
+                    'unknown encryption type %s' % (force_unicode(cipher),))
 
             # Extract keyData for decoding
             iv = bytes(bytearray([int(ivdata[i:i + 2], 16)
@@ -648,7 +648,7 @@ class Key(object):
         elif sexp[1][0] == b'rsa-pkcs1-sha1':
             return cls._fromRSAComponents(n=kd[b'n'], e=kd[b'e'])
         else:
-            raise BadKeyError('unknown lsh key type %r' % (
+            raise BadKeyError('unknown lsh key type %s' % (
                 force_unicode(sexp[1][0][:30]),))
 
     @classmethod
@@ -686,7 +686,7 @@ class Key(object):
 
         else:
             raise BadKeyError(
-                'unknown lsh key type %r' % (force_unicode(sexp[1][0][:30]),))
+                'unknown lsh key type %s' % (force_unicode(sexp[1][0][:30]),))
 
     @classmethod
     def _fromString_AGENTV3(cls, data):
@@ -736,7 +736,7 @@ class Key(object):
             return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q, u=u)
         else:  # pragma: no cover
             raise BadKeyError(
-                "unknown key type %r" % (force_unicode(keyType[:30]),))
+                "unknown key type %s" % (force_unicode(keyType[:30]),))
 
     @classmethod
     def _guessStringType(cls, data):
@@ -1996,7 +1996,7 @@ class Key(object):
         magic_number = struct.unpack('>I', blob[:4])[0]
         if magic_number != SSHCOM_MAGIC_NUMBER:
             raise BadKeyError(
-                'Bad magic number for SSH.com key %r' % (
+                'Bad magic number for SSH.com key %s' % (
                     force_unicode(magic_number),))
         struct.unpack('>I', blob[4:8])[0]  # Ignore value for total size.
         type_signature, rest = common.getNS(blob[8:])
@@ -2031,7 +2031,7 @@ class Key(object):
             key_data = decryptor.update(encrypted_blob) + decryptor.finalize()
         else:
             raise BadKeyError(
-                'Encryption method not supported: %r' % (
+                'Encryption method not supported: %s' % (
                     force_unicode(cipher_type[:30])))
 
         try:
@@ -2275,7 +2275,7 @@ class Key(object):
             b'ssh-ed25519',
                 ] and key_type not in _curveTable:
             raise BadKeyError(
-                'Unsupported key type: %r' % force_unicode(key_type[:30]))
+                'Unsupported key type: %s' % force_unicode(key_type[:30]))
 
         encryption_type = lines[1][11:].strip().lower()
 
@@ -2284,7 +2284,7 @@ class Key(object):
                 raise BadKeyError('PuTTY key not encrypted')
         elif encryption_type != b'aes256-cbc':
             raise BadKeyError(
-                'Unsupported encryption type: %r' % force_unicode(
+                'Unsupported encryption type: %s' % force_unicode(
                     encryption_type[:30]))
 
         comment = lines[2][9:].strip()
@@ -2299,7 +2299,7 @@ class Key(object):
 
         if public_type.lower() != key_type:
             raise BadKeyError(
-                'Mismatch key type. Header has %r, public has %r' % (
+                'Mismatch key type. Header has %s, public has %s' % (
                     force_unicode(key_type[:30]),
                     force_unicode(public_type[:30])))
 
@@ -2369,7 +2369,7 @@ class Key(object):
             curveName, q, _ = common.getNS(public_payload, 2)
             if curveName != _secToNist[curve.name.encode('ascii')]:
                 raise BadKeyError(
-                    'ECDSA curve name %r does not match key type %r' % (
+                    'ECDSA curve name %s does not match key type %s' % (
                         force_unicode(curveName),
                         force_unicode(key_type)))
 
