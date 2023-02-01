@@ -1,6 +1,11 @@
 Release notes for Chevah KeyCert
 ################################
 
+2.1.1 - 2023-02-01
+==================
+
+* In errors enclose input values in quotes.
+
 
 2.1.0 - 2023-02-01
 ==================

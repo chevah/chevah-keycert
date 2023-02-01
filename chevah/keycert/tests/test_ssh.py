@@ -892,7 +892,7 @@ class TestKey(ChevahTestCase):
         content = mk.ascii() * 100
 
         self.assertBadKey(
-            content, 'Cannot guess the type for %s' % content[:80])
+            content, 'Cannot guess the type for "%s"' % content[:80])
 
     def test_fromString_struct_errors(self):
         """
@@ -1074,8 +1074,8 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         badBlob = common.NS('ssh-\xbd\xbd\xbd')
         self.assertBadKey(
             badBlob,
-            "Cannot guess the type for "
-            r"\x00\x00\x00" + '\n' + r"ssh-\xc2\xbd\xc2\xbd\xc2\xbd"
+            'Cannot guess the type for "'
+            r'\x00\x00\x00' + '\n' + r'ssh-\xc2\xbd\xc2\xbd\xc2\xbd"'
             )
 
     def test_fromString_PRIVATE_BLOB(self):
@@ -1758,7 +1758,7 @@ B2/56wAAAi4AAAA3
 ---- END SSH2 ENCRYPTED PRIVATE KEY ----"""
 
         self.assertBadKey(
-            content, 'Bad magic number for SSH.com key 124778987')
+            content, 'Bad magic number for SSH.com key "124778987"')
 
     def test_fromString_PRIVATE_OPENSSH_bad_key_type(self):
         """
@@ -1768,7 +1768,7 @@ B2/56wAAAi4AAAA3
 P2/56wAAAi4AAAA3aWYtbW9kbntzaW==
 ---- END SSH2 ENCRYPTED PRIVATE KEY ----"""
 
-        self.assertBadKey(content, 'Unknown SSH.com key type if-modn{si')
+        self.assertBadKey(content, 'Unknown SSH.com key type "if-modn{si"')
 
     def test_fromString_PRIVATE_OPENSSH_bad_structure(self):
         """
@@ -2341,8 +2341,8 @@ IGNORED
         self.assertBadKey(
             content,
             (
-                'Mismatch key type. Header has ssh-rsa,'
-                ' public has ssh-dss'),
+                'Mismatch key type. Header has "ssh-rsa",'
+                ' public has "ssh-dss"'),
             )
 
     def test_fromString_PRIVATE_PUTTY_hmac_mismatch(self):
@@ -2356,8 +2356,8 @@ IGNORED
         self.assertBadKey(
             content,
             'HMAC mismatch: file declare '
-            '7630b86be300c6302ce1390fb264487bb61e67ca, actual is '
-            '7630b86be300c6302ce1390fb264487bb61e67ce',
+            '"7630b86be300c6302ce1390fb264487bb61e67ca", actual is '
+            '"7630b86be300c6302ce1390fb264487bb61e67ce"',
             )
 
     def test_fromString_PRIVATE_OpenSSH_DSA_no_password(self):

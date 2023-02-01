@@ -27,6 +27,13 @@ class BadKeyError(KeyCertException):
     """
 
 
+class BadSignatureAlgorithmError(KeyCertException):
+    """
+    Raised when a public key signature algorithm name isn't defined for this
+    public key format.
+    """
+
+
 class EncryptedKeyError(BadKeyError):
     """
     Raised when an encrypted key is presented to fromString/fromFile without
