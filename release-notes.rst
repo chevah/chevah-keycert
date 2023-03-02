@@ -1,6 +1,12 @@
 Release notes for Chevah KeyCert
 ################################
 
+2.1.2 - 2023-03-01
+==================
+
+* Just an update to test our internal pypi server..
+
+
 2.1.1 - 2023-02-01
 ==================
 
