@@ -30,7 +30,7 @@ from chevah.keycert.tests import keydata
 from chevah.keycert.tests.helpers import CommandLineMixin
 
 
-OPENSSH_RSA_PRIVATE = ('''-----BEGIN RSA PRIVATE KEY-----
+OPENSSH_RSA_PRIVATE = (b'''-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTKAPkPAWzlu5BRHcmA
 u0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk+X6Lc4+lAfp1YxCR
 9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcjRToF6/jpLwIDAQAB
@@ -48,7 +48,7 @@ LqHYUobNanxB+7Msi4f3gYyuKdOGnWHqD2U4HcLdMQ==
 
 # Converted from old format using OpenSSH without a password.
 # $ ssh-keygen -e -p -f OPENSSH_RSA_PRIVATE.key
-OPENSSH_V1_RSA_PRIVATE = ('''-----BEGIN OPENSSH PRIVATE KEY-----
+OPENSSH_V1_RSA_PRIVATE = (b'''-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAIEAuH1erUmpA0gemaL8oC7H9YgvT97SR3j0ygD5DwFs5buQUR3JgLtL
 k45+xoa6cW441jMA1TdDsc8O7XiNDhCFZKZ5XMjOi+ZhpPl+i3OPpQH6dWMQkfaPfhVzFk
@@ -67,7 +67,7 @@ f0cwBWxmvutBv4le8AAAAAAQID
 
 # Converted from old format using OpenSSH with `test` as password.
 # $ ssh-keygen -e -p -f OPENSSH_RSA_PRIVATE.key
-OPENSSH_V1_ENCRYPTED_RSA_PRIVATE = ('''-----BEGIN OPENSSH PRIVATE KEY-----
+OPENSSH_V1_ENCRYPTED_RSA_PRIVATE = (b'''-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABCO5u6Nze
 CPk3e+vkL9MmvWAAAAEAAAAAEAAACXAAAAB3NzaC1yc2EAAAADAQABAAAAgQC4fV6tSakD
 SB6ZovygLsf1iC9P3tJHePTKAPkPAWzlu5BRHcmAu0uTjn7GhrpxbjjWMwDVN0Oxzw7teI
@@ -91,13 +91,13 @@ OPENSSH_RSA_PUBLIC = (
     'p1YxCR9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcjRToF6/jpLw=='
     )
 
-PKCS1_RSA_PUBLIC = ('''-----BEGIN RSA PUBLIC KEY-----
+PKCS1_RSA_PUBLIC = (b'''-----BEGIN RSA PUBLIC KEY-----
 MIGJAoGBALh9Xq1JqQNIHpmi/KAux/WIL0/e0kd49MoA+Q8BbOW7kFEdyYC7S5OO
 fsaGunFuONYzANU3Q7HPDu14jQ4QhWSmeVzIzovmYaT5fotzj6UB+nVjEJH2j34V
 cxZIk/faNHAj7guFZjGdhSV28A7ksPP1B5HTIqKbByNFOgXr+OkvAgMBAAE=
 -----END RSA PUBLIC KEY-----''')
 
-OPENSSH_DSA_PRIVATE = ('''-----BEGIN DSA PRIVATE KEY-----
+OPENSSH_DSA_PRIVATE = (b'''-----BEGIN DSA PRIVATE KEY-----
 MIIBugIBAAKBgQDOwkKGnmVZ9bRl7ZCn/wSELV0n5ELsqVZFOtBpHleEOitsvjEB
 BbTKX0fZ83vaMVnJFVw3DQSbi192krvk909Y6h3HVO2MKBRd9t29fr26VvCZQOxR
 4fzkPuL+Px4+ShqE171sOzsuEDt0Mkxf152QxrA2vPowkj7fmzRH5xgDTQIVAIYb
@@ -112,7 +112,7 @@ oTedYsAyi80L8phYBN4=
 
 # Converted from old format using OpenSSH without a password.
 # $ ssh-keygen -e -p -f OPENSSH_DSA_PRIVATE.key
-OPENSSH_V1_DSA_PRIVATE = ('''-----BEGIN OPENSSH PRIVATE KEY-----
+OPENSSH_V1_DSA_PRIVATE = (b'''-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABsQAAAAdzc2gtZH
 NzAAAAgQDOwkKGnmVZ9bRl7ZCn/wSELV0n5ELsqVZFOtBpHleEOitsvjEBBbTKX0fZ83va
 MVnJFVw3DQSbi192krvk909Y6h3HVO2MKBRd9t29fr26VvCZQOxR4fzkPuL+Px4+ShqE17
@@ -136,7 +136,7 @@ AAAAAAECAw==
 
 # Converted from old format using OpenSSH with `test` as the password.
 # $ ssh-keygen -e -p -f OPENSSH_DSA_PRIVATE.key
-OPENSSH_V1_ENCRYPTED_DSA_PRIVATE = ('''-----BEGIN OPENSSH PRIVATE KEY-----
+OPENSSH_V1_ENCRYPTED_DSA_PRIVATE = (b'''-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABCR+DbQqo
 2salfbIh0HztjEAAAAEAAAAAEAAAGxAAAAB3NzaC1kc3MAAACBAM7CQoaeZVn1tGXtkKf/
 BIQtXSfkQuypVkU60GkeV4Q6K2y+MQEFtMpfR9nze9oxWckVXDcNBJuLX3aSu+T3T1jqHc
@@ -172,14 +172,14 @@ OPENSSH_DSA_PUBLIC = (
     )
 
 # Same key as OPENSSH_RSA_PUBLIC, wrapped at 70 characters.
-SSHCOM_RSA_PUBLIC = """---- BEGIN SSH2 PUBLIC KEY ----
+SSHCOM_RSA_PUBLIC = b"""---- BEGIN SSH2 PUBLIC KEY ----
 AAAAB3NzaC1yc2EAAAADAQABAAAAgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTKAPkPAW
 zlu5BRHcmAu0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk+X6Lc4+lAfp1
 YxCR9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcjRToF6/jpLw==
 ---- END SSH2 PUBLIC KEY ----"""
 
 # Same key as OPENSSH_DSA_PUBLIC.
-SSHCOM_DSA_PUBLIC = """---- BEGIN SSH2 PUBLIC KEY ----
+SSHCOM_DSA_PUBLIC = b"""---- BEGIN SSH2 PUBLIC KEY ----
 AAAAB3NzaC1kc3MAAACBAM7CQoaeZVn1tGXtkKf/BIQtXSfkQuypVkU60GkeV4Q6K2y+MQ
 EFtMpfR9nze9oxWckVXDcNBJuLX3aSu+T3T1jqHcdU7YwoFF323b1+vbpW8JlA7FHh/OQ+
 4v4/Hj5KGoTXvWw7Oy4QO3QyTF/XnZDGsDa8+jCSPt+bNEfnGANNAAAAFQCGG/5Y0lHJaO
@@ -192,7 +192,7 @@ wbOKNOoZxfORwNbzzHf+IpzyBTxxQJcYS6QgbtSi2tUY1WeJxmq/xkMoVLgpmpK6NN+NuB
 ---- END SSH2 PUBLIC KEY ----"""
 
 # Same as OPENSSH_RSA_PRIVATE
-SSHCOM_RSA_PRIVATE_NO_PASSWORD = """---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----
+SSHCOM_RSA_PRIVATE_NO_PASSWORD = b"""---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----
 P2/56wAAAi4AAAA3aWYtbW9kbntzaWdue3JzYS1wa2NzMS1zaGExfSxlbmNyeXB0e3JzYS
 1wa2NzMXYyLW9hZXB9fQAAAARub25lAAAB3wAAAdsAAAARAQABAAAD+QgeXEA78ZgXYGFa
 bsuNw3bmm05ke9RxWjRZfpxOb8BcVKl9KhTkKRtBNgr+es3rD809SVgYqn30oq+Ikox/5Z
@@ -208,7 +208,7 @@ IxCBtFhGvqIWJwZIAjf6tTKMUk6bjG9p7JpetXUsTiDB
 
 # Same as OPENSSH_RSA_PRIVATE and with 'chevah' password.
 SSHCOM_RSA_PRIVATE_WITH_PASSWORD = (
-    """---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----
+    b"""---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----
 P2/56wAAAjMAAAA3aWYtbW9kbntzaWdue3JzYS1wa2NzMS1zaGExfSxlbmNyeXB0e3JzYS
 1wa2NzMXYyLW9hZXB9fQAAAAgzZGVzLWNiYwAAAeAqUfFcnQIi4HEOAvAoJp8nIsw3WZMc
 MhWiSWenwY0tKZPxngo1s2p8QkIclw0Tu7twvtG2zABb4x/jfyqLPc5brvBdYiAXMg1xPS
@@ -222,7 +222,7 @@ BsDKrM0FEXc8bFp39e8BNRbikCD61zfFp7B1s64y1mmqJkDYe2pH7FUA9mbC3vv6YM9tsY
 fWGAGt8dHGIMM6MrzZYr8xJLwdmPDwAtFt2GR1Y8M0vnw6WtoL4=
 ---- END SSH2 ENCRYPTED PRIVATE KEY ----""")
 
-SSHCOM_DSA_PRIVATE_NO_PASSWORD = """---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----
+SSHCOM_DSA_PRIVATE_NO_PASSWORD = b"""---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----
 P2/56wAAAgIAAAAmZGwtbW9kcHtzaWdue2RzYS1uaXN0LXNoYTF9LGRoe3BsYWlufX0AAA
 AEbm9uZQAAAcQAAAHAAAAAAAAAA/nOwkKGnmVZ9bRl7ZCn/wSELV0n5ELsqVZFOtBpHleE
 OitsvjEBBbTKX0fZ83vaMVnJFVw3DQSbi192krvk909Y6h3HVO2MKBRd9t29fr26VvCZQO
@@ -237,7 +237,7 @@ jaI9ca/1iLavocQ218Zk204gAAAJlOTtpG/rmhN51iwDKLzQvymFgE3g==
 
 # Same as OPENSSH_RSA_PRIVATE
 # Make sure it has Windows newlines.
-PUTTY_RSA_PRIVATE_NO_PASSWORD = """PuTTY-User-Key-File-2: ssh-rsa\r
+PUTTY_RSA_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-2: ssh-rsa\r
 Encryption: none\r
 Comment: imported-openssh-key\r
 Public-Lines: 4\r
@@ -257,7 +257,7 @@ LeJRfIoup2uJ8XbRMz/Kdiz/bS6h2FKGzWp8QfuzLIuH94GMrinThp1h6g9lOB3C\r
 Private-MAC: 7630b86be300c6302ce1390fb264487bb61e67ce"""
 
 # Same as OPENSSH_RSA_PRIVATE, with 'chevah' password.
-PUTTY_RSA_PRIVATE_WITH_PASSWORD = """PuTTY-User-Key-File-2: ssh-rsa\r
+PUTTY_RSA_PRIVATE_WITH_PASSWORD = b"""PuTTY-User-Key-File-2: ssh-rsa\r
 Encryption: aes256-cbc\r
 Comment: imported-openssh-key\r
 Public-Lines: 4\r
@@ -277,7 +277,7 @@ J8IuFywygVI4PbRs98v9Dg==\r
 Private-MAC: 3ffe2587759ff8f50c6acdcad44f62a67e88ef2b"""
 
 # This is the same key as OPENSSH_DSA_PRIVATE
-PUTTY_DSA_PRIVATE_NO_PASSWORD = """PuTTY-User-Key-File-2: ssh-dss\r
+PUTTY_DSA_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-2: ssh-dss\r
 Encryption: none\r
 Comment: imported-openssh-key\r
 Public-Lines: 10\r
@@ -295,7 +295,7 @@ Private-Lines: 1\r
 AAAAFE5O2kb+uaE3nWLAMovNC/KYWATe\r
 Private-MAC: 1b98c142780beaa5555ad5c23a0469e36f24b6f9"""
 
-PUTTY_ED25519_PRIVATE_NO_PASSWORD = """PuTTY-User-Key-File-2: ssh-ed25519\r
+PUTTY_ED25519_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-2: ssh-ed25519\r
 Encryption: none\r
 Comment: ed25519-key-20210106\r
 Public-Lines: 2\r
@@ -307,7 +307,7 @@ Private-MAC: ead2308fe2f6be87941f17e9d61ede28da2cde8a\r
 """
 
 # Password is: chevah
-PUTTY_ED25519_PRIVATE_WITH_PASSWORD = """PuTTY-User-Key-File-2: ssh-ed25519\r
+PUTTY_ED25519_PRIVATE_WITH_PASSWORD = b"""PuTTY-User-Key-File-2: ssh-ed25519\r
 Encryption: aes256-cbc\r
 Comment: ed25519-key-20210106\r
 Public-Lines: 2\r
@@ -319,7 +319,7 @@ Private-MAC: 6b753f6180f48d153a700c6734b46b2e52f1f7e9\r
 """
 
 PUTTY_ECDSA_SHA2_NISTP256_PRIVATE_NO_PASSWORD = (
-"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp256\r
+b"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp256\r
 Encryption: none\r
 Comment: ecdsa-key-20210106\r
 Public-Lines: 3\r
@@ -332,7 +332,7 @@ Private-MAC: a84b17c5dead6fed8f474406929312d45c096dfc\r
 """)
 
 PUTTY_ECDSA_SHA2_NISTP384_PRIVATE_NO_PASSWORD = (
-"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp384\r
+b"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp384\r
 Encryption: none\r
 Comment: ecdsa-key-20210106\r
 Public-Lines: 3\r
@@ -346,7 +346,7 @@ Private-MAC: 1464df777d20427e2b99adb148ed4b8a1a839409\r
 """)
 
 PUTTY_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD = (
-"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp521\r
+b"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp521\r
 Encryption: none\r
 Comment: ecdsa-key-20210106\r
 Public-Lines: 4\r
@@ -578,9 +578,9 @@ class TestKey(ChevahTestCase):
         Test that the type method returns the correct type for an object.
         """
         self.assertEqual(keys.Key(self.rsaObj).type(), 'RSA')
-        self.assertEqual(keys.Key(self.rsaObj).sshType(), 'ssh-rsa')
+        self.assertEqual(keys.Key(self.rsaObj).sshType(), b'ssh-rsa')
         self.assertEqual(keys.Key(self.dsaObj).type(), 'DSA')
-        self.assertEqual(keys.Key(self.dsaObj).sshType(), 'ssh-dss')
+        self.assertEqual(keys.Key(self.dsaObj).sshType(), b'ssh-dss')
         self.assertRaises(RuntimeError, keys.Key(None).type)
         self.assertRaises(RuntimeError, keys.Key(None).sshType)
         self.assertRaises(RuntimeError, keys.Key(self).type)
@@ -892,7 +892,7 @@ class TestKey(ChevahTestCase):
         content = mk.ascii() * 100
 
         self.assertBadKey(
-            content, 'Cannot guess the type for \'%s\'' % content[:80])
+            content, 'Cannot guess the type for "%s"' % content[:80])
 
     def test_fromString_struct_errors(self):
         """
@@ -1074,8 +1074,8 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         badBlob = common.NS('ssh-\xbd\xbd\xbd')
         self.assertBadKey(
             badBlob,
-            "Cannot guess the type for "
-            r"'\x00\x00\x00\nssh-\xc2\xbd\xc2\xbd\xc2\xbd'"
+            'Cannot guess the type for "'
+            r'\x00\x00\x00' + '\n' + r'ssh-\xc2\xbd\xc2\xbd\xc2\xbd"'
             )
 
     def test_fromString_PRIVATE_BLOB(self):
@@ -1758,7 +1758,7 @@ B2/56wAAAi4AAAA3
 ---- END SSH2 ENCRYPTED PRIVATE KEY ----"""
 
         self.assertBadKey(
-            content, 'Bad magic number for SSH.com key 124778987')
+            content, 'Bad magic number for SSH.com key "124778987"')
 
     def test_fromString_PRIVATE_OPENSSH_bad_key_type(self):
         """
@@ -1768,7 +1768,7 @@ B2/56wAAAi4AAAA3
 P2/56wAAAi4AAAA3aWYtbW9kbntzaW==
 ---- END SSH2 ENCRYPTED PRIVATE KEY ----"""
 
-        self.assertBadKey(content, 'Unknown SSH.com key type if-modn{si')
+        self.assertBadKey(content, 'Unknown SSH.com key type "if-modn{si"')
 
     def test_fromString_PRIVATE_OPENSSH_bad_structure(self):
         """
@@ -2309,7 +2309,7 @@ MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgrNfvVhrhJeyufkeZ
 IGNORED
 """
         self.assertBadKey(
-            content, 'Unsupported key type: \'ssh-bad\'')
+            content, 'Unsupported key type: ssh-bad')
 
     def test_fromString_PRIVATE_PUTTY_unsupported_encryption(self):
         """
@@ -2321,7 +2321,7 @@ Encryption: aes126-cbc
 IGNORED
 """
         self.assertBadKey(
-            content, 'Unsupported encryption type: \'aes126-cbc\'')
+            content, 'Unsupported encryption type: aes126-cbc')
 
     def test_fromString_PRIVATE_PUTTY_type_mismatch(self):
         """
@@ -2341,8 +2341,8 @@ IGNORED
         self.assertBadKey(
             content,
             (
-                'Mismatch key type. Header has \'ssh-rsa\','
-                ' public has \'ssh-dss\''),
+                'Mismatch key type. Header has "ssh-rsa",'
+                ' public has "ssh-dss"'),
             )
 
     def test_fromString_PRIVATE_PUTTY_hmac_mismatch(self):
@@ -2356,8 +2356,8 @@ IGNORED
         self.assertBadKey(
             content,
             'HMAC mismatch: file declare '
-            '7630b86be300c6302ce1390fb264487bb61e67ca, actual is '
-            '7630b86be300c6302ce1390fb264487bb61e67ce',
+            '"7630b86be300c6302ce1390fb264487bb61e67ca", actual is '
+            '"7630b86be300c6302ce1390fb264487bb61e67ce"',
             )
 
     def test_fromString_PRIVATE_OpenSSH_DSA_no_password(self):
@@ -2584,13 +2584,13 @@ IGNORED
         Test that the Key object correctly verifies signatures.
         """
         key = keys.Key.fromString(keydata.publicRSA_openssh)
-        self.assertTrue(key.verify(self.rsaSignature, ''))
-        self.assertFalse(key.verify(self.rsaSignature, 'a'))
-        self.assertFalse(key.verify(self.dsaSignature, ''))
+        self.assertTrue(key.verify(self.rsaSignature, b''))
+        self.assertFalse(key.verify(self.rsaSignature, b'a'))
+        self.assertFalse(key.verify(self.dsaSignature, b''))
         key = keys.Key.fromString(keydata.publicDSA_openssh)
-        self.assertTrue(key.verify(self.dsaSignature, ''))
-        self.assertFalse(key.verify(self.dsaSignature, 'a'))
-        self.assertFalse(key.verify(self.rsaSignature, ''))
+        self.assertTrue(key.verify(self.dsaSignature, b''))
+        self.assertFalse(key.verify(self.dsaSignature, b'a'))
+        self.assertFalse(key.verify(self.rsaSignature, b''))
 
     def test_verifyDSANoPrefix(self):
         """
@@ -2598,7 +2598,7 @@ IGNORED
         they are still verified as valid keys.
         """
         key = keys.Key.fromString(keydata.publicDSA_openssh)
-        self.assertTrue(key.verify(self.dsaSignature[-40:], ''))
+        self.assertTrue(key.verify(self.dsaSignature[-40:], b''))
 
     def test_repr(self):
         """
@@ -2606,7 +2606,7 @@ IGNORED
         """
         self.assertEqual(
             repr(keys.Key(self.rsaObj)),
-            """\
+            b"""\
 <RSA Private Key (0 bits)
 attr d:
 \t03

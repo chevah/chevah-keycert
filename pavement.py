@@ -9,7 +9,7 @@ from pkg_resources import load_entry_point
 
 from paver.easy import call_task, consume_args, task, pushd
 
-EXTRA_PYPI_INDEX = 'https://pypi.chevah.com/simple'
+EXTRA_PYPI_INDEX = os.environ['PIP_INDEX_URL']
 
 
 @task

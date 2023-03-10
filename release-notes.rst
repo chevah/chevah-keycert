@@ -1,6 +1,23 @@
 Release notes for Chevah KeyCert
 ################################
 
+2.1.2 - 2023-03-01
+==================
+
+* Just an update to test our internal pypi server..
+
+
+2.1.1 - 2023-02-01
+==================
+
+* In errors enclose input values in quotes.
+
+
+2.1.0 - 2023-02-01
+==================
+
+* Add support for rsa-sha2-256 and rsa-sha2-512.
+
 
 2.0.6 - 2021-02-05
 ==================
