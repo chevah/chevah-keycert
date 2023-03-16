@@ -6,7 +6,7 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '2.1.2'
+VERSION = '3.0.0'
 
 
 class NoseTestCommand(TestCommand):
@@ -99,15 +99,14 @@ setup(
 
     keywords='twisted ssh ssl tls pki ca',
 
-    namespace_packages=['chevah'],
-
+    package_dir={'.': 'src'},
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
 
     install_requires=[
         'pyopenssl >=0.13',
         'pyasn1 >=0.1.7',
         'cryptography >= 3.2',
-        'chevah-compat >=0.58.2',
+        'chevah-compat >= 1.0.1',
         'scandir >= 1.7',
         'constantly >=15.1.0',
         ],

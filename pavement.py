@@ -24,7 +24,7 @@ def deps():
     """
     pip = load_entry_point('pip', 'console_scripts', 'pip')
     pip(args=[
-        'install',
+        'install', '-U',
         '--extra-index-url', EXTRA_PYPI_INDEX,
         '-e', '.[dev]',
         ])
@@ -60,7 +60,7 @@ def test_interop_load_dsa(args):
     exit_code = 1
     with pushd('build'):
         exit_code = call(
-            "../chevah/keycert/tests/ssh_load_keys_tests.sh dsa", shell=True)
+            "../src/chevah_keycert/tests/ssh_load_keys_tests.sh dsa", shell=True)
 
     sys.exit(exit_code)
 
@@ -78,7 +78,7 @@ def test_interop_load_rsa(args):
     exit_code = 1
     with pushd('build'):
         exit_code = call(
-            "../chevah/keycert/tests/ssh_load_keys_tests.sh rsa", shell=True)
+            "../src/chevah_keycert/tests/ssh_load_keys_tests.sh rsa", shell=True)
 
     sys.exit(exit_code)
 
@@ -96,7 +96,7 @@ def test_interop_load_eced(args):
     exit_code = 1
     with pushd('build'):
         exit_code = call(
-            "../chevah/keycert/tests/ssh_load_keys_tests.sh ecdsa ed25519", shell=True)
+            "../src/chevah_keycert/tests/ssh_load_keys_tests.sh ecdsa ed25519", shell=True)
 
     sys.exit(exit_code)
 
@@ -114,7 +114,7 @@ def test_interop_generate(args):
     exit_code = 1
     with pushd('build'):
         exit_code = call(
-            "../chevah/keycert/tests/ssh_gen_keys_tests.sh", shell=True)
+            "../stc/chevah_keycert/tests/ssh_gen_keys_tests.sh", shell=True)
 
     sys.exit(exit_code)
 
@@ -129,7 +129,7 @@ def lint():
 
     sys.argv = [
         re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])] + [
-        'chevah',
+        'src/chevah_keycert',
         ]
 
     try:
