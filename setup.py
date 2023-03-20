@@ -6,8 +6,6 @@ from pkg_resources import load_entry_point
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-VERSION = '3.0.0'
-
 
 class NoseTestCommand(TestCommand):
 
@@ -70,66 +68,7 @@ class NoseTestCommand(TestCommand):
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read()
-
 setup(
-    name='chevah-keycert',
-
-    version=VERSION,
-
-    description='SSH Keys and SSL keys and certificates management.',
-    long_description=long_description,
-
-    url='https://github.com/chevah/chevah-keycert',
-
-    author='Adi Roiban',
-    author_email='adiroiban@gmail.com',
-
-    license='MIT',
-
-    classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools',
-        'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        ],
-
-    keywords='twisted ssh ssl tls pki ca',
-
-    package_dir={'.': 'src'},
-    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-
-    install_requires=[
-        'pyopenssl >=0.13',
-        'pyasn1 >=0.1.7',
-        'cryptography >= 3.2',
-        'chevah-compat >= 1.0.1',
-        'scandir >= 1.7',
-        'constantly >=15.1.0',
-        ],
-
-    extras_require={
-        'dev': [
-            'zope.interface',
-            'future',
-
-            'pocketlint ==1.4.4.c10',
-            'pyflakes >= 1.5.0',
-            'pycodestyle ==2.3.1',
-
-            'nose',
-            'remote_pdb',
-            'mock',
-            'bunch',
-            'coverage==4.5.4',
-            'codecov',
-            'unidecode',
-            'ld',
-            ],
-        },
     cmdclass={'test': NoseTestCommand},
-    test_suite='chevah.keycert',
+    test_suite='chevah_keycert',
     )
