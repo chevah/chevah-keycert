@@ -1,10 +1,23 @@
 Release notes for Chevah KeyCert
 ################################
 
+
+3.0.1 - 2023-03-22
+==================
+
+* Have exception str() return text, not bytes.
+
+
+3.0.0 - 2023-03-21
+==================
+
+* Get py3 code and move into a non-namespace package.
+
+
 2.1.2 - 2023-03-01
 ==================
 
-* Just an update to test our internal pypi server..
+* Just an update to test our internal pypi server.
 
 
 2.1.1 - 2023-02-01

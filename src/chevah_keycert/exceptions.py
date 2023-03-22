@@ -16,7 +16,7 @@ class KeyCertException(Exception):
         self.message = message
 
     def __str__(self):
-        return self.message.encode('utf-8')
+        return self.message
 
 
 class BadKeyError(KeyCertException):
