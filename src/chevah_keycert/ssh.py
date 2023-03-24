@@ -1099,8 +1099,9 @@ class Key(object):
             return base64.b64encode(
                 sha1(self.blob()).digest()).decode('ascii')
         elif format is FingerprintFormats.MD5_HEX:
-            return ':'.join([binascii.hexlify(x)
+            result = b':'.join([binascii.hexlify(x)
                              for x in iterbytes(md5(self.blob()).digest())])
+            return result.decode('ascii')
         else:
             raise BadFingerPrintFormat(
                 'Unsupported fingerprint format: %s' % (format,))

@@ -15,12 +15,59 @@ import six
 from six.moves import range
 
 
-def iterbytes(originalBytes):
-    return originalBytes
+# Functions for dealing with Python 3's bytes type, which is somewhat
+# different than Python 2's:
+if six.PY3:
+    def iterbytes(originalBytes):
+        for i in range(len(originalBytes)):
+            yield originalBytes[i:i+1]
 
 
-def native_string(s):
-    return s
+    def intToBytes(i):
+        return ("%d" % i).encode("ascii")
+
+
+    def lazyByteSlice(object, offset=0, size=None):
+        """
+        Return a copy of the given bytes-like object.
+
+        If an offset is given, the copy starts at that offset. If a size is
+        given, the copy will only be of that length.
+
+        @param object: C{bytes} to be copied.
+
+        @param offset: C{int}, starting index of copy.
+
+        @param size: Optional, if an C{int} is given limit the length of copy
+            to this size.
+        """
+        view = memoryview(object)
+        if size is None:
+            return view[offset:]
+        else:
+            return view[offset:(offset + size)]
+
+
+    def networkString(s):
+        if not isinstance(s, unicode):
+            raise TypeError("Can only convert text to bytes on Python 3")
+        return s.encode('ascii')
+else:
+    def iterbytes(originalBytes):
+        return originalBytes
+
+
+    def intToBytes(i):
+        return b"%d" % i
+
+    lazyByteSlice = buffer
+
+    def networkString(s):
+        if not isinstance(s, str):
+            raise TypeError("Can only pass-through bytes on Python 2")
+        # Ensure we're limited to ASCII subset:
+        s.decode('ascii')
+        return s
 
 
 
