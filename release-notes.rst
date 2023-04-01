@@ -2,10 +2,16 @@ Release notes for Chevah KeyCert
 ################################
 
 
+3.0.3 - 2023-03-27
+==================
+
+* Fix ssl.py CSR and cert generation on Py3.
+
+
 3.0.2 - 2023-03-24
 ==================
 
-* Improve py2 and py3 support..
+* Improve py2 and py3 support.
 
 
 3.0.1 - 2023-03-22

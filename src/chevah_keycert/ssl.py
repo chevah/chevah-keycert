@@ -10,11 +10,11 @@ from random import randint
 
 from OpenSSL import crypto
 
-from chevah_keycert import _path
+from chevah_keycert import _path, native_string
 from chevah_keycert.exceptions import KeyCertException
 
-_DEFAULT_SSL_KEY_CYPHER = b'aes-256-cbc'
-_SUPPORTED_SIGN_ALGORITHMS = [b'md5', b'sha1', b'sha256', b'sha512']
+_DEFAULT_SSL_KEY_CYPHER = 'aes-256-cbc'
+_SUPPORTED_SIGN_ALGORITHMS = ['md5', 'sha1', 'sha256', 'sha512']
 
 # See https://www.openssl.org/docs/manmaster/man5/x509v3_config.html
 _KEY_USAGE_STANDARD = {
@@ -244,7 +244,8 @@ def _set_subject_and_extensions(target, options):
         except ValueError:
             raise KeyCertException('Invalid email address.')
 
-        subject.emailAddress = u'%s@%s' % (address, domain.encode('idna'))
+        subject.emailAddress = '%s@%s' % (
+            address, domain.encode('idna').decode('ascii'))
 
     critical_constraints = False
     critical_usage = False
@@ -303,8 +304,7 @@ def _sign_cert_or_csr(target, key, options):
     """
     Sign the certificate or CSR.
     """
-    sign_algorithm = getattr(
-        options, 'sign_algorithm', 'sha256').encode('ascii')
+    sign_algorithm = getattr(options, 'sign_algorithm', 'sha256')
 
     if sign_algorithm not in _SUPPORTED_SIGN_ALGORITHMS:
         raise KeyCertException(
@@ -312,7 +312,7 @@ def _sign_cert_or_csr(target, key, options):
                 ', '.join(_SUPPORTED_SIGN_ALGORITHMS)))
 
     target.set_pubkey(key)
-    target.sign(key, sign_algorithm)
+    target.sign(key, native_string(sign_algorithm))
 
 
 def _generate_csr(options):
@@ -391,7 +391,7 @@ def generate_ssl_self_signed_certificate(options):
 
     certificate_pem = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
     key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
-    return (certificate_pem, key_pem)
+    return (certificate_pem.decode('utf-8'), key_pem.decode('utf-8'))
 
 
 def generate_and_store_csr(options, encoding='utf-8'):

@@ -17,6 +17,7 @@ import hmac
 import unicodedata
 import struct
 import textwrap
+import six
 
 import bcrypt
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
@@ -1512,7 +1513,7 @@ class Key(object):
         padByte = 0
         while len(privKeyList) % blockSize:
             padByte += 1
-            privKeyList += chr(padByte & 0xFF)
+            privKeyList += six.int2byte(padByte & 0xFF)
         if passphrase:
             encKey = bcrypt.kdf(passphrase, salt, keySize + ivSize, 100)
             encryptor = Cipher(
@@ -1595,7 +1596,7 @@ class Key(object):
             bb = md5(ba + passphrase + iv).digest()
             encKey = (ba + bb)[:24]
             padLen = 8 - (len(asn1Data) % 8)
-            asn1Data += chr(padLen) * padLen
+            asn1Data += six.int2byte(padLen) * padLen
 
             encryptor = Cipher(
                 algorithms.TripleDES(encKey),
