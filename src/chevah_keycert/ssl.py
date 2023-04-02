@@ -5,7 +5,9 @@ SSL keys and certificates.
 """
 from __future__ import unicode_literals
 from __future__ import absolute_import
+
 import os
+import six
 from random import randint
 
 from OpenSSL import crypto
@@ -350,9 +352,13 @@ def _generate_csr(options):
 
     if not key_pem:
         if options.key_password:
+            cipher = _DEFAULT_SSL_KEY_CYPHER
+            if six.PY2:
+                cipher = cipher.encode('ascii')
             key_pem = crypto.dump_privatekey(
-                crypto.FILETYPE_PEM, key,
-                _DEFAULT_SSL_KEY_CYPHER.encode('ascii'),
+                crypto.FILETYPE_PEM,
+                key,
+                cipher,
                 options.key_password.encode('utf-8'),
                 )
         else:

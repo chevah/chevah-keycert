@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+3.0.5 - 2023-04-01
+==================
+
+* Get CSR generation working on py2 and py3..
+
+
 3.0.4 - 2023-04-01
 ==================
 
