@@ -2,6 +2,12 @@ Release notes for Chevah KeyCert
 ################################
 
 
+3.0.4 - 2023-04-01
+==================
+
+* More fixes for CSR generation.
+
+
 3.0.3 - 2023-03-27
 ==================
 

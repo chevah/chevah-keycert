@@ -352,7 +352,9 @@ def _generate_csr(options):
         if options.key_password:
             key_pem = crypto.dump_privatekey(
                 crypto.FILETYPE_PEM, key,
-                _DEFAULT_SSL_KEY_CYPHER, options.key_password.encode('utf-8'))
+                _DEFAULT_SSL_KEY_CYPHER.encode('ascii'),
+                options.key_password.encode('utf-8'),
+                )
         else:
             key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
 
