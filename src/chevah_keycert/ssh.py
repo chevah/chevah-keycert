@@ -72,7 +72,7 @@ DEFAULT_PUBLIC_KEY_EXTENSION = u'.pub'
 DEFAULT_KEY_SIZE = 2048
 DEFAULT_KEY_TYPE = 'rsa'
 SSHCOM_MAGIC_NUMBER = int('3f6ff9eb', base=16)
-PUTTY_HMAC_KEY = 'putty-private-key-file-mac-key'
+PUTTY_HMAC_KEY = b'putty-private-key-file-mac-key'
 ID_SHA1 = b'\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
 
 # Curve lookup table
@@ -83,9 +83,9 @@ _curveTable = {
 }
 
 _secToNist = {
-    b'secp256r1' : b'nistp256',
-    b'secp384r1' : b'nistp384',
-    b'secp521r1' : b'nistp521',
+    'secp256r1' : b'nistp256',
+    'secp384r1' : b'nistp384',
+    'secp521r1' : b'nistp521',
 }
 
 
@@ -256,6 +256,8 @@ class Key(object):
             # we consider it too short.
             raise BadKeyError('Key is too short.')
         except (struct.error, binascii.Error, TypeError):
+            import traceback
+            ca = traceback.format_exc()
             raise BadKeyError('Fail to parse key content.')
 
     @classmethod
@@ -369,7 +371,7 @@ class Key(object):
         elif keyType in _curveTable:
             curve = _curveTable[keyType]
             curveName, q, rest = common.getNS(rest, 2)
-            if curveName != _secToNist[curve.name.encode('ascii')]:
+            if curveName != _secToNist[curve.name]:
                 raise BadKeyError(
                     'ECDSA curve name "%s" does not match key type "%s"' % (
                         force_unicode(curveName), force_unicode(keyType)))
@@ -1147,7 +1149,7 @@ class Key(object):
         if self.type() == 'EC':
             return (
                 b'ecdsa-sha2-' +
-                _secToNist[self._keyObject.curve.name.encode('ascii')])
+                _secToNist[self._keyObject.curve.name])
         else:
             return {
                 'RSA': b'ssh-rsa',
@@ -1441,10 +1443,7 @@ class Key(object):
                 comment = extra
             else:
                 passphrase = extra
-        if isinstance(comment, six.text_type):
-            comment = comment.encode("utf-8")
-        if isinstance(passphrase, six.text_type):
-            passphrase = passphrase.encode("utf-8")
+
         method = getattr(self, '_toString_%s' % (type.upper(),), None)
         if method is None:
             raise BadKeyError(
@@ -1914,7 +1913,7 @@ class Key(object):
         Return the raw content of the SSH.com key (private or public) without
         armor and headers.
         """
-        lines = data.strip().splitlines()
+        lines = data.decode('utf-8').strip().splitlines()
         # Split in lines, ignoring the first and last armors.
         lines = lines[1:-1]
 
@@ -1947,7 +1946,7 @@ class Key(object):
             break
 
         content = ''.join(lines)
-        return base64.decodestring(content)
+        return base64.decodestring(content.encode('ascii'))
 
     @classmethod
     def _fromString_PUBLIC_SSHCOM(cls, data):
@@ -1979,7 +1978,7 @@ class Key(object):
         @return: A {Crypto.PublicKey.pubkey.pubkey} object
         @raises BadKeyError: if the blob type is unknown.
         """
-        if not data.strip().endswith('---- END SSH2 PUBLIC KEY ----'):
+        if not data.strip().endswith(b'---- END SSH2 PUBLIC KEY ----'):
             raise BadKeyError("Fail to find END tag for SSH.com key.")
 
         blob = cls._getSSHCOMKeyContent(data)
@@ -2046,9 +2045,9 @@ class Key(object):
         type_signature, rest = common.getNS(blob[8:])
 
         key_type = None
-        if type_signature.startswith('if-modn{sign{rsa'):
+        if type_signature.startswith(b'if-modn{sign{rsa'):
             key_type = 'rsa'
-        elif type_signature.startswith('dl-modp{sign{dsa'):
+        elif type_signature.startswith(b'dl-modp{sign{dsa'):
             key_type = 'dsa'
         else:
             raise BadKeyError(
@@ -2161,10 +2160,10 @@ class Key(object):
         """
         lines = ['---- BEGIN SSH2 PUBLIC KEY ----']
         if extra:
-            line = 'Comment: "%s"' % (extra.encode('utf-8'),)
+            line = 'Comment: "%s"' % (extra,)
             lines.append('\\\n'.join(textwrap.wrap(line, 70)))
 
-        base64Data = base64.b64encode(self.blob())
+        base64Data = base64.b64encode(self.blob()).decode('ascii')
         lines.extend(textwrap.wrap(base64Data, 70))
         lines.append('---- END SSH2 PUBLIC KEY ----')
         return '\n'.join(lines)
@@ -2241,11 +2240,11 @@ class Key(object):
             )
 
         # In the end, encode in base 64 and wrap it.
-        blob = base64.b64encode(blob)
+        blob = base64.b64encode(blob).decode('ascii')
         lines.extend(textwrap.wrap(blob, 70))
 
         lines.append('---- END SSH2 ENCRYPTED PRIVATE KEY ----')
-        return '\n'.join(lines).encode('ascii')
+        return '\n'.join(lines)
 
     @classmethod
     def _fromString_PRIVATE_PUTTY(cls, data, passphrase):
@@ -2310,23 +2309,23 @@ class Key(object):
         Version 2 was introduced in PuTTY 0.52.
         Version 1 was an in-development format used in 0.52 snapshot
         """
-        lines = data.strip().splitlines()
+        lines = data.decode('utf-8').strip().splitlines()
 
         key_type = lines[0][22:].strip().lower()
         if key_type not in [
-            b'ssh-rsa',
-            b'ssh-dss',
-            b'ssh-ed25519',
+            'ssh-rsa',
+            'ssh-dss',
+            'ssh-ed25519',
                 ] and key_type not in _curveTable:
             raise BadKeyError(
                 'Unsupported key type: "%s"' % force_unicode(key_type[:30]))
 
         encryption_type = lines[1][11:].strip().lower()
 
-        if encryption_type == b'none':
+        if encryption_type == 'none':
             if passphrase:
                 raise BadKeyError('PuTTY key not encrypted')
-        elif encryption_type != b'aes256-cbc':
+        elif encryption_type != 'aes256-cbc':
             raise BadKeyError(
                 'Unsupported encryption type: "%s"' % force_unicode(
                     encryption_type[:30]))
@@ -2338,10 +2337,10 @@ class Key(object):
             4:
             4 + public_count
             ])
-        public_blob = base64.decodestring(base64_content)
+        public_blob = base64.decodestring(base64_content.encode('utf-8'))
         public_type, public_payload = common.getNS(public_blob)
 
-        if public_type.lower() != key_type:
+        if public_type.decode('ascii').lower() != key_type:
             raise BadKeyError(
                 'Mismatch key type. Header has "%s", public has "%s"' % (
                     force_unicode(key_type[:30]),
@@ -2354,13 +2353,13 @@ class Key(object):
             private_start_line + 1:
             private_start_line + 1 + private_count
             ])
-        private_blob = base64.decodestring(base64_content)
+        private_blob = base64.decodestring(base64_content.encode('ascii'))
 
         private_mac = lines[-1][12:].strip()
 
         hmac_key = PUTTY_HMAC_KEY
         encryption_key = None
-        if encryption_type == b'aes256-cbc':
+        if encryption_type == 'aes256-cbc':
             if not passphrase:
                 raise EncryptedKeyError(
                     'Passphrase must be provided for an encrypted key.')
@@ -2393,17 +2392,17 @@ class Key(object):
                         force_unicode(private_mac),
                         force_unicode(computed_mac)))
 
-        if key_type == b'ssh-rsa':
+        if key_type == 'ssh-rsa':
             e, n, _ = common.getMP(public_payload, count=2)
             d, q, p, u, _ = common.getMP(private_blob, count=4)
             return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q, u=u)
 
-        if key_type == b'ssh-dss':
+        if key_type == 'ssh-dss':
             p, q, g, y, _ = common.getMP(public_payload, count=4)
             x, _ = common.getMP(private_blob)
             return cls._fromDSAComponents(y=y, g=g, p=p, q=q, x=x)
 
-        if key_type == b'ssh-ed25519':
+        if key_type == 'ssh-ed25519':
             a, _ = common.getNS(public_payload)
             k, _ = common.getNS(private_blob)
             return cls._fromEd25519Components(a=a, k=k)
@@ -2411,7 +2410,7 @@ class Key(object):
         if key_type in _curveTable:
             curve = _curveTable[key_type]
             curveName, q, _ = common.getNS(public_payload, 2)
-            if curveName != _secToNist[curve.name.encode('ascii')]:
+            if curveName != _secToNist[curve.name]:
                 raise BadKeyError(
                     'ECDSA curve name "%s" does not match key type "%s"' % (
                         force_unicode(curveName),
@@ -2468,7 +2467,7 @@ class Key(object):
 
         hmac_key = PUTTY_HMAC_KEY
         if extra:
-            encryption_type = b'aes256-cbc'
+            encryption_type = 'aes256-cbc'
             hmac_key += extra
         else:
             encryption_type = 'none'
@@ -2533,9 +2532,10 @@ class Key(object):
             private_blob_encrypted = (
                 encryptor.update(private_blob_plain) + encryptor.finalize())
 
-        public_lines = textwrap.wrap(base64.b64encode(public_blob), 64)
+        public_lines = textwrap.wrap(
+            base64.b64encode(public_blob).decode('ascii'), 64)
         private_lines = textwrap.wrap(
-            base64.b64encode(private_blob_encrypted), 64)
+            base64.b64encode(private_blob_encrypted).decode('ascii'), 64)
 
         hmac_data = (
             common.NS(key_type) +
