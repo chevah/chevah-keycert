@@ -1,6 +1,11 @@
 Release notes for Chevah KeyCert
 ################################
 
+3.0.7 - 2023-04-28
+==================
+
+* Fix generating and reading Putty v2 keys.
+
 
 3.0.6 - 2023-04-24
 ==================

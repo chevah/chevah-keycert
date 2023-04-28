@@ -2316,7 +2316,7 @@ class Key(object):
             'ssh-rsa',
             'ssh-dss',
             'ssh-ed25519',
-                ] and key_type not in _curveTable:
+                ] and key_type.encode('ascii') not in _curveTable:
             raise BadKeyError(
                 'Unsupported key type: "%s"' % force_unicode(key_type[:30]))
 
@@ -2407,8 +2407,8 @@ class Key(object):
             k, _ = common.getNS(private_blob)
             return cls._fromEd25519Components(a=a, k=k)
 
-        if key_type in _curveTable:
-            curve = _curveTable[key_type]
+        if key_type.encode('ascii') in _curveTable:
+            curve = _curveTable[key_type.encode('ascii')]
             curveName, q, _ = common.getNS(public_payload, 2)
             if curveName != _secToNist[curve.name]:
                 raise BadKeyError(
@@ -2418,7 +2418,10 @@ class Key(object):
 
             privateValue, _ = common.getMP(private_blob)
             return cls._fromECEncodedPoint(
-                encodedPoint=q, curve=key_type, privateValue=privateValue)
+                encodedPoint=q,
+                curve=key_type.encode('ascii'),
+                privateValue=privateValue,
+                )
 
     @staticmethod
     def _getPuttyAES256EncryptionKey(passphrase):
@@ -2547,7 +2550,7 @@ class Key(object):
         hmac_key = sha1(hmac_key).digest()
         private_mac = hmac.new(hmac_key, hmac_data, sha1).hexdigest()
 
-        lines.append('PuTTY-User-Key-File-2: %s' % key_type)
+        lines.append('PuTTY-User-Key-File-2: %s' % key_type.decode('ascii'))
         lines.append('Encryption: %s' % encryption_type)
         lines.append('Comment: %s' % comment)
         lines.append('Public-Lines: %s' % len(public_lines))
