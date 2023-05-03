@@ -50,8 +50,15 @@ from pyasn1.codec.ber import encoder as berEncoder
 import os
 import os.path
 from os import urandom
-from base64 import encodestring as encodebytes
-from base64 import decodestring as decodebytes
+
+try:
+    from base64 import encodebytes
+    from base64 import decodebytes
+except ImportError:
+    # On py2 we don't have encodebytes.
+    from base64 import encodestring as encodebytes
+    from base64 import decodestring as decodebytes
+
 from cryptography.utils import int_from_bytes, int_to_bytes
 from OpenSSL import crypto
 
@@ -2166,7 +2173,7 @@ class Key(object):
         base64Data = base64.b64encode(self.blob()).decode('ascii')
         lines.extend(textwrap.wrap(base64Data, 70))
         lines.append('---- END SSH2 PUBLIC KEY ----')
-        return '\n'.join(lines)
+        return '\n'.join(lines).encode('utf-8')
 
     def _toString_SSHCOM_private(self, extra):
         """
@@ -2244,7 +2251,7 @@ class Key(object):
         lines.extend(textwrap.wrap(blob, 70))
 
         lines.append('---- END SSH2 ENCRYPTED PRIVATE KEY ----')
-        return '\n'.join(lines)
+        return '\n'.join(lines).encode('utf-8')
 
     @classmethod
     def _fromString_PRIVATE_PUTTY(cls, data, passphrase):
@@ -2558,7 +2565,7 @@ class Key(object):
         lines.append('Private-Lines: %s' % len(private_lines))
         lines.extend(private_lines)
         lines.append('Private-MAC: %s' % private_mac)
-        return '\r\n'.join(lines)
+        return '\r\n'.join(lines).encode('utf-8')
 
     @classmethod
     def _fromString_PUBLIC_X509_CERTIFICATE(cls, data):

@@ -1,6 +1,12 @@
 Release notes for Chevah KeyCert
 ################################
 
+3.0.8 - 2023-05-03
+==================
+
+* SSH.com and Putty string serialization is done to bytes.
+
+
 3.0.7 - 2023-04-28
 ==================
 
