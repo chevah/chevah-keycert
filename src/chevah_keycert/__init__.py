@@ -8,8 +8,12 @@ import six
 
 def _path(path, encoding='utf-8'):
     if sys.platform.startswith('win'):
-        # On Windows and OSX we always use unicode.
+        # On Windows we always use unicode.
         return path  # pragma: no cover
+
+    if isinstance(path, six.binary_type):
+        # Path is already encoded.
+        return path
 
     return path.encode(encoding)
 

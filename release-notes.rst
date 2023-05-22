@@ -1,6 +1,13 @@
 Release notes for Chevah KeyCert
 ################################
 
+
+3.0.9 - 2023-05-22
+==================
+
+* Handle already encoded paths on Linux.
+
+
 3.0.8 - 2023-05-03
 ==================
 
