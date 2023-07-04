@@ -2514,10 +2514,14 @@ class Key(object):
         elif key_type in _curveTable:
 
             curve_name = _secToNist[self._keyObject.curve.name]
+            encode_point = self._keyObject.public_key().public_bytes(
+                serialization.Encoding.X962,
+                serialization.PublicFormat.UncompressedPoint,
+                )
             public_blob = (
                 common.NS(key_type) +
                 common.NS(curve_name) +
-                common.NS(self._keyObject.public_key().public_numbers().encode_point())
+                common.NS(encode_point)
                 )
             private_blob = common.MP(data['privateValue'])
 

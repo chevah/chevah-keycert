@@ -1,6 +1,11 @@
 Release notes for Chevah KeyCert
 ################################
 
+3.0.10 - 2023-07-04
+==================
+
+* Update for cryptography 39 and newer.
+
 
 3.0.9 - 2023-05-22
 ==================
