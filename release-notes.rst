@@ -1,6 +1,12 @@
 Release notes for Chevah KeyCert
 ################################
 
+3.0.11 - 2023-07-29
+===================
+
+* No longer ask for compat and scandir as they are only needed for testing.
+
+
 3.0.10 - 2023-07-04
 ==================
 
