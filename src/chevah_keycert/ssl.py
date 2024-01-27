@@ -215,8 +215,9 @@ def _set_subject_and_extensions(target, options):
 
     # RFC 2459 defines it as optional, and pyopenssl set it to `0` anyway.
     # But we got reports that Windows 2003 and Windows 2008 Servers
-    # can not parse CSR generated using this tool, so here we are.
-    target.set_version(2)
+    # can not parse CSR generated using this tool.
+    # PyOpenSSL 24.0.0 only supports version 0.
+    target.set_version(0)
 
     subject = target.get_subject()
 
