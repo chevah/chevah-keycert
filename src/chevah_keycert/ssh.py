@@ -29,7 +29,6 @@ from cryptography.hazmat.primitives.serialization import (
     load_pem_private_key, load_ssh_public_key)
 from cryptography import utils
 from six.moves import map
-import six
 from six.moves import range
 
 try:
@@ -62,7 +61,7 @@ except ImportError:
 from cryptography.utils import int_from_bytes, int_to_bytes
 from OpenSSL import crypto
 
-from chevah_keycert import common, sexpy, _path
+from chevah_keycert import common, _path
 from chevah_keycert.common import (
     force_unicode,
     iterbytes,
@@ -87,12 +86,14 @@ _curveTable = {
     b'ecdsa-sha2-nistp256': ec.SECP256R1(),
     b'ecdsa-sha2-nistp384': ec.SECP384R1(),
     b'ecdsa-sha2-nistp521': ec.SECP521R1(),
+    b'ecdsa-sha2-nistp192': ec.SECP192R1(),
 }
 
 _secToNist = {
     'secp256r1' : b'nistp256',
     'secp384r1' : b'nistp384',
     'secp521r1' : b'nistp521',
+    'secp192r1' : b'nistp192',
 }
 
 
@@ -263,8 +264,6 @@ class Key(object):
             # we consider it too short.
             raise BadKeyError('Key is too short.')
         except (struct.error, binascii.Error, TypeError):
-            import traceback
-            ca = traceback.format_exc()
             raise BadKeyError('Fail to parse key content.')
 
     @classmethod
@@ -632,75 +631,6 @@ class Key(object):
 
 
     @classmethod
-    def _fromString_PUBLIC_LSH(cls, data):
-        """
-        Return a public key corresponding to this LSH public key string.
-        The LSH public key string format is::
-            <s-expression: ('public-key', (<key type>, (<name, <value>)+))>
-
-        The names for a RSA (key type 'rsa-pkcs1-sha1') key are: n, e.
-        The names for a DSA (key type 'dsa') key are: y, g, p, q.
-
-        @type data: L{bytes}
-        @param data: The key data.
-
-        @return: A new key.
-        @rtype: L{twisted.conch.ssh.keys.Key}
-        @raises BadKeyError: if the key type is unknown
-        """
-        sexp = sexpy.parse(decodebytes(data[1:-1]))
-        assert sexp[0] == b'public-key'
-        kd = {}
-        for name, data in sexp[1][1:]:
-            kd[name] = common.getMP(common.NS(data))[0]
-        if sexp[1][0] == b'dsa':
-            return cls._fromDSAComponents(
-                y=kd[b'y'], g=kd[b'g'], p=kd[b'p'], q=kd[b'q'])
-
-        elif sexp[1][0] == b'rsa-pkcs1-sha1':
-            return cls._fromRSAComponents(n=kd[b'n'], e=kd[b'e'])
-        else:
-            raise BadKeyError('unknown lsh key type "%s"' % (
-                force_unicode(sexp[1][0][:30]),))
-
-    @classmethod
-    def _fromString_PRIVATE_LSH(cls, data):
-        """
-        Return a private key corresponding to this LSH private key string.
-        The LSH private key string format is::
-            <s-expression: ('private-key', (<key type>, (<name>, <value>)+))>
-
-        The names for a RSA (key type 'rsa-pkcs1-sha1') key are: n, e, d, p, q.
-        The names for a DSA (key type 'dsa') key are: y, g, p, q, x.
-
-        @type data: L{bytes}
-        @param data: The key data.
-
-        @return: A new key.
-        @rtype: L{twisted.conch.ssh.keys.Key}
-        @raises BadKeyError: if the key type is unknown
-        """
-        sexp = sexpy.parse(data)
-        assert sexp[0] == b'private-key'
-        kd = {}
-        for name, data in sexp[1][1:]:
-            kd[name] = common.getMP(common.NS(data))[0]
-        if sexp[1][0] == b'dsa':
-            assert len(kd) == 5, len(kd)
-            return cls._fromDSAComponents(
-                y=kd[b'y'], g=kd[b'g'], p=kd[b'p'], q=kd[b'q'], x=kd[b'x'])
-        elif sexp[1][0] == b'rsa-pkcs1':
-            assert len(kd) == 8, len(kd)
-            if kd[b'p'] > kd[b'q']:  # Make p smaller than q
-                kd[b'p'], kd[b'q'] = kd[b'q'], kd[b'p']
-            return cls._fromRSAComponents(
-                n=kd[b'n'], e=kd[b'e'], d=kd[b'd'], p=kd[b'p'], q=kd[b'q'])
-
-        else:
-            raise BadKeyError(
-                'unknown lsh key type "%s"' % (force_unicode(sexp[1][0][:30]),))
-
-    @classmethod
     def _fromString_AGENTV3(cls, data):
         """
         Return a private key object corresponsing to the Secure Shell Key
@@ -790,10 +720,8 @@ class Key(object):
             return 'private_encrypted_pkcs8'
         elif data.startswith(b'PuTTY-User-Key-File-2'):
             return 'private_putty'
-        elif data.startswith(b'{'):
-            return 'public_lsh'
-        elif data.startswith(b'('):
-            return 'private_lsh'
+        elif data.startswith(b'PuTTY-User-Key-File-3'):
+            return 'private_putty_v3'
         elif (data.startswith(b'\x00\x00\x00\x07ssh-') or
               data.startswith(b'\x00\x00\x00\x13ecdsa-') or
               data.startswith(b'\x00\x00\x00\x0bssh-ed25519')):
@@ -1456,6 +1384,7 @@ class Key(object):
             raise BadKeyError(
                 'unknown key type: "%s"' % (force_unicode(type[:30]),))
 
+        passphrase = _normalizePassphrase(passphrase)
         return method(comment=comment, passphrase=passphrase)
 
     def _toPublicOpenSSH(self, comment=None):
@@ -1617,61 +1546,6 @@ class Key(object):
         lines.append(b''.join((b'-----END ', self.type().encode('ascii'),
                                b' PRIVATE KEY-----')))
         return b'\n'.join(lines)
-
-    def _toString_LSH(self, **kwargs):
-        """
-        Return a public or private LSH key.  See _fromString_PUBLIC_LSH and
-        _fromString_PRIVATE_LSH for the key formats.
-
-        @rtype: L{bytes}
-        """
-        data = self.data()
-        type = self.type()
-        if self.isPublic():
-            if type == 'RSA':
-                keyData = sexpy.pack([[b'public-key',
-                                       [b'rsa-pkcs1-sha1',
-                                        [b'n', common.MP(data['n'])[4:]],
-                                        [b'e', common.MP(data['e'])[4:]]]]])
-            elif type == 'DSA':
-                keyData = sexpy.pack([[b'public-key',
-                                       [b'dsa',
-                                        [b'p', common.MP(data['p'])[4:]],
-                                        [b'q', common.MP(data['q'])[4:]],
-                                        [b'g', common.MP(data['g'])[4:]],
-                                        [b'y', common.MP(data['y'])[4:]]]]])
-            else:
-                raise BadKeyError(
-                    'unknown key type "%s"' % (force_unicode(type,)))
-            return (b'{' + encodebytes(keyData).replace(b'\n', b'') +
-                    b'}')
-        else:
-            if type == 'RSA':
-                p, q = data['p'], data['q']
-                iqmp = rsa.rsa_crt_iqmp(p, q)
-                return sexpy.pack([[b'private-key',
-                                    [b'rsa-pkcs1',
-                                     [b'n', common.MP(data['n'])[4:]],
-                                     [b'e', common.MP(data['e'])[4:]],
-                                     [b'd', common.MP(data['d'])[4:]],
-                                     [b'p', common.MP(q)[4:]],
-                                     [b'q', common.MP(p)[4:]],
-                                     [b'a', common.MP(
-                                         data['d'] % (q - 1))[4:]],
-                                     [b'b', common.MP(
-                                         data['d'] % (p - 1))[4:]],
-                                     [b'c', common.MP(iqmp)[4:]]]]])
-            elif type == 'DSA':
-                return sexpy.pack([[b'private-key',
-                                    [b'dsa',
-                                     [b'p', common.MP(data['p'])[4:]],
-                                     [b'q', common.MP(data['q'])[4:]],
-                                     [b'g', common.MP(data['g'])[4:]],
-                                     [b'y', common.MP(data['y'])[4:]],
-                                     [b'x', common.MP(data['x'])[4:]]]]])
-            else:
-                raise BadKeyError(
-                    'unknown key type "%s"' % (force_unicode(type,)))
 
     def _toString_AGENTV3(self, **kwargs):
         """
@@ -1902,7 +1776,8 @@ class Key(object):
             'private_openssh_v1': 'OpenSSH Private new format',
             'public_sshcom': 'SSH.com Public',
             'private_sshcom': 'SSH.com Private',
-            'private_putty': 'PuTTY Private',
+            'private_putty': 'PuTTY Private v2',
+            'private_putty_v3': 'PuTTY Private v3',
             'public_lsh': 'LSH Public',
             'private_lsh': 'LSH Private',
             'public_x509_certificate': 'X509 Certificate',
@@ -2256,7 +2131,9 @@ class Key(object):
     @classmethod
     def _fromString_PRIVATE_PUTTY(cls, data, passphrase):
         """
-        Read a private Putty key.
+        Read a private Putty key v2.
+
+        See https://tartarus.org/~simon/putty-snapshots/htmldoc/AppendixC.html
 
         Format is:
 
@@ -2312,7 +2189,6 @@ class Key(object):
         Lines are terminated by CRLF, although CR-only and LF-only are
         tolerated on input.
 
-        Only version 2 is supported.
         Version 2 was introduced in PuTTY 0.52.
         Version 1 was an in-development format used in 0.52 snapshot
         """
@@ -2433,7 +2309,8 @@ class Key(object):
     @staticmethod
     def _getPuttyAES256EncryptionKey(passphrase):
         """
-        Return the encryption key used in Putty AES 256 cipher.
+        Return the encryption key used in Putty AES 256 cipher for
+        version 2 of the format.
         """
         key_size = 32
         part_1 = sha1(b'\x00\x00\x00\x00' + passphrase).digest()
@@ -2571,6 +2448,199 @@ class Key(object):
         lines.append('Private-MAC: %s' % private_mac)
         return '\r\n'.join(lines).encode('utf-8')
 
+
+    @classmethod
+    def _fromString_PRIVATE_PUTTY_V3(cls, data, passphrase):
+        """
+        Read a private Putty key v3.
+
+        See https://tartarus.org/~simon/putty-snapshots/htmldoc/AppendixC.html
+
+        Format is:
+
+        PuTTY-User-Key-File-3: ssh-rsa
+        Encryption: none
+        Comment: SINGLE_LINE_COMMENT
+        Public-Lines: PUBLIC_LINES
+        < base64 public part always in plain >
+        Private-Lines: 8
+        < base64 private part >
+        Private-MAC: 1398fbfc7ce307d9ee0e42851f183f88c728398f
+
+        PuTTY-User-Key-File-3: ssh-rsa
+        Encryption: aes256-cbc
+        Comment: SINGLE_LINE_COMMENT
+        Public-Lines: PUBLIC_LINES
+        < base64 public part always in plain >
+        Key-Derivation: Argon2id | Argon2d | Argon2i
+        Argon2-Memory: 8192
+        Argon2-Passes: 34
+        Argon2-Parallelism: 1
+        Argon2-Salt: f50f57e4294c1db7e677cf38b7010ff2
+        Private-Lines: 8
+        < base64 private part >
+        Private-MAC: 1398fbfc7ce307d9ee0e42851f183f88c728398f
+
+        Pulic part RSA:
+        * string type (ssh-rsa)
+        * mpint e
+        * mpint n
+        Private part RSA:
+        * mpint d
+        * mpint q
+        * mpint p
+        * mpint u
+
+        Pulic part DSA:
+        * string type (ssh-dss)
+        * mpint p
+        * mpint q
+        * mpint g
+        * mpint v`
+        Private part DSA:
+        * mpint x
+
+        Public part ECDSA-SHA2-*:
+        * string 'ecdsa-sha2-[identifier]'
+        * string identifier
+        * mpint x
+        * mpint y
+        Private part ECDSA-SHA2-*:
+        * string q
+        * mpint privateValue
+
+        Public part Ed25519:
+        * string type (ssh-ed25519)
+        * string a
+        Private part Ed25519:
+        * string k
+
+        Private part is padded for encryption.
+
+        Encryption key is composed of concatenating, up to block size:
+        * uint32 sequence, starting from 0
+        * passphrase
+
+        Lines are terminated by CRLF, although CR-only and LF-only are
+        tolerated on input.
+
+        Version 3 was introduced in PuTTY 0.75.
+        """
+        lines = data.decode('utf-8').strip().splitlines()
+
+        key_type = lines[0][22:].strip().lower()
+        if key_type not in [
+            'ssh-rsa',
+            'ssh-dss',
+            'ssh-ed25519',
+                ] and key_type.encode('ascii') not in _curveTable:
+            raise BadKeyError(
+                'Unsupported key type: "%s"' % force_unicode(key_type[:30]))
+
+        encryption_type = lines[1][11:].strip().lower()
+
+        if encryption_type == 'none':
+            if passphrase:
+                raise BadKeyError('PuTTY key not encrypted')
+        elif encryption_type != 'aes256-cbc':
+            raise BadKeyError(
+                'Unsupported encryption type: "%s"' % force_unicode(
+                    encryption_type[:30]))
+
+        comment = lines[2][9:].strip()
+
+        public_count = int(lines[3][14:].strip())
+        base64_content = ''.join(lines[
+            4:
+            4 + public_count
+            ])
+        public_blob = base64.decodestring(base64_content.encode('utf-8'))
+        public_type, public_payload = common.getNS(public_blob)
+
+        if public_type.decode('ascii').lower() != key_type:
+            raise BadKeyError(
+                'Mismatch key type. Header has "%s", public has "%s"' % (
+                    force_unicode(key_type[:30]),
+                    force_unicode(public_type[:30])))
+
+        # We skip 4 lines so far and the total public lines.
+        private_start_line = 4 + public_count
+        private_count = int(lines[private_start_line][15:].strip())
+        base64_content = ''.join(lines[
+            private_start_line + 1:
+            private_start_line + 1 + private_count
+            ])
+        private_blob = base64.decodestring(base64_content.encode('ascii'))
+
+        private_mac = lines[-1][12:].strip()
+
+        hmac_key = PUTTY_HMAC_KEY
+        encryption_key = None
+        if encryption_type == 'aes256-cbc':
+            if not passphrase:
+                raise EncryptedKeyError(
+                    'Passphrase must be provided for an encrypted key.')
+            hmac_key += passphrase
+            encryption_key = cls._getPuttyAES256EncryptionKey_v3(passphrase)
+            decryptor = Cipher(
+                algorithms.AES(encryption_key),
+                modes.CBC(b'\x00' * 16),
+                backend=default_backend()
+            ).decryptor()
+            private_blob = (
+                decryptor.update(private_blob) + decryptor.finalize())
+
+        # I have no idea why these values are packed form HMAC as net strings.
+        hmac_data = (
+            common.NS(key_type) +
+            common.NS(encryption_type) +
+            common.NS(comment) +
+            common.NS(public_blob) +
+            common.NS(private_blob)
+            )
+        hmac_key = sha1(hmac_key).digest()
+        computed_mac = hmac.new(hmac_key, hmac_data, sha1).hexdigest()
+        if private_mac != computed_mac:
+            if encryption_key:
+                raise EncryptedKeyError('Bad password or HMAC mismatch.')
+            else:
+                raise BadKeyError(
+                    'HMAC mismatch: file declare "%s", actual is "%s"' % (
+                        force_unicode(private_mac),
+                        force_unicode(computed_mac)))
+
+        if key_type == 'ssh-rsa':
+            e, n, _ = common.getMP(public_payload, count=2)
+            d, q, p, u, _ = common.getMP(private_blob, count=4)
+            return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q, u=u)
+
+        if key_type == 'ssh-dss':
+            p, q, g, y, _ = common.getMP(public_payload, count=4)
+            x, _ = common.getMP(private_blob)
+            return cls._fromDSAComponents(y=y, g=g, p=p, q=q, x=x)
+
+        if key_type == 'ssh-ed25519':
+            a, _ = common.getNS(public_payload)
+            k, _ = common.getNS(private_blob)
+            return cls._fromEd25519Components(a=a, k=k)
+
+        if key_type.encode('ascii') in _curveTable:
+            curve = _curveTable[key_type.encode('ascii')]
+            curveName, q, _ = common.getNS(public_payload, 2)
+            if curveName != _secToNist[curve.name]:
+                raise BadKeyError(
+                    'ECDSA curve name "%s" does not match key type "%s"' % (
+                        force_unicode(curveName),
+                        force_unicode(key_type)))
+
+            privateValue, _ = common.getMP(private_blob)
+            return cls._fromECEncodedPoint(
+                encodedPoint=q,
+                curve=key_type.encode('ascii'),
+                privateValue=privateValue,
+                )
+
+
     @classmethod
     def _fromString_PUBLIC_X509_CERTIFICATE(cls, data):
         """
@@ -2610,7 +2680,7 @@ class Key(object):
         """
         Read the private key from PKCS8 PEM format.
         """
-        return cls._load_PRIVATE_PKCS8(data, passphrase='')
+        return cls._load_PRIVATE_PKCS8(data, passphrase=b'')
 
     @classmethod
     def _fromString_PRIVATE_ENCRYPTED_PKCS8(cls, data, passphrase=None):
@@ -2777,7 +2847,7 @@ def generate_ssh_key(options, open_method=None):
         message = (
             u'SSH key of type "%s" and length "%d" generated as '
             u'public key file "%s" and private key file "%s" %s.') % (
-            key.sshType(),
+            key.sshType().decode('ascii'),
             key.size(),
             public_file,
             private_file,
@@ -2791,7 +2861,7 @@ def generate_ssh_key(options, open_method=None):
         message = error.message
     except Exception as error:
         exit_code = 1
-        message = six.text_type(error)
+        message = force_unicode(error)
 
     return (exit_code, message, key)
 

@@ -32,4 +32,4 @@ class TestExceptions(ChevahTestCase):
 
         error = KeyCertException(message)
 
-        self.assertEqual(message.encode('utf-8'), str(error))
+        self.assertEqual(message, str(error))

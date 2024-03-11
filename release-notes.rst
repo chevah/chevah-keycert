@@ -1,6 +1,14 @@
 Release notes for Chevah KeyCert
 ################################
 
+3.1.0 - 2024-03-11
+==================
+
+* Remove support for py2
+* Remove support for LSH
+* Add support for Putty key gen3
+
+
 3.0.12 - 2024-01-27
 ===================
 

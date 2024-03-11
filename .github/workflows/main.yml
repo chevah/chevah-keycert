@@ -14,7 +14,7 @@ jobs:
 
   ubuntu:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -29,22 +29,22 @@ jobs:
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
-      run: ./brink.sh deps
+      run: ./pythia.sh deps
 
     - name: Lint
-      run: ./brink.sh lint
+      run: ./pythia.sh lint
 
     - name: Rename build to unicode
-      run: mv build-keycert build-keycert-ț
+      run: mv build-py3 build-py3-ț
 
     - name: Test
       run: ./brink.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        CHEVAH_BUILD: 'build-keycert-ț'
+        CHEVAH_BUILD: 'build-py3-ț'
 
     - name: Rename build from unicode for cache
-      run: mv build-keycert-ț build-keycert
+      run: mv build-py3-ț build-py3
 
 
   macos:

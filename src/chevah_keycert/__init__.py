@@ -1,9 +1,11 @@
 """
 SSL and SSH key management.
 """
-from __future__ import absolute_import
+import collections
 import sys
 import six
+import base64
+import inspect
 
 
 def _path(path, encoding='utf-8'):
@@ -25,3 +27,20 @@ def native_string(string):
     if six.PY2:
         string = string.encode('ascii')
     return string
+
+
+for member in ['Callable', 'Iterable', 'Mapping', 'Sequence']:
+    if not hasattr(collections, member):
+        setattr(collections, member, getattr(collections.abc, member))
+import cryptography.utils
+if not hasattr(cryptography.utils, 'int_from_bytes'):
+    cryptography.utils.int_from_bytes = int.from_bytes
+
+if not hasattr(base64, 'encodestring'):
+    base64.encodestring = base64.encodebytes
+
+if not hasattr(base64, 'decodestring'):
+    base64.decodestring = base64.decodebytes
+
+if not hasattr(inspect, "getargspec"):
+    inspect.getargspec = lambda func: inspect.getfullargspec(func)[:4]
