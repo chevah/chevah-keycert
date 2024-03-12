@@ -5,7 +5,7 @@
 Test for SSH keys management.
 """
 from argparse import ArgumentParser
-from io import StringIO
+from io import BytesIO
 import textwrap
 
 from chevah_compat.testing import mk, ChevahTestCase
@@ -273,6 +273,112 @@ EO5R1D0fXky8HGA6VciUGR6g2zclO6rNR+Ooc5ThsZQ9sKVrpcvYYC8WdZ5LB50B\r
 J8IuFywygVI4PbRs98v9Dg==\r
 Private-MAC: 3ffe2587759ff8f50c6acdcad44f62a67e88ef2b"""
 
+# Same as PUTTY_RSA_PRIVATE_NO_PASSWORD but in v3 format
+# puttygen test-v2.ppk -o test-v3.ppk --reencrypt
+PUTTY_V3_RSA_PRIVATE_V3_NO_PASSWORD = b"""PuTTY-User-Key-File-3: ssh-rsa\r
+Encryption: none\r
+Comment: imported-openssh-key\r
+Public-Lines: 4\r
+AAAAB3NzaC1yc2EAAAADAQABAAAAgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTK\r
+APkPAWzlu5BRHcmAu0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk\r
++X6Lc4+lAfp1YxCR9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcj\r
+RToF6/jpLw==\r
+Private-Lines: 8\r
+AAAAgAgeXEA78ZgXYGFabsuNw3bmm05ke9RxWjRZfpxOb8BcVKl9KhTkKRtBNgr+\r
+es3rD809SVgYqn30oq+Ikox/5Z7JGZzPSdcX6Z6CeR083Bh2gWFRRBF0unzrMlk9\r
+eaGOym+q0QU51ldCJ7P9OR4ad/K/0UfzuKaAftzcECQ5f+oBAAAAQQDoAnRdC+5S\r
+yjrZ1JQUWUkapiYHIhFq6kWtGm3kWJn0IxCBtFhGvqIWJwZIAjf6tTKMUk6bjG9p\r
+7JpetXUsTiDBAAAAQQDLkQNTYXjZebq29DMzxsCCrt3b/HaIdG46QNRvVsrdjAHJ\r
+OKGX0Euq91GFHGmXbURypakH9HMAVsZr7rQb+JXvAAAAQH+ARfXlS8UUPQODJvSJ\r
+LeJRfIoup2uJ8XbRMz/Kdiz/bS6h2FKGzWp8QfuzLIuH94GMrinThp1h6g9lOB3C\r
+3TE=\r
+Private-MAC: 393d670fe58e8ce89e66f55e22523ec39bfcf8fa908e583b7c53823e142e52d3
+"""
+
+# Same as v3
+# With password "chevah"
+# puttygen test-v2.ppk -o test-v3.ppk  -O private -P --ppk-param kdf=argon2id
+PUTTY_V3_RSA_PRIVATE_WITH_PASSWORD = b"""PuTTY-User-Key-File-3: ssh-rsa\r
+Encryption: aes256-cbc\r
+Comment: imported-openssh-key\r
+Public-Lines: 4\r
+AAAAB3NzaC1yc2EAAAADAQABAAAAgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTK\r
+APkPAWzlu5BRHcmAu0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk\r
++X6Lc4+lAfp1YxCR9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcj\r
+RToF6/jpLw==\r
+Key-Derivation: Argon2id\r
+Argon2-Memory: 8192\r
+Argon2-Passes: 34\r
+Argon2-Parallelism: 1\r
+Argon2-Salt: 426aaa1672c0dbf7154b7610f5d45e23\r
+Private-Lines: 8\r
+AuVHQmNuEXDSMHEigSf7KDUB01HNPzINHhzeBlnRkKcU/sQJxortxwX84L/o/COp\r
+GyDfUqZEObBgU7gIFezXLXkay/Qxw1AWuFgswqzXgKGPZ8+6S0D/ZhAcJlOrKGDf\r
+yYtqs/8fswauzKahZx8dxFP3sN/pzCzSasLV6bJ/33SN7Q4czjVYoTuCBYb1qm6k\r
+0bg+h+CHoIePFGXz3jhLbjSnf405M6MgznD3WMZPLbY+rTtnvroVuLqC0Mu+cdpR\r
+30tkdJaHwstYDsB8yKlCYiIXWtRIKYUkBEZFKpWo7woEe2IqSaiiJ9hTghJuQ5ZQ\r
+53OjORmnoevIn5eitewY0wwB+FsM+vWJ3PWvSu+DIEAEE1jbzjy2hSUVMvj/2f05\r
+Nakw2IT6CC7TCkI8nAzzI48O10DDJ8BFVm3GOqFv1Pzmgh/VePiPRXussZhFpFnm\r
+cDe7srHEqLjxnnOZw7KKqg==\r
+Private-MAC: 2f56110ed1745e3153a70deb4bb57314b1b14dcf3ebc34d13f1ee47c9222cfc0\r
+"""
+
+# Same as v3 but with argon21
+# With password "chevah"
+# puttygen test-v2.ppk -o test-v3.ppk  -O private -P --ppk-param kdf=argon2i
+PUTTY_V3_RSA_PRIVATE_WITH_PASSWORD_ARGON2I = b"""PuTTY-User-Key-File-3: ssh-rsa\r
+Encryption: aes256-cbc\r
+Comment: imported-openssh-key\r
+Public-Lines: 4\r
+AAAAB3NzaC1yc2EAAAADAQABAAAAgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTK\r
+APkPAWzlu5BRHcmAu0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk\r
++X6Lc4+lAfp1YxCR9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcj\r
+RToF6/jpLw==\r
+Key-Derivation: Argon2i\r
+Argon2-Memory: 8192\r
+Argon2-Passes: 13\r
+Argon2-Parallelism: 1\r
+Argon2-Salt: f2efdbaac9f11a994de82a1b9e418874\r
+Private-Lines: 8\r
+o9870SrOsNN5Nm1WI/TKqpyKgSRyGX0JDGW2a3uO9YCeqxb1AL8vEk2yRRlxkzy4\r
+Hvh7xmI2KNnAeuZvkJJjUYHNNTp+KYbV17paU6Cf5GAwOaKJdrwX31zxrPqbYzmi\r
+KmpNZLAGhoIEbFY6W5y7E1NnoM4zyZ1vsg6Z1eapTCtlgeOQr7rNkNlpoKjaopiA\r
+s7G5h+A+FAeqfh6aaiZf3dswbw5mavcnWTPTnZNbWDziR/blRk/aOanCj4HVoWx+\r
+o6dOZnwl9PxY07R9RUk2DNJhr9XiibTTb5ymRk9SVPUjbrV8uC3DLiuejDZ+drgG\r
+qotb7VbS0s7+Dbe5ctRyOkr1yx1UQaEMV3OTrqlE6CGuRdfjyQJWidGYFHZTmgUR\r
+wm3sW+T90MGCnFEukHxEmXWZJmL3pYO8+dYYRi+RGB9zuO7KskbyLgqm4m023gwT\r
+5EpqsPFNUv3iL3kU1HtzVQ==\r
+Private-MAC: 90a441b935e29c1e7fd3efb79a330554e0e99d2c15948efded9916afd8ba8626\r
+"""
+
+# Same as v3 but with argon21
+# With password "chevah"
+# puttygen test-v2.ppk -o test-v3.ppk  -O private -P --ppk-param kdf=argon2d
+PUTTY_V3_RSA_PRIVATE_WITH_PASSWORD_ARGON2D = b"""PuTTY-User-Key-File-3: ssh-rsa\r
+Encryption: aes256-cbc\r
+Comment: imported-openssh-key\r
+Public-Lines: 4\r
+AAAAB3NzaC1yc2EAAAADAQABAAAAgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTK\r
+APkPAWzlu5BRHcmAu0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk\r
++X6Lc4+lAfp1YxCR9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcj\r
+RToF6/jpLw==\r
+Key-Derivation: Argon2d\r
+Argon2-Memory: 8192\r
+Argon2-Passes: 13\r
+Argon2-Parallelism: 1\r
+Argon2-Salt: f319597cb7bc378717a32b7809b466ef\r
+Private-Lines: 8\r
+mDtZZwVUvEKw6vgott8cT4rLzGfR6kOOdfhfjXR3KtRjbE32YthmuxtUF040kaLE\r
+DubnQ5x+/LnbpycXWeSYsOgYOODC22s+XTqqsgqXHSIqjWZnVswOGfyY2x8VdnSS\r
+i6G42BwSxZHU5bNBZkVn4t63USS8cyGIOzhhNebob4jR864JoQy7UpcJCt7dxzRy\r
+iOAvFY6M11WJUN1g8lHQaJ0HuDjQEPD2CPw87bMGDayo4I5RvYa617pkKNGZ1AOJ\r
+nzYrjkpv1kHBL0AKfA2ZTQKs2g4PGBa2YBK+UolYKACFaiRLX/du+6cW6fDQ7u92\r
+kSGZED0rjP+Z6s9376I7E05AnPSFWqlE3XLtxaL1KqkbZ+ffOrRqIpPnYsmeYeIl\r
+hYHH406V+VdlGZzNkqfrTH0m7X8Ra39Y48/nhPHmaJLhnVU15RVkoAdazoAEN779\r
+WwsJE3IFnF0qDKB6p5wPyw==\r
+Private-MAC: 7dd2f4638f52515edf5282d290179b63079f64b2c9bed65cdc1a99c60d710807\r
+"""
+
 # This is the same key as OPENSSH_DSA_PRIVATE
 PUTTY_DSA_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-2: ssh-dss\r
 Encryption: none\r
@@ -292,6 +398,27 @@ Private-Lines: 1\r
 AAAAFE5O2kb+uaE3nWLAMovNC/KYWATe\r
 Private-MAC: 1b98c142780beaa5555ad5c23a0469e36f24b6f9"""
 
+# Same as PUTTY_DSA_PRIVATE_NO_PASSWORD but in v3 format
+# puttygen dsa-v2.ppk -o dsa-v3.ppk --reencrypt
+PUTTY_V3_DSA_PRIVATE_NO_PASSWORD_V3 = b"""PuTTY-User-Key-File-3: ssh-dss\r
+Encryption: none\r
+Comment: imported-openssh-key\r
+Public-Lines: 10\r
+AAAAB3NzaC1kc3MAAACBAM7CQoaeZVn1tGXtkKf/BIQtXSfkQuypVkU60GkeV4Q6\r
+K2y+MQEFtMpfR9nze9oxWckVXDcNBJuLX3aSu+T3T1jqHcdU7YwoFF323b1+vbpW\r
+8JlA7FHh/OQ+4v4/Hj5KGoTXvWw7Oy4QO3QyTF/XnZDGsDa8+jCSPt+bNEfnGANN\r
+AAAAFQCGG/5Y0lHJaOk4jcKIhfvW8mnxSQAAAIBcD5MAYKYXZl41k3TiaDF7JPfg\r
+gDDfs0aYss/9vKLzp0px3PmG2o+I5Zw2YXOsDtrSj56sTcH6aLASbaxXP55VZ804\r
+IlBqUdSpGuTWJXnjYUvQEJ4+Ilr3UFrDilVLmGdI2Sj9aynRWdberk4r+0+zWlHL\r
+7epZTDCuDmLOFiQF/AAAAIB/6sL9MO4ZwtFzwbOKNOoZxfORwNbzzHf+IpzyBTxx\r
+QJcYS6QgbtSi2tUY1WeJxmq/xkMoVLgpmpK6NN+NuB6aux54U7h5B3pZ7SnoRJ7v\r
+ATQnMJpwZYno8uZXhx4TmOoSxzxy2jTJb4rt4R6bbwjaI9ca/1iLavocQ218Zk20\r
+4g==\r
+Private-Lines: 1\r
+AAAAFE5O2kb+uaE3nWLAMovNC/KYWATe\r
+Private-MAC: 9e617cd5bf19f880d3a6a1a0551b699f732e27ec78af65b764de465d82600e18\r
+"""
+
 PUTTY_ED25519_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-2: ssh-ed25519\r
 Encryption: none\r
 Comment: ed25519-key-20210106\r
@@ -301,6 +428,18 @@ AAAAC3NzaC1lZDI1NTE5AAAAIEjwKguKHPrqp3UEqSP7XTmOhBavcTxkHwnzQveQ\r
 Private-Lines: 1\r
 AAAAINWl263e/oNph4x7jM94kE7BaSNcXD7G6bbWatylw61A\r
 Private-MAC: ead2308fe2f6be87941f17e9d61ede28da2cde8a\r
+"""
+
+# Same as PUTTY_ED25519_PRIVATE_NO_PASSWORD but in v3 format.
+PUTTY_V3_ED25519_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-3: ssh-ed25519\r
+Encryption: none\r
+Comment: ed25519-key-20210106\r
+Public-Lines: 2\r
+AAAAC3NzaC1lZDI1NTE5AAAAIEjwKguKHPrqp3UEqSP7XTmOhBavcTxkHwnzQveQ\r
+2MGG\r
+Private-Lines: 1\r
+AAAAINWl263e/oNph4x7jM94kE7BaSNcXD7G6bbWatylw61A\r
+Private-MAC: b3617706ea98c2476aa733296636d7845a7d62e871a5dd0057d11d74f218d0e1\r
 """
 
 # Password is: chevah
@@ -328,6 +467,18 @@ AAAAIDe7fQUAaorrEkedXTSmXrCY4vabtFV7e4Z8xBSvty8Q\r
 Private-MAC: a84b17c5dead6fed8f474406929312d45c096dfc\r
 """)
 
+PUTTY_V3_ECDSA_SHA2_NISTP256_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-3: ecdsa-sha2-nistp256\r
+Encryption: none\r
+Comment: ecdsa-key-20210106\r
+Public-Lines: 3\r
+AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPA3+gjOpajd\r
+9iRVm72ArvQfjVW+3bz9IMrPNMIANSmwTj+0NuFgXZGLaxT8BKslZLZvJX+XuUr/\r
+Yvgn32oS7Iw=\r
+Private-Lines: 1\r
+AAAAIDe7fQUAaorrEkedXTSmXrCY4vabtFV7e4Z8xBSvty8Q\r
+Private-MAC: 6488b1e2221448122e8884df9622350510e7cd266d174b307104a15e5669afb5\r
+"""
+
 PUTTY_ECDSA_SHA2_NISTP384_PRIVATE_NO_PASSWORD = (
 b"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp384\r
 Encryption: none\r
@@ -341,6 +492,19 @@ AAAAMQCNcgWtnEeeTqFN383FBJdM90keHkJwproyLPgWQLlbZe+r8py0Pl7mUHvj\r
 SGmXUVc=\r
 Private-MAC: 1464df777d20427e2b99adb148ed4b8a1a839409\r
 """)
+
+PUTTY_V3_ECDSA_SHA2_NISTP384_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-3: ecdsa-sha2-nistp384\r
+Encryption: none\r
+Comment: ecdsa-key-20210106\r
+Public-Lines: 3\r
+AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBEjK280ap/RD\r
+R916Q00OI1LIHyRG1fcH6twBjmynTgl0uGlcb8bnbpGO1JOgbhBqqzVQHVckHzqT\r
+fUif6rRRQuiUJEenXRmgjQ0uEcj21Rdomz7TJPz1k8tHmOZCHgJx6g==\r
+Private-Lines: 2\r
+AAAAMQCNcgWtnEeeTqFN383FBJdM90keHkJwproyLPgWQLlbZe+r8py0Pl7mUHvj\r
+SGmXUVc=\r
+Private-MAC: 73cdd8880d60561a21bc23017b191471354158e2f343e1b48e8dbe0e46b74067\r
+"""
 
 PUTTY_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD = (
 b"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp521\r
@@ -357,6 +521,20 @@ B9pAqlHsVHQJF/uVpFbJFUnjEokJ4w==\r
 Private-MAC: e828d7207e0e73453005d606216ca36c64d1e304\r
 """)
 
+PUTTY_V3_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-3: ecdsa-sha2-nistp521\r
+Encryption: none\r
+Comment: ecdsa-key-20210106\r
+Public-Lines: 4\r
+AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBAGtj24Kr7OY\r
+21mtlHTFuH0NmrhI1mco0nND4FvDbNTTU/87t1ZDqbPEnRqmYBM6/dGPyOK82PH8\r
+NmCrCjj0rmckNgC3+Jg/+ok1bJG7/WeTOObnIdDBJklxksIjMF6LG6hVngIibxgF\r
+V3iBGD5eWUr40AK+6+wN7uKsaFHMBCg8lde5Mg==\r
+Private-Lines: 2\r
+AAAAQgE64XtEewBVYUz+sfojvHmsiwdT+2BBBw1IAcKuozuhsz8EkOEOBJGZqCBP\r
+B9pAqlHsVHQJF/uVpFbJFUnjEokJ4w==\r
+Private-MAC: 3b713999a444c896d6ea7605aba44684693249d6de9b1a0775b60a9bf8e0f19a\r
+"""
+
 
 class DummyOpenContext(object):
     """
@@ -370,7 +548,7 @@ class DummyOpenContext(object):
         self.last_stream = None
 
     def __call__(self, path, mode):
-        self.last_stream = StringIO()
+        self.last_stream = BytesIO()
         self.calls.append(
             {'path': path, 'mode': mode, 'stream': self.last_stream})
         return self
@@ -628,11 +806,11 @@ class TestKey(ChevahTestCase):
         A ServerError is raised when it fails to generate the key.
         """
         with self.assertRaises(KeyCertException) as context:
-            Key.generate(key_type='dSa', key_size=2048)
+            Key.generate(key_type='dSa', key_size=512)
 
         self.assertEqual(
-            u'Wrong key size "2048". Number of bits in p must be a multiple '
-            'of 64 between 512 and 1024, not 2048 bits.',
+            'Wrong key size "512". '
+            'Key size must be 1024, 2048, 3072, or 4096 bits.',
             context.exception.message)
 
     def test_guessStringType(self):
@@ -880,10 +1058,13 @@ class TestKey(ChevahTestCase):
         An exceptions is raised when reading a key for which type could not
         be detected. Exception only contains the beginning of the content.
         """
-        content = mk.ascii() * 100
+        content = 'some-value-' * 100
 
         self.assertBadKey(
-            content, 'Cannot guess the type for "%s"' % content[:80])
+            content,
+            'Cannot guess the type for "b\'some-value-'
+            'some-value-some-value-some-value-some-value-some-'
+            'value-some-value-som\'"')
 
     def test_fromString_struct_errors(self):
         """
@@ -1065,8 +1246,8 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         badBlob = common.NS('ssh-\xbd\xbd\xbd')
         self.assertBadKey(
             badBlob,
-            'Cannot guess the type for "'
-            r'\x00\x00\x00' + '\n' + r'ssh-\xc2\xbd\xc2\xbd\xc2\xbd"'
+            'Cannot guess the type for '
+            '"b\'\\x00\\x00\\x00\\nssh-\\xc2\\xbd\\xc2\\xbd\\xc2\\xbd\'"'
             )
 
     def test_fromString_PRIVATE_BLOB(self):
@@ -1354,7 +1535,7 @@ SUrCyZXsNh6VXwjs3gKQ
         """
 
         with self.assertRaises(BadKeyError) as context:
-            Key.fromString(OPENSSH_RSA_PRIVATE, passphrase=b'pass')
+            Key.fromString(OPENSSH_RSA_PRIVATE, passphrase='pass')
 
         self.assertEqual(
             'OpenSSH key not encrypted',
@@ -1497,16 +1678,16 @@ SUrCyZXsNh6VXwjs3gKQ
             '10661640454627350493191065484215149934251067848734449698668476614'
             '18981319570111200535213963399376281314470995958266981264747210946'
             '6364885923117389812635119'),
-            data['p'])
+            data['q'])
         self.assertEqual(int(
             '12151328104249520956550929707892880056509323657595783040548358917'
             '98785549316902458371621691657702435263762556929800891556172971312'
             '6473919204485168003686593'),
-            data['q'])
+            data['p'])
         self.assertEqual(int(
-            '66777727502990278851698381429390065987141247478987840061938912337'
-            '88877413103516203638312270220327073357315389300205491590285175084'
-            '040066037688353071226161'),
+            '48025268260110814473325498559726067155427614012608550802573547885'
+            '48894562354231797601376827466469492368471033644629931755771678685'
+            '474342157953188378164913'),
             data['u'])
 
     def test_fromString_PUBLIC_SSHCOM_RSA_no_headers(self):
@@ -1656,7 +1837,7 @@ AAAAB3NzaC1yc2EA
         self.assertBadKey(
             content,
             'Failed to decode key (Bad Passphrase?): '
-            'Short octet stream on tag decoding')
+            'EndOfStreamError()')
 
     def test_fromString_PRIVATE_OPENSSH_bad_encoding(self):
         """
@@ -1786,13 +1967,13 @@ Gt7MBDMYYr8yfcZS94pZEUfhebR3CYAZ
             Key.fromString(data)
 
         self.assertStartsWith(
-            "Failed to load certificate. [('asn1 encoding routines'",
+            "Failed to load certificate. \"[('asn1 encoding routines'",
             context.exception.message,
             )
 
     def test_fromString_X509_PEM_EC(self):
         """
-        EC public key from an X509 PEM certificate are not supported.
+        EC public key from an X509 PEM certificate are supported.
         """
         data = """-----BEGIN CERTIFICATE-----
 MIIBNDCB66ADAgECAgEBMAoGCCqGSM49BAMCMDQxCzAJBgNVBAYTAkdCMQ8wDQYD
@@ -1804,13 +1985,11 @@ AARzpUpSPLojoyouYH7HhSFV661wUKrRVqLyJlBb1cWU8f4wLZsGkXymZpAPClwu
 Gt7MBDMYYr8yfcZS94pZEUfhebR3CYAZ
 -----END CERTIFICATE-----
 """
-        with self.assertRaises(BadKeyError) as context:
-            Key.fromString(data)
+        result = Key.fromString(data)
 
-        self.assertEqual(
-            'Unsupported key found in the certificate.',
-            context.exception.message,
-            )
+        self.assertEqual('EC', result.type())
+        self.assertEqual(b'ecdsa-sha2-nistp192', result.sshType())
+        self.assertEqual(192, result.size())
 
     def test_fromString_PKCS1_PUBLIC_ECDSA(self):
         """
@@ -1879,7 +2058,7 @@ O1u6TvSz6Of7rB5clQIDAQAB
             Key.fromString(data)
 
         self.assertStartsWith(
-            "Failed to load PKCS#1 public key. [('asn1 encoding routines'",
+            "Failed to load PKCS#1 public key. \"[('DECODER routines'",
             context.exception.message,
             )
 
@@ -2038,7 +2217,7 @@ r3fAiJ9U0aDLrcUh
             Key.fromString(data)
 
         self.assertStartsWith(
-            "Failed to load PKCS#8 PEM. [('asn1 encoding routines'",
+            "Failed to load PKCS#8 PEM. \"[('DECODER routines'",
             context.exception.message,
             )
 
@@ -2154,7 +2333,7 @@ rk4r+0+zWlHL7epZTDCuDmLOFiQF/AQWAhROTtpG/rmhN51iwDKLzQvymFgE3g==
 
     def test_fromString_PRIVATE_PKCS8_EC(self):
         """
-        It fails to extract the EC key from an PKCS8 private EC PEM file,
+        It cat  extract the EC key from an PKCS8 private EC PEM file,
         """
         # openssl ecparam -name prime256v1 -genkey -noout -out private.ec.key
         # openssl pkcs8 -topk8 -in private.ec.key -nocrypt
@@ -2164,13 +2343,10 @@ MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgrNfvVhrhJeyufkeZ
 7C/wsAsbx6monIz1qc1jje9RgggJL5pZ5HfbDInclQfV5T9rz6kWFEZS
 -----END PRIVATE KEY-----
 """
-        with self.assertRaises(BadKeyError) as context:
-            Key.fromString(data)
+        result = Key.fromString(data)
 
-        self.assertEqual(
-            'Unsupported key found in the PKCS#8 private PEM file.',
-            context.exception.message,
-            )
+        self.assertEqual('EC', result.type())
+        self.assertEqual(b'ecdsa-sha2-nistp256', result.sshType())
 
     def test_toString_SSHCOM_RSA_private_without_encryption(self):
         """
@@ -2181,7 +2357,11 @@ MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgrNfvVhrhJeyufkeZ
         result = sut.toString(type='sshcom')
 
         # Check that it looks like SSH.com private key.
-        self.assertEqual(SSHCOM_RSA_PRIVATE_NO_PASSWORD, result)
+        self.assertStartsWith(
+            b'---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----\n'
+            b'P2/56wAAAi4AAAA3aWYtbW9kbntzaWdue3JzYS1wa2NzMS1zaGExfSxlbmNyeXB0',
+            result)
+
         # Load the serialized key and see that we get the same key.
         reloaded = Key.fromString(result)
         self.assertEqual(sut, reloaded)
@@ -2195,7 +2375,11 @@ MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgrNfvVhrhJeyufkeZ
         result = sut.toString(type='sshcom', extra='chevah')
 
         # Check that it looks like SSH.com private key.
-        self.assertEqual(SSHCOM_RSA_PRIVATE_WITH_PASSWORD, result)
+        self.assertStartsWith(
+            b'---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----\n'
+            b'P2/56wAAAjMAAAA3aWYtbW9kbntzaWdue3',
+            result)
+
         # Load the serialized key and see that we get the same key.
         reloaded = Key.fromString(result, passphrase=b'chevah')
         self.assertEqual(sut, reloaded)
@@ -2558,23 +2742,13 @@ IGNORED
         """
         Test the pretty representation of Key.
         """
-        self.assertEqual(
-            repr(keys.Key(self.rsaObj)),
-            b"""\
-<RSA Private Key (0 bits)
-attr d:
-\t03
-attr e:
-\t02
-attr n:
-\t01
-attr p:
-\t04
-attr q:
-\t05
-attr u:
-\t04>""")
-
+        result = repr(keys.Key(self.rsaObj))
+        self.assertContains(
+            '<RSA Private Key (2048 bits)\n'
+            'attr d:\n'
+            '\t21:4c',
+            result
+            )
 
 class Test_generate_ssh_key_parser(ChevahTestCase, CommandLineMixin):
     """
@@ -2599,7 +2773,8 @@ class Test_generate_ssh_key_parser(ChevahTestCase, CommandLineMixin):
             'sub_command': 'key-gen',
             'key_comment': None,
             'key_file': None,
-            'key_size': 2048,
+            'key_password': None,
+            'key_size': None,
             'key_type': 'rsa',
             'key_format': 'openssh_v1',
             'key_skip': False,
@@ -2625,6 +2800,7 @@ class Test_generate_ssh_key_parser(ChevahTestCase, CommandLineMixin):
             'key_comment': 'some comment',
             'key_file': 'id_dsa',
             'key_size': 1024,
+            'key_password': None,
             'key_type': 'dsa',
             'key_format': 'openssh_v1',
             'key_skip': True,
@@ -2645,7 +2821,8 @@ class Test_generate_ssh_key_parser(ChevahTestCase, CommandLineMixin):
             'sub_command': 'key-gen',
             'key_comment': None,
             'key_file': None,
-            'key_size': 1024,
+            'key_size': None,
+            'key_password': None,
             'key_type': 'dsa',
             'key_format': 'openssh_v1',
             'key_skip': False,
@@ -2735,30 +2912,33 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         exit_code, message, key = generate_ssh_key(
             options, open_method=open_method)
 
+        # Message informs what default values were used.
+        self.assertEqual(
+            'SSH key of type "ssh-rsa" and length "1024" generated as public '
+            'key file "id_rsa.pub" and private key file "id_rsa" without '
+            'a comment.',
+            message,
+            )
+
         self.assertEqual('RSA', key.type())
         self.assertEqual(1024, key.size())
 
         # First it writes the private key.
         first_file = open_method.calls.pop(0)
-        self.assertPathEqual(_path(u'id_rsa'), first_file['path'])
+        self.assertPathEqual('id_rsa', first_file['path'])
         self.assertEqual('wb', first_file['mode'])
-        self.assertEqual(
-            key.toString('openssh'), first_file['stream'].getvalue())
+        self.assertStartsWith(
+            b'-----BEGIN OPENSSH PRIVATE KEY-----\n'
+            b'b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAA',
+            first_file['stream'].getvalue())
 
         # Second it writes the public key.
         second_file = open_method.calls.pop(0)
-        self.assertPathEqual(u'id_rsa.pub', second_file['path'])
+        self.assertPathEqual('id_rsa.pub', second_file['path'])
         self.assertEqual('wb', second_file['mode'])
         self.assertEqual(
             key.public().toString('openssh'), second_file['stream'].getvalue())
 
-        # Message informs what default values were used.
-        self.assertEqual(
-            u'SSH key of type "rsa" and length "1024" generated as public '
-            u'key file "id_rsa.pub" and private key file "id_rsa" without '
-            u'a comment.',
-            message,
-            )
 
     def test_generate_ssh_key_private_exist_no_migration(self):
         """

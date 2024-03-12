@@ -164,12 +164,12 @@ class Test_generate_csr_parser(
         self.assertStartsWith('usage: test-command key-gen [-h]', error)
         self.assertEndsWith(
             '\ntest-command key-gen: '
-            'error: argument --common-name is required\n',
+            'error: the following arguments are required: --common-name\n',
             error)
 
     def test_default(self):
         """
-        It can be initialized with only a subparser and sub-command name.
+        It can be initialized with only a subparserfile has no  and sub-command name.
         """
         generate_csr_parser(self.subparser, 'key-gen')
 
@@ -390,7 +390,8 @@ class Test_generate_csr(CommandLineTestBase):
         self.assertIsNone(subject.localityName)
         self.assertIsNone(subject.stateOrProvinceName)
         self.assertIsNone(subject.countryName)
-        self.assertEqual(2, result['csr'].get_version())
+        # CSR version is at 0.
+        self.assertEqual(0, result['csr'].get_version())
 
     def test_gen_unicode(self):
         """

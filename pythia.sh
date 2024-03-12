@@ -127,14 +127,6 @@ update_venv() {
         exit 7
     fi
 
-    set +e
-    "$PYTHON_BIN" -c "from paver.tasks import main; main()" build
-    exit_code="$?"
-    set -e
-    if [ $exit_code -ne 0 ]; then
-        (>&2 echo "Failed to run the initial './pythia.sh build' command.")
-        exit 8
-    fi
 }
 
 # Load repo specific configuration.
@@ -706,7 +698,7 @@ check_musl_version(){
     # Decrement supported_musl11_version above if building against older musl.
     if [ "${musl_version_array[0]}" -lt 1 ]; then
         musl_version_unsupported="true"
-    elif [ "${musl_version_array[0]}" -eq 1 ]; then      
+    elif [ "${musl_version_array[0]}" -eq 1 ]; then
         if [ "${musl_version_array[1]}" -lt 1 ];then
             musl_version_unsupported="true"
         elif [ "${musl_version_array[1]}" -eq 1 ];then

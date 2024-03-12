@@ -12,7 +12,7 @@ from random import randint
 
 from OpenSSL import crypto
 
-from chevah_keycert import _path, native_string
+from chevah_keycert import native_string
 from chevah_keycert.exceptions import KeyCertException
 
 _DEFAULT_SSL_KEY_CYPHER = 'aes-256-cbc'
@@ -336,8 +336,8 @@ def _generate_csr(options):
     key_pem = None
     private_key = options.key
     if private_key:
-        if os.path.exists(_path(private_key)):
-            with open(_path(private_key), 'rb') as stream:
+        if os.path.exists(private_key):
+            with open(private_key, 'rb') as stream:
                 private_key = stream.read()
 
         key_pem = private_key
@@ -403,7 +403,7 @@ def generate_ssl_self_signed_certificate(options):
     return (certificate_pem.decode('utf-8'), key_pem.decode('utf-8'))
 
 
-def generate_and_store_csr(options, encoding='utf-8'):
+def generate_and_store_csr(options):
     """
     Generate a key/csr and try to store it on disk.
 
@@ -412,16 +412,16 @@ def generate_and_store_csr(options, encoding='utf-8'):
     name, _ = os.path.splitext(options.key_file)
     csr_name = u'%s.csr' % name
 
-    if os.path.exists(_path(options.key_file, encoding)):
+    if os.path.exists(options.key_file):
         raise KeyCertException('Key file already exists.')
 
     result = generate_csr(options)
 
     try:
-        with open(_path(options.key_file, encoding), 'wb') as store_file:
+        with open(options.key_file, 'wb') as store_file:
             store_file.write(result['key_pem'])
 
-        with open(_path(csr_name, encoding), 'wb') as store_file:
+        with open(csr_name, 'wb') as store_file:
             store_file.write(result['csr_pem'])
     except Exception as error:
         raise KeyCertException(str(error))

@@ -61,7 +61,7 @@ except ImportError:
 from cryptography.utils import int_from_bytes, int_to_bytes
 from OpenSSL import crypto
 
-from chevah_keycert import common, _path
+from chevah_keycert import common
 from chevah_keycert.common import (
     force_unicode,
     iterbytes,
@@ -213,7 +213,7 @@ class Key(object):
         @rtype: L{Key}
         @return: The loaded key.
         """
-        with open(_path(filename, encoding), 'rb') as file:
+        with open(filename, 'rb') as file:
             return cls.fromString(file.read(), type, passphrase)
 
     @classmethod
@@ -246,7 +246,7 @@ class Key(object):
             type = cls._guessStringType(data)
         if type is None:
             raise BadKeyError(
-                'Cannot guess the type for "%s"' % force_unicode(data[:80]))
+                'Cannot guess the type for "{}"'.format(repr(data[:80])))
 
         try:
             method = getattr(cls, '_fromString_%s' % type.upper(), None)
@@ -2448,7 +2448,6 @@ class Key(object):
         lines.append('Private-MAC: %s' % private_mac)
         return '\r\n'.join(lines).encode('utf-8')
 
-
     @classmethod
     def _fromString_PRIVATE_PUTTY_V3(cls, data, passphrase):
         """
@@ -2640,6 +2639,27 @@ class Key(object):
                 privateValue=privateValue,
                 )
 
+    def _toString_PUTTY_V3(self, comment=None, passphrase=None):
+        """
+        Return a public or private Putty v3 string.
+
+        See _fromString_PRIVATE_PUTTY for the private format.
+        See _fromString_PUBLIC_SSHCOM for the public format.
+
+        If extra is present, it represents a comment for a
+        public key, or a passphrase for a private key.
+
+        @param extra: Comment for a public key or passphrase for a private key.
+        @type extra: C{bytes}
+
+        @rtype: C{bytes}
+        """
+        if self.isPublic():
+            # Putty uses SSH.com as public format.
+            return self._toString_SSHCOM_public(comment)
+        else:
+            return self._toString_PUTTY_V3_private(passphrase)
+
 
     @classmethod
     def _fromString_PUBLIC_X509_CERTIFICATE(cls, data):
@@ -2817,7 +2837,7 @@ def generate_ssh_key(options, open_method=None):
 
         key = Key.generate(key_type=key_type, key_size=key_size)
 
-        with open_method(_path(private_file), 'wb') as file_handler:
+        with open_method(private_file, 'wb') as file_handler:
             _store_SSHKey(
                 key,
                 private_file=file_handler,
@@ -2836,7 +2856,7 @@ def generate_ssh_key(options, open_method=None):
         else:
             message_comment = u'without a comment'
 
-        with open_method(_path(public_file), 'wb') as file_handler:
+        with open_method(public_file, 'wb') as file_handler:
             _store_SSHKey(
                 key,
                 public_file=file_handler,
@@ -2898,13 +2918,13 @@ def _skip_key_generation(options, private_file, public_file):
 
     Raise KeyCertException if file exists.
     """
-    if os.path.exists(_path(private_file)):
+    if os.path.exists(private_file):
         if options.key_skip:
             return True
         else:
             raise KeyCertException(
                 u'Private key already exists. %s' % private_file)
 
-    if os.path.exists(_path(public_file)):
+    if os.path.exists(public_file):
         raise KeyCertException(u'Public key already exists. %s' % public_file)
     return False

@@ -107,8 +107,6 @@ def _nose(args, cov, base='chevah_keycert.tests'):
             os._exit(1)
 
 
-
-
 @task
 @consume_args
 def test_interop_load_dsa(args):
@@ -126,6 +124,7 @@ def test_interop_load_dsa(args):
             "../src/chevah_keycert/tests/ssh_load_keys_tests.sh dsa", shell=True)
 
     sys.exit(exit_code)
+
 
 @task
 @consume_args
@@ -162,6 +161,7 @@ def test_interop_load_eced(args):
             "../src/chevah_keycert/tests/ssh_load_keys_tests.sh ecdsa ed25519", shell=True)
 
     sys.exit(exit_code)
+
 
 @task
 @consume_args

@@ -12,23 +12,19 @@ Exit code:
 * 3 - Error raised by demo code itself.
 
 """
-from __future__ import print_function, unicode_literals
-# Fix namespaced package import.
-import chevah
 import os
 import sys
 import traceback
-chevah.__path__.insert(0, os.path.join(os.getcwd(), 'chevah'))
 
 import argparse
 import sys
-from chevah.keycert.exceptions import KeyCertException
-from chevah.keycert.ssh import (
+from chevah_keycert.exceptions import KeyCertException
+from chevah_keycert.ssh import (
     generate_ssh_key,
     generate_ssh_key_parser,
     Key
     )
-from chevah.keycert.ssl import (
+from chevah_keycert.ssl import (
     generate_csr_parser,
     generate_and_store_csr,
     generate_self_signed_parser,
@@ -144,10 +140,10 @@ def ssh_verify_data(options):
 parser = argparse.ArgumentParser(prog='PROG')
 subparser = parser.add_subparsers(
             help='Available sub-commands', dest='sub_command')
+subparser.required = False
 
 sub = generate_ssh_key_parser(subparser, 'ssh-gen-key')
 sub.set_defaults(handler=generate_ssh_key)
-
 
 sub = subparser.add_parser(
     'ssh-load-key',
@@ -225,10 +221,18 @@ sub = generate_self_signed_parser(subparser, 'ssl-self-signed')
 sub.set_defaults(handler=lambda o:
     b'\n'.join(generate_ssl_self_signed_certificate(o)))
 
-options = parser.parse_args()
+namespace = parser.parse_args()
+
+if namespace.sub_command is None:
+    # On Py2 the parser will raise this error.
+    # Here on py3 we raise this to keep the same behaviour.
+    parser.print_usage()
+    parser.error('too few arguments')
+    # We shouldn't hit this as Parser.error() should exit.
+    sys.exit(1)
 
 try:
-    result = options.handler(options)
+    result = namespace.handler(namespace)
     if result is None:
         print_error('EXPECTED DEMO SCRIPT ERROR')
         sys.exit(3)
