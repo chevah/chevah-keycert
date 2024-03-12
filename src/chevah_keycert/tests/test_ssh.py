@@ -742,7 +742,7 @@ class TestKey(ChevahTestCase):
         self.assertTrue(rsa1 != rsa3)
         self.assertTrue(rsa1 != dsa)
         self.assertTrue(rsa1 is not object)
-        self.assertTrue(rsa1 is None)
+        self.assertTrue(rsa1 is not None)
 
     def test_type(self):
         """

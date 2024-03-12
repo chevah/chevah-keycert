@@ -101,7 +101,8 @@ def getMP(data, count=1):
 def ffs(c, s):
     """
     first from second
-    goes through the first list, looking for items in the second, returns the first one
+    goes through the first list, looking for items in the second,
+    returns the first one
     """
     for i in c:
         if i in s:

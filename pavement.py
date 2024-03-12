@@ -11,6 +11,7 @@ from pkg_resources import load_entry_point
 from paver.easy import call_task, consume_args, task, pushd
 
 EXTRA_PYPI_INDEX = os.environ['PIP_INDEX_URL']
+BUILD_DIR = os.environ.get('CHEVAH_BUILD', 'build-py3')
 
 
 @task
@@ -88,23 +89,23 @@ def _nose(args, cov, base='chevah_keycert.tests'):
         ]
 
 
-    os.chdir('build-py3')
-    ChevahTestCase.initialize(drop_user='-')
-    ChevahTestCase.dropPrivileges()
-    try:
-        nose_main(addplugins=plugins)
-    finally:
-        process = psutil.Process(os.getpid())
-        print('Max RSS: {} MB'.format(process.memory_info().rss / 1000000))
-        if cov:
-            cov.stop()
-            cov.save()
-        threads = threading.enumerate()
-        if len(threads) > 1:
-            print("There are still active threads: %s" % threads)
-            sys.stdout.flush()
-            sys.stderr.flush()
-            os._exit(1)
+    with pushd(BUILD_DIR):
+        ChevahTestCase.initialize(drop_user='-')
+        ChevahTestCase.dropPrivileges()
+        try:
+            nose_main(addplugins=plugins)
+        finally:
+            process = psutil.Process(os.getpid())
+            print('Max RSS: {} MB'.format(process.memory_info().rss / 1000000))
+            if cov:
+                cov.stop()
+                cov.save()
+            threads = threading.enumerate()
+            if len(threads) > 1:
+                print("There are still active threads: %s" % threads)
+                sys.stdout.flush()
+                sys.stderr.flush()
+                os._exit(1)
 
 
 @task
