@@ -59,6 +59,7 @@ def ssh_load_key(options, open_method=None):
     path = options.file
     output_format = options.type
     password = options.password
+    key_password = options.key_password
 
     if not path:
         return print_error('No path specified')
@@ -72,14 +73,14 @@ def ssh_load_key(options, open_method=None):
     key = Key.fromString(key_content, passphrase=password)
 
     if key.isPublic():
-        to_string = key.toString(output_format)
+        to_string = key.toString(output_format, extra=key_password)
     else:
-        to_string = key.toString(output_format)
+        to_string = key.toString(output_format, extra=key_password)
 
     result = '%r\nKey type %s\n\n%s' % (
         key,
         Key.getKeyFormat(key_content),
-        to_string,
+        to_string.decode('utf-8'),
         )
     return result
 
@@ -164,7 +165,13 @@ sub.add_argument(
     '--password',
     metavar='PASSWORD',
     default=None,
-    help='Option password or commented used when re-encoding the loaded key.'
+    help='Option password used when loading the key.'
+    )
+sub.add_argument(
+    '--key-password',
+    metavar='PASSWORD',
+    default=None,
+    help='Option password used when writing key.'
     )
 sub.set_defaults(handler=ssh_load_key)
 

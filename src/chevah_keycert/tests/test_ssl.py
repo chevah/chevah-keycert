@@ -169,7 +169,8 @@ class Test_generate_csr_parser(
 
     def test_default(self):
         """
-        It can be initialized with only a subparserfile has no  and sub-command name.
+        It can be initialized with only a subparserfile has no  and sub-command
+        name.
         """
         generate_csr_parser(self.subparser, 'key-gen')
 

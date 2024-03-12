@@ -70,7 +70,8 @@ def _generate_self_csr_parser(sub_command, default_key_size):
             'To mark usage as critical, prefix the values with `critical,`. '
             'For example: "critical,key-agreement,digital-signature".'
             ) % (', '.join(
-                list(_KEY_USAGE_STANDARD.keys()) + list(_KEY_USAGE_EXTENDED.keys()))),
+                list(_KEY_USAGE_STANDARD.keys()) +
+                list(_KEY_USAGE_EXTENDED.keys()))),
         )
 
     sub_command.add_argument(

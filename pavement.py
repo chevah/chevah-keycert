@@ -200,7 +200,12 @@ def lint():
     except SystemExit as pyflakes_exit:
         pass
 
-    sys.argv.extend(['--ignore=E741', '--hang-closing'])
+    sys.argv.extend([
+        '--ignore=E741',
+        '--ignore=E741',
+        '--hang-closing',
+        '--max-line-length=80',
+        ])
     pycodestyle_exit = pycodestyle_main()
 
     sys.exit(pyflakes_exit.code or pycodestyle_exit)

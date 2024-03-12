@@ -7,6 +7,8 @@ import six
 import base64
 import inspect
 
+import cryptography.utils
+
 
 def _path(path, encoding='utf-8'):
     if sys.platform.startswith('win'):
@@ -32,7 +34,7 @@ def native_string(string):
 for member in ['Callable', 'Iterable', 'Mapping', 'Sequence']:
     if not hasattr(collections, member):
         setattr(collections, member, getattr(collections.abc, member))
-import cryptography.utils
+
 if not hasattr(cryptography.utils, 'int_from_bytes'):
     cryptography.utils.int_from_bytes = int.from_bytes
 

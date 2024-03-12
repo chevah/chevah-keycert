@@ -454,8 +454,8 @@ jvO/yHUJlgjCCzEFlkYwDeSIYggO3Ry1/iP1lm49BU6GljU/miaUemDBHT9umt0o\r
 Private-MAC: 6b753f6180f48d153a700c6734b46b2e52f1f7e9\r
 """
 
-PUTTY_ECDSA_SHA2_NISTP256_PRIVATE_NO_PASSWORD = (
-b"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp256\r
+PUTTY_ECDSA_SHA2_NISTP256_PRIVATE_NO_PASSWORD = b"""
+PuTTY-User-Key-File-2: ecdsa-sha2-nistp256\r
 Encryption: none\r
 Comment: ecdsa-key-20210106\r
 Public-Lines: 3\r
@@ -465,9 +465,10 @@ Yvgn32oS7Iw=\r
 Private-Lines: 1\r
 AAAAIDe7fQUAaorrEkedXTSmXrCY4vabtFV7e4Z8xBSvty8Q\r
 Private-MAC: a84b17c5dead6fed8f474406929312d45c096dfc\r
-""")
+""".strip()
 
-PUTTY_V3_ECDSA_SHA2_NISTP256_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-3: ecdsa-sha2-nistp256\r
+PUTTY_V3_ECDSA_SHA2_NISTP256_PRIVATE_NO_PASSWORD = b"""
+PuTTY-User-Key-File-3: ecdsa-sha2-nistp256\r
 Encryption: none\r
 Comment: ecdsa-key-20210106\r
 Public-Lines: 3\r
@@ -477,10 +478,10 @@ Yvgn32oS7Iw=\r
 Private-Lines: 1\r
 AAAAIDe7fQUAaorrEkedXTSmXrCY4vabtFV7e4Z8xBSvty8Q\r
 Private-MAC: 6488b1e2221448122e8884df9622350510e7cd266d174b307104a15e5669afb5\r
-"""
+""".strip()
 
-PUTTY_ECDSA_SHA2_NISTP384_PRIVATE_NO_PASSWORD = (
-b"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp384\r
+PUTTY_ECDSA_SHA2_NISTP384_PRIVATE_NO_PASSWORD = b"""
+PuTTY-User-Key-File-2: ecdsa-sha2-nistp384\r
 Encryption: none\r
 Comment: ecdsa-key-20210106\r
 Public-Lines: 3\r
@@ -491,9 +492,10 @@ Private-Lines: 2\r
 AAAAMQCNcgWtnEeeTqFN383FBJdM90keHkJwproyLPgWQLlbZe+r8py0Pl7mUHvj\r
 SGmXUVc=\r
 Private-MAC: 1464df777d20427e2b99adb148ed4b8a1a839409\r
-""")
+""".strip()
 
-PUTTY_V3_ECDSA_SHA2_NISTP384_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-3: ecdsa-sha2-nistp384\r
+PUTTY_V3_ECDSA_SHA2_NISTP384_PRIVATE_NO_PASSWORD = b"""
+PuTTY-User-Key-File-3: ecdsa-sha2-nistp384\r
 Encryption: none\r
 Comment: ecdsa-key-20210106\r
 Public-Lines: 3\r
@@ -504,10 +506,10 @@ Private-Lines: 2\r
 AAAAMQCNcgWtnEeeTqFN383FBJdM90keHkJwproyLPgWQLlbZe+r8py0Pl7mUHvj\r
 SGmXUVc=\r
 Private-MAC: 73cdd8880d60561a21bc23017b191471354158e2f343e1b48e8dbe0e46b74067\r
-"""
+""".strip()
 
-PUTTY_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD = (
-b"""PuTTY-User-Key-File-2: ecdsa-sha2-nistp521\r
+PUTTY_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD = """P
+uTTY-User-Key-File-2: ecdsa-sha2-nistp521\r
 Encryption: none\r
 Comment: ecdsa-key-20210106\r
 Public-Lines: 4\r
@@ -519,9 +521,10 @@ Private-Lines: 2\r
 AAAAQgE64XtEewBVYUz+sfojvHmsiwdT+2BBBw1IAcKuozuhsz8EkOEOBJGZqCBP\r
 B9pAqlHsVHQJF/uVpFbJFUnjEokJ4w==\r
 Private-MAC: e828d7207e0e73453005d606216ca36c64d1e304\r
-""")
+""".strip()
 
-PUTTY_V3_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD = b"""PuTTY-User-Key-File-3: ecdsa-sha2-nistp521\r
+PUTTY_V3_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD = b"""
+PuTTY-User-Key-File-3: ecdsa-sha2-nistp521\r
 Encryption: none\r
 Comment: ecdsa-key-20210106\r
 Public-Lines: 4\r
@@ -533,7 +536,7 @@ Private-Lines: 2\r
 AAAAQgE64XtEewBVYUz+sfojvHmsiwdT+2BBBw1IAcKuozuhsz8EkOEOBJGZqCBP\r
 B9pAqlHsVHQJF/uVpFbJFUnjEokJ4w==\r
 Private-MAC: 3b713999a444c896d6ea7605aba44684693249d6de9b1a0775b60a9bf8e0f19a\r
-"""
+""".strip()
 
 
 class DummyOpenContext(object):
@@ -605,23 +608,23 @@ class TestKey(ChevahTestCase):
             y=keydata.ECDatanistp256['y'],
             privateValue=keydata.ECDatanistp256['privateValue'],
             curve=keydata.ECDatanistp256['curve']
-        )._keyObject
+            )._keyObject
         self.ecObj384 = keys.Key._fromECComponents(
             x=keydata.ECDatanistp384['x'],
             y=keydata.ECDatanistp384['y'],
             privateValue=keydata.ECDatanistp384['privateValue'],
             curve=keydata.ECDatanistp384['curve']
-        )._keyObject
+            )._keyObject
         self.ecObj521 = keys.Key._fromECComponents(
             x=keydata.ECDatanistp521['x'],
             y=keydata.ECDatanistp521['y'],
             privateValue=keydata.ECDatanistp521['privateValue'],
             curve=keydata.ECDatanistp521['curve']
-        )._keyObject
+            )._keyObject
         self.ed25519Obj = keys.Key._fromEd25519Components(
             a=keydata.Ed25519Data['a'],
             k=keydata.Ed25519Data['k']
-        )._keyObject
+            )._keyObject
         self.rsaSignature = (
             b"\x00\x00\x00\x07ssh-rsa\x00\x00\x01\x00~Y\xa3\xd7\xfdW\xc6pu@"
             b"\xd81\xa1S\xf3O\xdaE\xf4/\x1ex\x1d\xf1\x9a\xe1G3\xd9\xd6U\x1f"
@@ -636,19 +639,12 @@ class TestKey(ChevahTestCase):
             b"\x86\xe5k\xe3\xce\xe0u\x1c\xeb\x93\x1aN\x88\xc9\x93Y\xc3.V\xb1L"
             b"44`C\xc7\xa66\xaf\xfa\x7f\x04Y\x92\xfa\xa4\x1a\x18%\x19\xd5 4^"
             b"\xb9rY\xba \x01\xf9.\x89%H\xbe\x1c\x83A\x96"
-        )
+            )
         self.dsaSignature = (
             b'\x00\x00\x00\x07ssh-dss\x00\x00\x00(?\xc7\xeb\x86;\xd5TFA\xb4'
             b'\xdf\x0c\xc4E@4,d\xbc\t\xd9\xae\xdd[\xed-\x82nQ\x8cf\x9b\xe8\xe1'
             b'jrg\x84p<'
-        )
-        self.oldSecureRandom = Key.secureRandom
-        Key.secureRandom = lambda me, x: '\xff' * x
-
-    def tearDown(self):
-        Key.secureRandom = self.oldSecureRandom
-        del self.oldSecureRandom
-        super(TestKey, self).tearDown()
+            )
 
     def assertBadKey(self, content, message):
         """
@@ -731,7 +727,7 @@ class TestKey(ChevahTestCase):
         self.assertFalse(rsa1 == rsa3)
         self.assertFalse(rsa1 == dsa)
         self.assertFalse(rsa1 == object)
-        self.assertFalse(rsa1 == None)
+        self.assertFalse(rsa1 is None)
 
     def test_notEqual(self):
         """
@@ -745,8 +741,8 @@ class TestKey(ChevahTestCase):
         self.assertFalse(rsa1 != rsa2)
         self.assertTrue(rsa1 != rsa3)
         self.assertTrue(rsa1 != dsa)
-        self.assertTrue(rsa1 != object)
-        self.assertTrue(rsa1 != None)
+        self.assertTrue(rsa1 is not object)
+        self.assertTrue(rsa1 is None)
 
     def test_type(self):
         """
@@ -812,47 +808,6 @@ class TestKey(ChevahTestCase):
             'Wrong key size "512". '
             'Key size must be 1024, 2048, 3072, or 4096 bits.',
             context.exception.message)
-
-    def test_guessStringType(self):
-        """
-        Test that the _guessStringType method guesses string types
-        correctly.
-
-        Imported from Twisted.
-        """
-        self.assertEqual(
-            keys.Key._guessStringType(keydata.publicRSA_openssh.encode('ascii')),
-            'public_openssh')
-        self.assertEqual(
-            keys.Key._guessStringType(keydata.publicDSA_openssh.encode('ascii')),
-            'public_openssh')
-        self.assertEqual(
-            keys.Key._guessStringType(
-                keydata.privateRSA_openssh.encode('ascii')),
-            'private_openssh')
-        self.assertEqual(
-            keys.Key._guessStringType(
-                keydata.privateDSA_openssh.encode('ascii')),
-            'private_openssh')
-        self.assertEqual(
-            keys.Key._guessStringType(
-                keydata.privateRSA_agentv3.encode('ascii')),
-            'agentv3')
-        self.assertEqual(
-            keys.Key._guessStringType(
-                keydata.privateDSA_agentv3.encode('ascii')),
-            'agentv3')
-        self.assertEqual(
-            keys.Key._guessStringType(
-                b'\x00\x00\x00\x07ssh-rsa\x00\x00\x00\x01\x01'),
-            'blob')
-        self.assertEqual(
-            keys.Key._guessStringType(
-                b'\x00\x00\x00\x07ssh-dss\x00\x00\x00\x01\x01'),
-            'blob')
-        self.assertEqual(
-            keys.Key._guessStringType(b'not a key'),
-            None)
 
     def test_guessStringType_unknown(self):
         """
@@ -936,15 +891,6 @@ class TestKey(ChevahTestCase):
 
         self.assertEqual('private_openssh', result)
 
-    def test_guessStringType_private_OpenSSH_ECDSA(self):
-        """
-        Can recognize an OpenSSH ECDSA private key.
-        """
-        result = Key._guessStringType(
-            keydata.privateECDSA_256_openssh.encode('ascii'))
-
-        self.assertEqual('private_openssh', result)
-
     def test_guessStringType_public_OpenSSH(self):
         """
         Can recognize an OpenSSH public key.
@@ -960,25 +906,6 @@ class TestKey(ChevahTestCase):
         result = Key._guessStringType(PKCS1_RSA_PUBLIC)
 
         self.assertEqual('public_pkcs1_rsa', result)
-
-    def test_guessStringType_public_OpenSSH_ECDSA(self):
-        """
-        Can recognize an OpenSSH public key.
-        """
-        result = Key._guessStringType(
-            keydata.publicECDSA_256_openssh.encode('ascii'))
-
-        self.assertEqual('public_openssh', result)
-
-        result = Key._guessStringType(
-            keydata.publicECDSA_384_openssh.encode('ascii'))
-
-        self.assertEqual('public_openssh', result)
-
-        result = Key._guessStringType(
-            keydata.publicECDSA_521_openssh.encode('ascii'))
-
-        self.assertEqual('public_openssh', result)
 
     def test_guessStringType_private_SSHCOM(self):
         """
@@ -1250,27 +1177,6 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
             '"b\'\\x00\\x00\\x00\\nssh-\\xc2\\xbd\\xc2\\xbd\\xc2\\xbd\'"'
             )
 
-    def test_fromString_PRIVATE_BLOB(self):
-        """
-        Test that a private key is correctly generated from a private key blob.
-        """
-        rsaBlob = (common.NS('ssh-rsa') + common.MP(2) + common.MP(3) +
-                   common.MP(4) + common.MP(5) + common.MP(6) + common.MP(7))
-        rsaKey = keys.Key._fromString_PRIVATE_BLOB(rsaBlob)
-        dsaBlob = (common.NS('ssh-dss') + common.MP(2) + common.MP(3) +
-                   common.MP(4) + common.MP(5) + common.MP(6))
-        dsaKey = keys.Key._fromString_PRIVATE_BLOB(dsaBlob)
-        badBlob = common.NS('ssh-bad')
-        self.assertFalse(rsaKey.isPublic())
-        self.assertEqual(
-            rsaKey.data(),
-            {'n': 2, 'e': 3, 'd': 4, 'u': 5, 'p': 6, 'q': 7})
-        self.assertFalse(dsaKey.isPublic())
-        self.assertEqual(
-            dsaKey.data(), {'p': 2, 'q': 3, 'g': 4, 'y': 5, 'x': 6})
-        self.assertRaises(
-            keys.BadKeyError, keys.Key._fromString_PRIVATE_BLOB, badBlob)
-
     def test_blobRSA(self):
         """
         Return the over-the-wire SSH format of the RSA public key.
@@ -1308,11 +1214,14 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
             keys.Key(self.ecObj).blob(),
             common.NS(keydata.ECDatanistp256['curve']) +
             common.NS(keydata.ECDatanistp256['curve'][-8:]) +
-            common.NS(b'\x04' +
-               utils.int_to_bytes(
-                 self.ecObj.private_numbers().public_numbers.x, byteLength) +
-                   utils.int_to_bytes(
-                   self.ecObj.private_numbers().public_numbers.y, byteLength))
+            common.NS(
+                b'\x04' +
+                utils.int_to_bytes(
+                    self.ecObj.private_numbers().public_numbers.x, byteLength
+                    ) +
+                utils.int_to_bytes(
+                    self.ecObj.private_numbers().public_numbers.y, byteLength)
+                )
             )
 
     def test_blobEd25519(self):
@@ -1324,13 +1233,13 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         publicBytes = self.ed25519Obj.public_key().public_bytes(
             serialization.Encoding.Raw,
             serialization.PublicFormat.Raw
-        )
+            )
 
         self.assertEqual(
             keys.Key(self.ed25519Obj).blob(),
             common.NS(b'ssh-ed25519') +
             common.NS(publicBytes)
-        )
+            )
 
     def test_blobNoKey(self):
         """
@@ -1401,19 +1310,19 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
         publicBytes = self.ed25519Obj.public_key().public_bytes(
             serialization.Encoding.Raw,
             serialization.PublicFormat.Raw
-        )
+            )
         privateBytes = self.ed25519Obj.private_bytes(
             serialization.Encoding.Raw,
             serialization.PrivateFormat.Raw,
             serialization.NoEncryption()
-        )
+            )
 
         self.assertEqual(
             keys.Key(self.ed25519Obj).privateBlob(),
             common.NS(b'ssh-ed25519') +
             common.NS(publicBytes) +
             common.NS(privateBytes + publicBytes)
-        )
+            )
 
     def test_privateBlobNoKeyObject(self):
         """
@@ -1459,28 +1368,13 @@ xEm4DxjEoaIp8dW/JOzXQ2EF+WaSOgdYsw3Ac+rnnjnNptCdOEDGP6QBkt+oXj4P
 
         self.checkParsedDSAPublic1024(sut)
 
-    def test_fromString_OpenSSH(self):
+    def test_fromString_OpenSSH_public(self):
         """
-        Test that keys are correctly generated from OpenSSH strings.
+        It can load an OpenSSH public key.
         """
-        self._testPublicPrivateFromString(
-            keydata.publicRSA_openssh,
-            keydata.privateRSA_openssh, 'RSA', keydata.RSAData)
+        sut = Key.fromString(OPENSSH_RSA_PUBLIC)
 
-        self.assertEqual(
-            keys.Key.fromString(
-                keydata.privateRSA_openssh_encrypted,
-                passphrase=b'encrypted'),
-            keys.Key.fromString(keydata.privateRSA_openssh))
-
-        self.assertEqual(
-            keys.Key.fromString(
-                keydata.privateRSA_openssh_alternate),
-            keys.Key.fromString(keydata.privateRSA_openssh))
-
-        self._testPublicPrivateFromString(
-            keydata.publicDSA_openssh,
-            keydata.privateDSA_openssh, 'DSA', keydata.DSAData)
+        self.checkParsedRSAPublic1024(sut)
 
     def test_fromString_OpenSSH_private_missing_password(self):
         """
@@ -1528,44 +1422,34 @@ SUrCyZXsNh6VXwjs3gKQ
             passphrase=b'testxp')
         self.assertEqual(key, key2)
 
-    def test_fromString_PRIVATE_OPENSSH_not_encrypted_with_passphrase(self):
-        """
-        When loading a unencrypted OpenSSH private key with passhphrase
-        will raise BadKeyError.
-        """
-
-        with self.assertRaises(BadKeyError) as context:
-            Key.fromString(OPENSSH_RSA_PRIVATE, passphrase='pass')
-
-        self.assertEqual(
-            'OpenSSH key not encrypted',
-            context.exception.message)
-
-    def test_toString_OPENSSH(self):
+    def test_toString_OPENSSH_rsa(self):
         """
         Test that the Key object generates OpenSSH keys correctly.
         """
-        key = keys.Key.fromString(keydata.privateRSA_lsh)
+        key = Key.fromString(OPENSSH_V1_RSA_PRIVATE)
 
-        self.assertEqual(key.toString('openssh'), keydata.privateRSA_openssh)
-        self.assertEqual(
-            key.toString('openssh', 'encrypted'),
-            keydata.privateRSA_openssh_encrypted)
-        self.assertEqual(
-            key.public().toString('openssh'),
-            keydata.publicRSA_openssh[:-8])
-        self.assertEqual(
-            key.public().toString('openssh', 'comment'),
-            keydata.publicRSA_openssh)
+        result = key.public().toString('openssh')
+        self.assertEqual(OPENSSH_RSA_PUBLIC, result)
 
-        key = keys.Key.fromString(keydata.privateDSA_lsh)
+        result = key.toString('openssh')
+        self.assertEqual(OPENSSH_RSA_PRIVATE, result)
 
-        self.assertEqual(key.toString('openssh'), keydata.privateDSA_openssh)
-        self.assertEqual(
-            key.public().toString('openssh', 'comment'),
-            keydata.publicDSA_openssh)
-        self.assertEqual(
-            key.public().toString('openssh'), keydata.publicDSA_openssh[:-8])
+    def test_toString_OPENSSH_v1_rsa(self):
+        """
+        Test that the Key object generates OpenSSH keys correctly.
+        """
+        key = Key.fromString(OPENSSH_RSA_PRIVATE)
+
+        result = key.public().toString('openssh_v1')
+        self.assertEqual(OPENSSH_RSA_PUBLIC, result)
+
+        result = key.toString('openssh_v1')
+        self.assertStartsWith(
+            b'-----BEGIN OPENSSH PRIVATE KEY-----\n'
+            b'b3BlbnNzaC1rZXk',
+            result)
+        reloaded = Key.fromString(result)
+        self.assertEqual(reloaded, key)
 
     def addSSHCOMKeyHeaders(self, source, headers):
         """
@@ -1577,8 +1461,8 @@ SUrCyZXsNh6VXwjs3gKQ
         for key, value in headers.items():
             line = '{}: {}'.format(key, value)
             header = '\\\n'.join(textwrap.wrap(line, 70))
-            lines.insert(1, header)
-        return '\n'.join(lines)
+            lines.insert(1, header.encode('utf-8'))
+        return b'\n'.join(lines)
 
     def checkParsedDSAPublic1024(self, sut):
         """
@@ -1663,7 +1547,11 @@ SUrCyZXsNh6VXwjs3gKQ
         """
         self.assertEqual(1024, sut.size())
         self.assertEqual('RSA', sut.type())
-        self.assertFalse(sut.isPublic())
+        self.assertEqual(b'ssh-rsa', sut.sshType())
+        self.assertEqual(
+            'fc:39:4c:d4:51:c8:5d:78:1e:4d:9d:1e:73:42:52:55',
+            sut.fingerprint())
+        self.assertIsFalse(sut.isPublic())
         data = sut.data()
         self.assertEqual(65537, data['e'])
         self.checkParsedRSAPublic1024Data(sut)
@@ -1814,15 +1702,6 @@ AAAAB3NzaC1yc2EA
         sut = Key.fromString(OPENSSH_V1_DSA_PRIVATE)
 
         self.checkParsedDSAPrivate1024(sut)
-
-    def test_fromString_PRIVATE_OPENSSH_ECDSA(self):
-        """
-        Can not load a private OPENSSH ECDSA.
-        """
-        self.assertBadKey(
-            keydata.privateECDSA_256_openssh,
-            'Key type \'EC\' not supported.'
-            )
 
     def test_fromString_PRIVATE_OPENSSH_short(self):
         """
@@ -2708,14 +2587,14 @@ IGNORED
             'Unsupported fingerprint format: sha256-base',
             em.exception.args[0])
 
-    def test_sign(self):
+    def test_sign_rsa(self):
         """
         Test that the Key object generates correct signatures.
         """
         key = keys.Key.fromString(keydata.privateRSA_openssh)
-        self.assertEqual(key.sign(''), self.rsaSignature)
-        key = keys.Key.fromString(keydata.privateDSA_openssh)
-        self.assertEqual(key.sign(''), self.dsaSignature)
+        signature = key.sign(b'')
+        self.assertTrue(key.verify(signature, b''))
+        self.assertEqual(signature, self.rsaSignature)
 
     def test_verify(self):
         """
@@ -2749,6 +2628,97 @@ IGNORED
             '\t21:4c',
             result
             )
+
+    def test_fromString_PRIVATE_PUTTY_V3_short(self):
+        """
+        An exception is raised when key is too short.
+        """
+        content = 'PuTTY-User-Key-File-3: ssh-rsa'
+
+        self.assertKeyIsTooShort(content)
+
+        content = (
+            'PuTTY-User-Key-File-3: ssh-rsa\n'
+            'Encryption: aes256-cbc\n'
+            )
+
+        self.assertKeyIsTooShort(content)
+
+        content = (
+            'PuTTY-User-Key-File-3: ssh-rsa\n'
+            'Encryption: aes256-cbc\n'
+            'Comment: bla\n'
+            )
+
+        self.assertKeyIsTooShort(content)
+
+    def test_fromString_PRIVATE_PUTTY_V3_RSA_bad_password(self):
+        """
+        An exception is raised when password is not valid.
+        """
+        with self.assertRaises(EncryptedKeyError) as context:
+            Key.fromString(
+                PUTTY_V3_RSA_PRIVATE_WITH_PASSWORD, passphrase=b'bad-pass')
+
+        self.assertEqual(
+            'Bad password or HMAC mismatch.', context.exception.message)
+
+    def test_fromString_PRIVATE_PUTTY_V3_RSA_missing_password(self):
+        """
+        An exception is raised when key is encrypted but no password was
+        provided.
+        """
+        with self.assertRaises(EncryptedKeyError) as context:
+            Key.fromString(PUTTY_V3_RSA_PRIVATE_WITH_PASSWORD)
+
+        self.assertEqual(
+            'Passphrase must be provided for an encrypted key.',
+            context.exception.message)
+
+    def test_fromString_PRIVATE_PUTTY_V3_unsupported_type(self):
+        """
+        An exception is raised when key contain a type which is not supported.
+        """
+        content = """PuTTY-User-Key-File-3: ssh-bad
+IGNORED
+"""
+        self.assertBadKey(
+            content, 'Unsupported key type: "ssh-bad"')
+
+    def test_fromString_PRIVATE_PUTTY_V3_unsupported_encryption(self):
+        """
+        An exception is raised when key contain an encryption method
+        which is not supported.
+        """
+        content = """PuTTY-User-Key-File-3: ssh-dss
+Encryption: aes126-cbc
+IGNORED
+"""
+        self.assertBadKey(
+            content, 'Unsupported encryption type: "aes126-cbc"')
+
+    def test_fromString_PRIVATE_PUTTY_v3_type_mismatch(self):
+        """
+        An exception is raised when key header advertise one key type while
+        the public key another.
+        """
+        content = """PuTTY-User-Key-File-3: ssh-rsa
+Encryption: aes256-cbc
+Comment: imported-openssh-key
+Public-Lines: 4
+AAAAB3NzaC1kc3MAAAADAQABAAAAgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTK
+APkPAWzlu5BRHcmAu0uTjn7GhrpxbjjWMwDVN0Oxzw7teI0OEIVkpnlcyM6L5mGk
++X6Lc4+lAfp1YxCR9o9+FXMWSJP32jRwI+4LhWYxnYUldvAO5LDz9QeR0yKimwcj
+RToF6/jpLw==
+IGNORED
+"""
+        self.assertBadKey(
+            content,
+            (
+                'Mismatch key type. Header has "ssh-rsa",'
+                ' public has "ssh-dss"'),
+            )
+
 
 class Test_generate_ssh_key_parser(ChevahTestCase, CommandLineMixin):
     """
@@ -2857,7 +2827,7 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         file_name_pub = file_name + '.pub'
         options = self.parseArguments([
             self.sub_command_name,
-            u'--key-size=512',
+            u'--key-size=2048',
             u'--key-type=DSA',
             u'--key-file=' + file_name,
             u'--key-comment=this is a comment',
@@ -2867,35 +2837,38 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         exit_code, message, key = generate_ssh_key(
             options, open_method=open_method)
 
-        self.assertEqual('DSA', key.type())
-        self.assertEqual(512, key.size())
-
-        # First it writes the private key.
-        first_file = open_method.calls.pop(0)
-
-        self.assertPathEqual(
-            _path(file_name), first_file['path'])
-        self.assertEqual('wb', first_file['mode'])
         self.assertEqual(
-            key.toString('openssh'), first_file['stream'].getvalue())
-
-        # Second it writes the public key.
-        second_file = open_method.calls.pop(0)
-        self.assertPathEqual(
-            _path(file_name_pub.decode('ascii')), second_file['path'])
-        self.assertEqual('wb', second_file['mode'])
-        self.assertEqual(
-            key.public().toString('openssh', 'this is a comment'),
-            second_file['stream'].getvalue())
-
-        self.assertEqual(
-            u'SSH key of type "dsa" and length "512" generated as public '
-            u'key file "%s" and private key file "%s" '
-            u'having comment "this is a comment".' % (
+            'SSH key of type "ssh-dss" and length "2048" generated as public '
+            'key file "%s" and private key file "%s" '
+            'without comment as not supported by the output format.' % (
                 file_name_pub, file_name),
             message,
             )
         self.assertEqual(0, exit_code)
+
+        self.assertEqual('DSA', key.type())
+        self.assertEqual(2048, key.size())
+
+        # First it writes the private key.
+        first_file = open_method.calls.pop(0)
+
+        self.assertPathEqual(file_name, first_file['path'])
+        self.assertEqual('wb', first_file['mode'])
+        # OpenSSH V1 format has a random value generated when storing
+        # the private key.
+        self.assertStartsWith(
+            b'-----BEGIN OPENSSH PRIVATE KEY-----\n'
+            b'b3BlbnNzaC1r',
+            first_file['stream'].getvalue())
+
+        # Second it writes the public key.
+        second_file = open_method.calls.pop(0)
+        self.assertPathEqual(
+            file_name_pub, second_file['path'])
+        self.assertEqual('wb', second_file['mode'])
+        self.assertEqual(
+            key.public().toString('openssh_v1'),
+            second_file['stream'].getvalue())
 
     def test_generate_ssh_key_default_values(self):
         """
@@ -2938,7 +2911,6 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         self.assertEqual('wb', second_file['mode'])
         self.assertEqual(
             key.public().toString('openssh'), second_file['stream'].getvalue())
-
 
     def test_generate_ssh_key_private_exist_no_migration(self):
         """
