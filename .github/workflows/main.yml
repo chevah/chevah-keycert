@@ -25,20 +25,17 @@ jobs:
       uses: actions/cache@v2
       with:
         path: |
-          build-keycert
+          build-py3
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
       run: ./pythia.sh deps
 
-    - name: Lint
-      run: ./pythia.sh lint
-
     - name: Rename build to unicode
       run: mv build-py3 build-py3-ț
 
     - name: Test
-      run: ./brink.sh test
+      run: ./pythia.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         CHEVAH_BUILD: 'build-py3-ț'
@@ -56,14 +53,14 @@ jobs:
       uses: actions/cache@v2
       with:
         path: |
-          build-keycert
+          build-py3
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
-      run: ./brink.sh deps
+      run: ./pythia.sh deps
 
     - name: Test
-      run: ./brink.sh test
+      run: ./pythia.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -77,20 +74,20 @@ jobs:
       uses: actions/cache@v2
       with:
         path: |
-          build-keycert
+          build-by3
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
-      run: sh ./brink.sh deps
+      run: sh ./pythia.sh deps
 
     - name: Test
-      run: sh ./brink.sh test
+      run: sh ./pythia.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 
   keys-interop:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -106,13 +103,13 @@ jobs:
       uses: actions/cache@v2
       with:
         path: |
-          build-keycert
+          build-py3
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
       run: |
         sudo apt-get --quiet install putty-tools
-        ./brink.sh deps
+        ./pythia.sh deps
 
     - name: Test
-      run: ./brink.sh test_interop_${{ matrix.config.test_type }}
+      run: ./pythia.sh test_interop_${{ matrix.config.test_type }}
