@@ -13,6 +13,7 @@ class CommandLineMixin(object):
     """
     Helper to test command line tools.
     """
+
     def parseArguments(self, args):
         """
         Parse arguments and return options and captured stdout.
@@ -28,11 +29,13 @@ class CommandLineMixin(object):
             return options
         except SystemExit as error:  # pragma: no cover
             raise AssertionError(
-                'Fail to parse %s\n-- stdout --\n%s\n-- stderr --\n%s' % (
+                "Fail to parse %s\n-- stdout --\n%s\n-- stderr --\n%s"
+                % (
                     error.code,
                     stdout.getvalue(),
                     stderr.getvalue(),
-                    ))
+                )
+            )
         finally:
             # We don't revert to sys.__stdout__ and the test runner might
             # have injected its logger.
@@ -51,8 +54,9 @@ class CommandLineMixin(object):
             sys.stdout = stdout
             sys.stderr = stderr
             self.parser.parse_args(args)
-            raise AssertionError(   # pragma: no cover
-                'Failure not triggered when parsing the arguments.')
+            raise AssertionError(  # pragma: no cover
+                "Failure not triggered when parsing the arguments."
+            )
         except SystemExit as error:
             return error.code, stderr.getvalue()
         finally:

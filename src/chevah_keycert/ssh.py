@@ -91,10 +91,10 @@ _curveTable = {
     }
 
 _secToNist = {
-    'secp256r1' : b'nistp256',
-    'secp384r1' : b'nistp384',
-    'secp521r1' : b'nistp521',
-    'secp192r1' : b'nistp192',
+    'secp256r1': b'nistp256',
+    'secp384r1': b'nistp384',
+    'secp521r1': b'nistp521',
+    'secp192r1': b'nistp192',
     }
 
 
