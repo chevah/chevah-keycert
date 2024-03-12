@@ -197,9 +197,23 @@ def lint():
     """
     from pyflakes.api import main as pyflakes_main
     from pycodestyle import _main as pycodestyle_main
+    from black import patched_main
 
-    sys.argv = [re.sub(r"(-script\.pyw?|\.exe)?$", "", sys.argv[0])] + [
-        "src/chevah_keycert",
-    ]
+    try:
+        pyflakes_main(args=['src/chevah_keycert'])
+    except SystemExit as error:
+        if error.code:
+            raise
 
-    pyflakes_main()
+    sys.argv = ['black', '--check', 'src']
+    sys.exit(patched_main())
+
+
+@task
+def black():
+    """
+    Run black on the whole source code.
+    """
+    from black import patched_main
+    sys.argv = ['black', 'src']
+    sys.exit(patched_main())

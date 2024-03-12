@@ -15,7 +15,7 @@ from cryptography.utils import int_from_bytes, int_to_bytes
 
 def iterbytes(originalBytes):
     for i in range(len(originalBytes)):
-        yield originalBytes[i:i + 1]
+        yield originalBytes[i : i + 1]
 
 
 def intToBytes(i):
@@ -40,13 +40,13 @@ def lazyByteSlice(object, offset=0, size=None):
     if size is None:
         return view[offset:]
     else:
-        return view[offset:(offset + size)]
+        return view[offset : (offset + size)]
 
 
 def networkString(s):
     if not isinstance(s, str):
         raise TypeError("Can only convert text to bytes on Python 3")
-    return s.encode('ascii')
+    return s.encode("ascii")
 
 
 def NS(t):
@@ -55,7 +55,7 @@ def NS(t):
     """
     if isinstance(t, str):
         t = t.encode("utf-8")
-    return struct.pack('!L', len(t)) + t
+    return struct.pack("!L", len(t)) + t
 
 
 def getNS(s, count=1):
@@ -65,20 +65,20 @@ def getNS(s, count=1):
     ns = []
     c = 0
     for i in range(count):
-        l, = struct.unpack('!L', s[c:c + 4])
-        ns.append(s[c + 4:4 + l + c])
+        (l,) = struct.unpack("!L", s[c : c + 4])
+        ns.append(s[c + 4 : 4 + l + c])
         c += 4 + l
     return tuple(ns) + (s[c:],)
 
 
 def MP(number):
     if number == 0:
-        return b'\000' * 4
+        return b"\000" * 4
     assert number > 0
     bn = int_to_bytes(number)
     if ord(bn[0:1]) & 128:
-        bn = b'\000' + bn
-    return struct.pack('>L', len(bn)) + bn
+        bn = b"\000" + bn
+    return struct.pack(">L", len(bn)) + bn
 
 
 def getMP(data, count=1):
@@ -92,8 +92,8 @@ def getMP(data, count=1):
     mp = []
     c = 0
     for i in range(count):
-        length, = struct.unpack('>L', data[c:c + 4])
-        mp.append(int_from_bytes(data[c + 4:c + 4 + length], 'big'))
+        (length,) = struct.unpack(">L", data[c : c + 4])
+        mp.append(int_from_bytes(data[c + 4 : c + 4 + length], "big"))
         c += 4 + length
     return tuple(mp) + (data[c:],)
 
@@ -126,37 +126,36 @@ def force_unicode(value):
             return value
 
         try:
-            return str(value, encoding='utf-8')
+            return str(value, encoding="utf-8")
         except Exception:
             """
             Not UTF-8 encoded value.
             """
 
         try:
-            return str(value, encoding='windows-1252')
+            return str(value, encoding="windows-1252")
         except Exception:
             """
             Not Windows encoded value.
             """
 
         try:
-            return str(str(value), encoding='utf-8', errors='replace')
+            return str(str(value), encoding="utf-8", errors="replace")
         except (UnicodeDecodeError, UnicodeEncodeError):
             """
             Not UTF-8 encoded value.
             """
 
         try:
-            return str(
-                str(value), encoding='windows-1252', errors='replace')
+            return str(str(value), encoding="windows-1252", errors="replace")
         except (UnicodeDecodeError, UnicodeEncodeError):
             pass
 
         # No luck with str, try repr()
-        return str(repr(value), encoding='windows-1252', errors='replace')
+        return str(repr(value), encoding="windows-1252", errors="replace")
 
     if value is None:
-        return u'None'
+        return "None"
 
     if isinstance(value, str):
         return value
@@ -169,14 +168,14 @@ def force_unicode(value):
         if code == errno.ENOENT:
             # On Windows it is:
             # The system cannot find the file specified.
-            message = b'No such file or directory'
+            message = b"No such file or directory"
         if code == errno.EEXIST:
             # On Windows it is:
             # Cannot create a file when that file already exists
-            message = b'File exists'
+            message = b"File exists"
         if code == errno.EBADF:
             # On AIX: Bad file number
-            message = b'Bad file descriptor'
+            message = b"Bad file descriptor"
 
         if code and message:
             if value.filename:
@@ -184,14 +183,14 @@ def force_unicode(value):
                     code,
                     str_or_repr(message),
                     str_or_repr(value.filename),
-                    )
-            return '[Errno %s] %s.' % (code, str_or_repr(message))
+                )
+            return "[Errno %s] %s." % (code, str_or_repr(message))
 
     if isinstance(value, Exception):
         try:
             details = str(value)
         except (UnicodeDecodeError, UnicodeEncodeError):
-            details = getattr(value, 'message', '')
+            details = getattr(value, "message", "")
         result = str_or_repr(details)
         if result:
             return result

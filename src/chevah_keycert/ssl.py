@@ -15,27 +15,27 @@ from OpenSSL import crypto
 from chevah_keycert import native_string
 from chevah_keycert.exceptions import KeyCertException
 
-_DEFAULT_SSL_KEY_CYPHER = 'aes-256-cbc'
-_SUPPORTED_SIGN_ALGORITHMS = ['md5', 'sha1', 'sha256', 'sha512']
+_DEFAULT_SSL_KEY_CYPHER = "aes-256-cbc"
+_SUPPORTED_SIGN_ALGORITHMS = ["md5", "sha1", "sha256", "sha512"]
 
 # See https://www.openssl.org/docs/manmaster/man5/x509v3_config.html
 _KEY_USAGE_STANDARD = {
-    'digital-signature': b'digitalSignature',
-    'non-repudiation': b'nonRepudiation',
-    'key-encipherment': b'keyEncipherment',
-    'data-encipherment': b'dataEncipherment',
-    'key-agreement': b'keyAgreement',
-    'key-cert-sign': b'keyCertSign',
-    'crl-sign': b'cRLSign',
-    'encipher-only': b'encipherOnly',
-    'decipher-only': b'decipherOnly',
-    }
+    "digital-signature": b"digitalSignature",
+    "non-repudiation": b"nonRepudiation",
+    "key-encipherment": b"keyEncipherment",
+    "data-encipherment": b"dataEncipherment",
+    "key-agreement": b"keyAgreement",
+    "key-cert-sign": b"keyCertSign",
+    "crl-sign": b"cRLSign",
+    "encipher-only": b"encipherOnly",
+    "decipher-only": b"decipherOnly",
+}
 _KEY_USAGE_EXTENDED = {
-    'server-authentication': b'serverAuth',
-    'client-authentication': b'clientAuth',
-    'code-signing': b'codeSigning',
-    'email-protection': b'emailProtection',
-    }
+    "server-authentication": b"serverAuth",
+    "client-authentication": b"clientAuth",
+    "code-signing": b"codeSigning",
+    "email-protection": b"emailProtection",
+}
 
 
 def _generate_self_csr_parser(sub_command, default_key_size):
@@ -43,83 +43,86 @@ def _generate_self_csr_parser(sub_command, default_key_size):
     Add share configuration options for CSR and self-signed generation.
     """
     sub_command.add_argument(
-        '--common-name',
-        help='Common name associated with the certificate.',
+        "--common-name",
+        help="Common name associated with the certificate.",
         required=True,
-        )
+    )
 
     sub_command.add_argument(
-        '--key-size',
-        type=int, metavar="SIZE", default=default_key_size,
-        help='Size of the generate RSA private key. Default %(default)s',
-        )
+        "--key-size",
+        type=int,
+        metavar="SIZE",
+        default=default_key_size,
+        help="Size of the generate RSA private key. Default %(default)s",
+    )
 
     sub_command.add_argument(
-        '--sign-algorithm',
-        default='sha256',
-        metavar='STRING',
-        help='Signature algorithm: sha1, sha256, sha512. Default: sha256.'
-        )
+        "--sign-algorithm",
+        default="sha256",
+        metavar="STRING",
+        help="Signature algorithm: sha1, sha256, sha512. Default: sha256.",
+    )
 
     sub_command.add_argument(
-        '--key-usage',
-        default='',
+        "--key-usage",
+        default="",
         help=(
-            'Comma-separated key usage. '
-            'The following key usage extensions are supported: %s. '
-            'To mark usage as critical, prefix the values with `critical,`. '
+            "Comma-separated key usage. "
+            "The following key usage extensions are supported: %s. "
+            "To mark usage as critical, prefix the values with `critical,`. "
             'For example: "critical,key-agreement,digital-signature".'
-            ) % (', '.join(
-                list(_KEY_USAGE_STANDARD.keys()) +
-                list(_KEY_USAGE_EXTENDED.keys()))),
         )
+        % (
+            ", ".join(
+                list(_KEY_USAGE_STANDARD.keys()) + list(_KEY_USAGE_EXTENDED.keys())
+            )
+        ),
+    )
 
     sub_command.add_argument(
-        '--constraints',
-        default='',
+        "--constraints",
+        default="",
         help=(
-            'Comma-separated basic constraints. '
-            'To mark constraints as critical, prefix the values with '
-            '`critical,`. '
+            "Comma-separated basic constraints. "
+            "To mark constraints as critical, prefix the values with "
+            "`critical,`. "
             'For example: "critical,CA:TRUE,pathlen:0".'
-            ),
-        )
+        ),
+    )
 
     sub_command.add_argument(
-        '--email',
-        help='Email address.',
-        )
+        "--email",
+        help="Email address.",
+    )
     sub_command.add_argument(
-        '--alternative-name',
+        "--alternative-name",
         help=(
-            'Optional list of alternative names. '
+            "Optional list of alternative names. "
             'Use "DNS:your.domain.tld" for domain names. '
             'Use "IP:1.2.3.4" for IP addresses. '
             'Example: "DNS:top.com,DNS:www.top.com,IP:11.0.21.12".'
-            )
-        )
+        ),
+    )
     sub_command.add_argument(
-        '--organization',
-        help='Organization.',
-        )
+        "--organization",
+        help="Organization.",
+    )
     sub_command.add_argument(
-        '--organization-unit',
-        help='Organization unit.',
-        )
+        "--organization-unit",
+        help="Organization unit.",
+    )
     sub_command.add_argument(
-        '--locality',
-        help='Full name of the locality.',
-        )
+        "--locality",
+        help="Full name of the locality.",
+    )
     sub_command.add_argument(
-        '--state',
-        help=(
-            'Full name of the state/county/region/province.'),
-        )
+        "--state",
+        help=("Full name of the state/county/region/province."),
+    )
     sub_command.add_argument(
-        '--country',
-        help=(
-            'Two-letter country code.'),
-        )
+        "--country",
+        help=("Two-letter country code."),
+    )
 
 
 def generate_csr_parser(subparsers, name, default_key_size=2048):
@@ -130,38 +133,40 @@ def generate_csr_parser(subparsers, name, default_key_size=2048):
     sub_command = subparsers.add_parser(
         name,
         help=(
-            'Create an SSL private key and an associated certificate '
-            'signing request.'),
-        )
+            "Create an SSL private key and an associated certificate "
+            "signing request."
+        ),
+    )
 
     sub_command.add_argument(
-        '--key',
+        "--key",
         metavar="FILE",
         default=None,
         help=(
-            'Sign the CSR using this private key. '
-            'Private key loaded as PEM PKCS#8 format. '
-            ),
-        )
+            "Sign the CSR using this private key. "
+            "Private key loaded as PEM PKCS#8 format. "
+        ),
+    )
     sub_command.add_argument(
-        '--key-file',
+        "--key-file",
         metavar="FILE",
-        default='server.key',
+        default="server.key",
         help=(
-            'Store the keys/CSR pair in FILE and FILE.csr. '
-            'Private key stored using PEM PKCS#8 format. '
-            'CSR file stored in PEM x509 format. '
-            'Default names: server.key and server.csr.'),
-        )
+            "Store the keys/CSR pair in FILE and FILE.csr. "
+            "Private key stored using PEM PKCS#8 format. "
+            "CSR file stored in PEM x509 format. "
+            "Default names: server.key and server.csr."
+        ),
+    )
 
     sub_command.add_argument(
-        '--key-password',
+        "--key-password",
         metavar="PASSPHRASE",
         help=(
-            'Password used to encrypt the generated key. '
-            'Default no encryption. Encrypted with %s.' % (
-                _DEFAULT_SSL_KEY_CYPHER,)),
-        )
+            "Password used to encrypt the generated key. "
+            "Default no encryption. Encrypted with %s." % (_DEFAULT_SSL_KEY_CYPHER,)
+        ),
+    )
     _generate_self_csr_parser(sub_command, default_key_size)
 
     return sub_command
@@ -175,9 +180,9 @@ def generate_self_signed_parser(subparsers, name, default_key_size=2048):
     sub_command = subparsers.add_parser(
         name,
         help=(
-            'Create an SSL private key '
-            'and an associated self-signed certificate.'),
-        )
+            "Create an SSL private key " "and an associated self-signed certificate."
+        ),
+    )
     _generate_self_csr_parser(sub_command, default_key_size)
     return sub_command
 
@@ -193,9 +198,9 @@ def generate_csr(options):
         return _generate_csr(options)
     except crypto.Error as error:
         try:
-            message = error[0][0][2].decode('utf-8', errors='replace')
+            message = error[0][0][2].decode("utf-8", errors="replace")
         except IndexError:  # pragma: no cover
-            message = 'no error details.'
+            message = "no error details."
         raise KeyCertException(message)
 
 
@@ -204,15 +209,15 @@ def _set_subject_and_extensions(target, options):
     Set the subject and option for `target` CRS or certificate.
     """
     common_name = options.common_name
-    constraints = getattr(options, 'constraints', '')
-    key_usage = getattr(options, 'key_usage', '').lower()
-    email = getattr(options, 'email', '')
-    alternative_name = getattr(options, 'alternative_name', '')
-    country = getattr(options, 'country', '')
-    state = getattr(options, 'state', '')
-    locality = getattr(options, 'locality', '')
-    organization = getattr(options, 'organization', '')
-    organization_unit = getattr(options, 'organization_unit', '')
+    constraints = getattr(options, "constraints", "")
+    key_usage = getattr(options, "key_usage", "").lower()
+    email = getattr(options, "email", "")
+    alternative_name = getattr(options, "alternative_name", "")
+    country = getattr(options, "country", "")
+    state = getattr(options, "state", "")
+    locality = getattr(options, "locality", "")
+    organization = getattr(options, "organization", "")
+    organization_unit = getattr(options, "organization_unit", "")
 
     # RFC 2459 defines it as optional, and pyopenssl set it to `0` anyway.
     # But we got reports that Windows 2003 and Windows 2008 Servers
@@ -222,11 +227,11 @@ def _set_subject_and_extensions(target, options):
 
     subject = target.get_subject()
 
-    subject.CN = common_name.encode('idna')
+    subject.CN = common_name.encode("idna")
 
     if country:
         if len(country) != 2:
-            raise KeyCertException('Invalid country code.')
+            raise KeyCertException("Invalid country code.")
 
         subject.C = country
 
@@ -244,12 +249,14 @@ def _set_subject_and_extensions(target, options):
 
     if email:
         try:
-            address, domain = options.email.split('@', 1)
+            address, domain = options.email.split("@", 1)
         except ValueError:
-            raise KeyCertException('Invalid email address.')
+            raise KeyCertException("Invalid email address.")
 
-        subject.emailAddress = '%s@%s' % (
-            address, domain.encode('idna').decode('ascii'))
+        subject.emailAddress = "%s@%s" % (
+            address,
+            domain.encode("idna").decode("ascii"),
+        )
 
     critical_constraints = False
     critical_usage = False
@@ -257,15 +264,15 @@ def _set_subject_and_extensions(target, options):
     extended_usage = []
     extensions = []
 
-    if constraints.lower().startswith('critical'):
+    if constraints.lower().startswith("critical"):
         critical_constraints = True
-        constraints = constraints[8:].strip(',').strip()
+        constraints = constraints[8:].strip(",").strip()
 
-    if key_usage.startswith('critical'):
+    if key_usage.startswith("critical"):
         critical_usage = True
         key_usage = key_usage[8:]
 
-    for usage in key_usage.split(','):
+    for usage in key_usage.split(","):
         usage = usage.strip()
         if not usage:
             continue
@@ -275,32 +282,39 @@ def _set_subject_and_extensions(target, options):
             extended_usage.append(_KEY_USAGE_EXTENDED[usage])
 
     if constraints:
-        extensions.append(crypto.X509Extension(
-            b'basicConstraints',
-            critical_constraints,
-            constraints.encode('ascii'),
-            ))
+        extensions.append(
+            crypto.X509Extension(
+                b"basicConstraints",
+                critical_constraints,
+                constraints.encode("ascii"),
+            )
+        )
 
     if standard_usage:
-        extensions.append(crypto.X509Extension(
-            b'keyUsage',
-            critical_usage,
-            b','.join(standard_usage),
-            ))
+        extensions.append(
+            crypto.X509Extension(
+                b"keyUsage",
+                critical_usage,
+                b",".join(standard_usage),
+            )
+        )
 
     if extended_usage:
-        extensions.append(crypto.X509Extension(
-            b'extendedKeyUsage',
-            critical_usage,
-            b','.join(extended_usage),
-            ))
+        extensions.append(
+            crypto.X509Extension(
+                b"extendedKeyUsage",
+                critical_usage,
+                b",".join(extended_usage),
+            )
+        )
 
     # Alternate name is optional.
     if alternative_name:
-        extensions.append(crypto.X509Extension(
-            b'subjectAltName',
-            False,
-            alternative_name.encode('idna')))
+        extensions.append(
+            crypto.X509Extension(
+                b"subjectAltName", False, alternative_name.encode("idna")
+            )
+        )
     target.add_extensions(extensions)
 
 
@@ -308,12 +322,13 @@ def _sign_cert_or_csr(target, key, options):
     """
     Sign the certificate or CSR.
     """
-    sign_algorithm = getattr(options, 'sign_algorithm', 'sha256')
+    sign_algorithm = getattr(options, "sign_algorithm", "sha256")
 
     if sign_algorithm not in _SUPPORTED_SIGN_ALGORITHMS:
         raise KeyCertException(
-            'Invalid signing algorithm. Supported values: %s.' % (
-                ', '.join(_SUPPORTED_SIGN_ALGORITHMS)))
+            "Invalid signing algorithm. Supported values: %s."
+            % (", ".join(_SUPPORTED_SIGN_ALGORITHMS))
+        )
 
     target.set_pubkey(key)
     target.sign(key, native_string(sign_algorithm))
@@ -323,10 +338,10 @@ def _generate_csr(options):
     """
     Helper to catch all crypto errors and reduce indentation.
     """
-    key_size = getattr(options, 'key_size', 2048)
+    key_size = getattr(options, "key_size", 2048)
 
     if key_size < 512:
-        raise KeyCertException('Key size must be greater or equal to 512.')
+        raise KeyCertException("Key size must be greater or equal to 512.")
 
     key_type = crypto.TYPE_RSA
 
@@ -338,7 +353,7 @@ def _generate_csr(options):
     private_key = options.key
     if private_key:
         if os.path.exists(private_key):
-            with open(private_key, 'rb') as stream:
+            with open(private_key, "rb") as stream:
                 private_key = stream.read()
 
         key_pem = private_key
@@ -356,22 +371,22 @@ def _generate_csr(options):
         if options.key_password:
             cipher = _DEFAULT_SSL_KEY_CYPHER
             if six.PY2:
-                cipher = cipher.encode('ascii')
+                cipher = cipher.encode("ascii")
             key_pem = crypto.dump_privatekey(
                 crypto.FILETYPE_PEM,
                 key,
                 cipher,
-                options.key_password.encode('utf-8'),
-                )
+                options.key_password.encode("utf-8"),
+            )
         else:
             key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
 
     return {
-        'csr_pem': csr_pem,
-        'key_pem': key_pem,
-        'csr': csr,
-        'key': key,
-        }
+        "csr_pem": csr_pem,
+        "key_pem": key_pem,
+        "csr": csr,
+        "key": key,
+    }
 
 
 def generate_ssl_self_signed_certificate(options):
@@ -380,7 +395,7 @@ def generate_ssl_self_signed_certificate(options):
 
     Returns a tuple of (certificate_pem, key_pem)
     """
-    key_size = getattr(options, 'key_size', 2048)
+    key_size = getattr(options, "key_size", 2048)
 
     serial = randint(0, 1000000000000)
 
@@ -401,7 +416,7 @@ def generate_ssl_self_signed_certificate(options):
 
     certificate_pem = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
     key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
-    return (certificate_pem.decode('utf-8'), key_pem.decode('utf-8'))
+    return (certificate_pem.decode("utf-8"), key_pem.decode("utf-8"))
 
 
 def generate_and_store_csr(options):
@@ -411,18 +426,18 @@ def generate_and_store_csr(options):
     Raise KeyCertException when failing to create the key or csr.
     """
     name, _ = os.path.splitext(options.key_file)
-    csr_name = u'%s.csr' % name
+    csr_name = "%s.csr" % name
 
     if os.path.exists(options.key_file):
-        raise KeyCertException('Key file already exists.')
+        raise KeyCertException("Key file already exists.")
 
     result = generate_csr(options)
 
     try:
-        with open(options.key_file, 'wb') as store_file:
-            store_file.write(result['key_pem'])
+        with open(options.key_file, "wb") as store_file:
+            store_file.write(result["key_pem"])
 
-        with open(csr_name, 'wb') as store_file:
-            store_file.write(result['csr_pem'])
+        with open(csr_name, "wb") as store_file:
+            store_file.write(result["csr_pem"])
     except Exception as error:
         raise KeyCertException(str(error))

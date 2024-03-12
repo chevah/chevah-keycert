@@ -12,6 +12,7 @@ class KeyCertException(Exception):
     Code calling the public API should handle only this exception.
     The other exceptions are just for fine tunning.
     """
+
     def __init__(self, message):
         self.message = message
 
