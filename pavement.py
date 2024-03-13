@@ -16,6 +16,24 @@ HAVE_CI = os.environ.get("CI", "false") == "true"
 SOURCE_FILES = ["pavement.py", "src"]
 
 
+def _get_option(options, name, default=None):
+    """
+    Helper to extract the command line options from paver.
+    """
+    option_keys = list(options.keys())
+    option_keys.remove("dry_run")
+    option_keys.remove("pavement_file")
+    bunch = options.get(option_keys[0])
+    value = bunch.get(name, None)
+    if value is None:
+        return default
+
+    if value is True:
+        return True
+
+    return value.lstrip("=")
+
+
 @task
 def default():
     call_task("test")
@@ -67,8 +85,6 @@ def _nose(args, cov, base="chevah_keycert.tests"):
     from chevah_compat.testing.nose_test_timer import TestTimer
     from nose.core import main as nose_main
     from nose.plugins.base import Plugin
-
-    import chevah_keycert
 
     class LoopPlugin(Plugin):
         name = "loop"
@@ -127,21 +143,14 @@ def test_interop(options):
     """
     Run the SSH key interoperability tests.
     """
-    import pdb
-    import sys
-
-    sys.stdout = sys.__stdout__
-    pdb.set_trace()
-    test_type = args[0]
-
     environ = os.environ.copy()
     environ["CHEVAH_BUILD"] = BUILD_DIR
 
-    if test_type == "load":
-        key_type = args[1]
-        test_command = "ssh_load_keys_tests.sh {}".format(key_type)
-    else:
+    if _get_option(options, "generate"):
         test_command = "ssh_gen_keys_tests.sh"
+    else:
+        key_type = _get_option(options, "load")
+        test_command = "ssh_load_keys_tests.sh {}".format(key_type)
 
     try:
         os.mkdir(BUILD_DIR)
@@ -169,7 +178,7 @@ def lint():
     from pyflakes.api import main as pyflakes_main
 
     try:
-        pyflakes_main(args=["src/chevah_keycert"])
+        pyflakes_main(args=SOURCE_FILES)
     except SystemExit as error:
         if error.code:
             raise

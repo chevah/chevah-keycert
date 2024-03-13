@@ -18,6 +18,10 @@ concurrency:
   group: chevah-keycert-${{ github.ref }}
   cancel-in-progress: true
 
+
+env:
+  CHEVAH_BUILD: "build-py3"
+
 jobs:
 
   ubuntu:
@@ -27,10 +31,10 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Cache build
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           build-py3
@@ -56,10 +60,10 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Cache build
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           build-py3
@@ -77,10 +81,10 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Cache build
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           build-by3
@@ -107,10 +111,10 @@ jobs:
           - { test_type: "load ed25519" }
           - { test_type: "generate" }
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Cache build
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           build-py3
@@ -123,3 +127,24 @@ jobs:
 
     - name: Test
       run: ./pythia.sh test_interop ${{ matrix.config.test_type }}
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v4
+
+    - name: Cache build
+      uses: actions/cache@v3
+      with:
+        path: |
+          build-py3
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+
+    - name: Deps
+      run: |
+        ./pythia.sh deps
+
+    - name: Lint
+      run: ./pythia.sh lint
