@@ -34,6 +34,9 @@ def deps():
         EXTRA_PYPI_INDEX,
     ]
 
+    # Install wheel.
+    pip(args=pip_args + ['wheel'])
+
     if not HAVE_CI:
         pip_args.append('-e')
 

@@ -37,7 +37,8 @@ jobs:
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
-      run: ./pythia.sh deps
+      run: |
+        ./pythia.sh deps
 
     - name: Rename build to unicode
       run: mv build-py3 build-py3-ț
