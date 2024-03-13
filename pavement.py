@@ -13,6 +13,7 @@ from paver.easy import call_task, consume_args, task, pushd
 
 EXTRA_PYPI_INDEX = os.environ["PIP_INDEX_URL"]
 BUILD_DIR = os.environ.get("CHEVAH_BUILD", "build-py3")
+HAVE_CI = os.environ.get('CI', 'false') == 'true'
 
 
 @task
@@ -26,16 +27,18 @@ def deps():
     Install all dependencies.
     """
     pip = load_entry_point("pip", "console_scripts", "pip")
-    exit_code = pip(
-        args=[
-            "install",
-            "-U",
-            "--extra-index-url",
-            EXTRA_PYPI_INDEX,
-            "-e",
-            ".[dev]",
-        ]
-    )
+    pip_args = [
+        "install",
+        "-U",
+        "--extra-index-url",
+        EXTRA_PYPI_INDEX,
+    ]
+
+    if not HAVE_CI:
+        pip_args.append('-e')
+
+    pip_args.append('.dev')
+    exit_code = pip(args=pip_args)
     if exit_code:
         raise Exception('Failed to install the deps.')
 
@@ -186,7 +189,7 @@ def test_interop_generate(args):
     exit_code = 1
     with pushd("build"):
         exit_code = call(
-            "../stc/chevah_keycert/tests/ssh_gen_keys_tests.sh", shell=True
+            "../src/chevah_keycert/tests/ssh_gen_keys_tests.sh", shell=True
         )
 
     sys.exit(exit_code)
