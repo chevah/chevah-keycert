@@ -26,7 +26,7 @@ def deps():
     Install all dependencies.
     """
     pip = load_entry_point("pip", "console_scripts", "pip")
-    pip(
+    exit_code = pip(
         args=[
             "install",
             "-U",
@@ -36,6 +36,8 @@ def deps():
             ".[dev]",
         ]
     )
+    if exit_code:
+        raise Exception('Failed to install the deps.')
 
 
 @task
