@@ -13,7 +13,7 @@ if [ -z "$KEY_TYPES" ]; then
     KEY_TYPES="ed25519 ecdsa dsa rsa"
 fi
 
-KEYCERT_CMD="../build-keycert/bin/python ../keycert-demo.py"
+KEYCERT_CMD="../build-py3/bin/python ../keycert-demo.py"
 KEYCERT_NO_ERRORS_FILE="load_keys_tests_errors_none"
 KEYCERT_EXPECTED_ERRORS_FILE="load_keys_tests_errors_expected"
 KEYCERT_UNEXPECTED_ERRORS_FILE="load_keys_tests_errors_unexpected"
@@ -37,7 +37,7 @@ TECTIA_HASHES="sha1 sha224 sha256 sha384 sha512"
 > $KEYCERT_DEMOSCRIPT_ERRORS_FILE
 
 # Common routines like setting password files.
-source ../chevah/keycert/tests/ssh_common_test_inc.sh
+source ../src/chevah_keycert/tests/ssh_common_test_inc.sh
 # FIXME:50
 # Unicode comments are not supported.
 COMM_TYPES="empty simple complex"
