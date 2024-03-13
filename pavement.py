@@ -159,6 +159,7 @@ def test_interop(options):
 
     exit_code = 1
     with pushd(BUILD_DIR):
+        print("Testing: {}".format(test_command))
         exit_code = call(
             "../src/chevah_keycert/tests/{}".format(test_command),
             shell=True,
