@@ -4,9 +4,10 @@
 Helpers for testing the project.
 """
 from __future__ import absolute_import
+
+import sys
 from argparse import Namespace
 from io import StringIO
-import sys
 
 
 class CommandLineMixin(object):

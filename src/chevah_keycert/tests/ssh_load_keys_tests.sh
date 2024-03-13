@@ -13,7 +13,7 @@ if [ -z "$KEY_TYPES" ]; then
     KEY_TYPES="ed25519 ecdsa dsa rsa"
 fi
 
-KEYCERT_CMD="../build-py3/bin/python ../keycert-demo.py"
+KEYCERT_CMD="../${CHEVAH_BUILD}/bin/python ../keycert-demo.py"
 KEYCERT_NO_ERRORS_FILE="load_keys_tests_errors_none"
 KEYCERT_EXPECTED_ERRORS_FILE="load_keys_tests_errors_expected"
 KEYCERT_UNEXPECTED_ERRORS_FILE="load_keys_tests_errors_unexpected"

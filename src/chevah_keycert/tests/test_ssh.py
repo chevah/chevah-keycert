@@ -4,28 +4,20 @@
 """
 Test for SSH keys management.
 """
+import textwrap
 from argparse import ArgumentParser
 from io import BytesIO
-import textwrap
 
-from chevah_compat.testing import mk, ChevahTestCase
+from chevah_compat.testing import ChevahTestCase, mk
 from nose.plugins.attrib import attr
 
 # Twisted test compatibility.
-from chevah_keycert import ssh as keys, common, _path
-from chevah_keycert.exceptions import (
-    BadKeyError,
-    KeyCertException,
-    EncryptedKeyError,
-)
-from chevah_keycert.ssh import (
-    Key,
-    generate_ssh_key,
-    generate_ssh_key_parser,
-)
+from chevah_keycert import _path, common
+from chevah_keycert import ssh as keys
+from chevah_keycert.exceptions import BadKeyError, EncryptedKeyError, KeyCertException
+from chevah_keycert.ssh import Key, generate_ssh_key, generate_ssh_key_parser
 from chevah_keycert.tests import keydata
 from chevah_keycert.tests.helpers import CommandLineMixin
-
 
 OPENSSH_RSA_PRIVATE = b"""-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQC4fV6tSakDSB6ZovygLsf1iC9P3tJHePTKAPkPAWzlu5BRHcmA

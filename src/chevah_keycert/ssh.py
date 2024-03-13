@@ -8,19 +8,19 @@ Handling of RSA, DSA, ECDSA, and Ed25519 keys.
 
 from __future__ import absolute_import, division, unicode_literals
 
-import binascii
-import itertools
-
-from hashlib import md5, sha1, sha256
 import base64
+import binascii
 import hmac
-import unicodedata
+import itertools
 import struct
 import textwrap
-import six
+import unicodedata
+from hashlib import md5, sha1, sha256
 
 import bcrypt
+import six
 from argon2 import low_level
+from cryptography import utils
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -29,55 +29,49 @@ from cryptography.hazmat.primitives.serialization import (
     load_pem_private_key,
     load_ssh_public_key,
 )
-from cryptography import utils
-from six.moves import map
-from six.moves import range
+from six.moves import map, range
 
 try:
 
     from cryptography.hazmat.primitives.asymmetric.utils import (
-        encode_dss_signature,
         decode_dss_signature,
+        encode_dss_signature,
     )
 except ImportError:
     from cryptography.hazmat.primitives.asymmetric.utils import (
         encode_rfc6979_signature as encode_dss_signature,
         decode_rfc6979_signature as decode_dss_signature,
     )
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-from pyasn1.error import PyAsn1Error
-from pyasn1.type import univ
-from pyasn1.codec.ber import decoder as berDecoder
-from pyasn1.codec.ber import encoder as berEncoder
 
 import os
 import os.path
 from os import urandom
 
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from pyasn1.codec.ber import decoder as berDecoder
+from pyasn1.codec.ber import encoder as berEncoder
+from pyasn1.error import PyAsn1Error
+from pyasn1.type import univ
+
 try:
-    from base64 import encodebytes
-    from base64 import decodebytes
+    from base64 import decodebytes, encodebytes
 except ImportError:
     # On py2 we don't have encodebytes.
     from base64 import encodestring as encodebytes
     from base64 import decodestring as decodebytes
 
+from constantly import NamedConstant, Names
 from cryptography.utils import int_from_bytes, int_to_bytes
 from OpenSSL import crypto
 
 from chevah_keycert import common
-from chevah_keycert.common import (
-    force_unicode,
-    iterbytes,
-)
+from chevah_keycert.common import force_unicode, iterbytes
 from chevah_keycert.exceptions import (
     BadKeyError,
     BadSignatureAlgorithmError,
     EncryptedKeyError,
     KeyCertException,
 )
-from constantly import NamedConstant, Names
 
 DEFAULT_PUBLIC_KEY_EXTENSION = ".pub"
 DEFAULT_KEY_SIZE = 2048

@@ -2,13 +2,13 @@
 SSL and SSH key management.
 """
 
-import collections
-import sys
-import six
 import base64
+import collections
 import inspect
+import sys
 
 import cryptography.utils
+import six
 
 
 def _path(path, encoding="utf-8"):

@@ -8,6 +8,7 @@ Forked from twisted.conch.ssh.common
 """
 
 from __future__ import absolute_import, division
+
 import struct
 
 from cryptography.utils import int_from_bytes, int_to_bytes

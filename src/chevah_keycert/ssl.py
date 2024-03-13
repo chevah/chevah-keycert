@@ -3,13 +3,12 @@
 """
 SSL keys and certificates.
 """
-from __future__ import unicode_literals
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 import os
-import six
 from random import randint
 
+import six
 from OpenSSL import crypto
 
 from chevah_keycert import native_string

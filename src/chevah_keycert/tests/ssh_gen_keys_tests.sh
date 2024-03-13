@@ -46,7 +46,7 @@ sort_tests_per_error(){
 puttygen_tests(){
     local priv_key=$1
     local pub_key=${1}.pub
-    
+
     sort_tests_per_error puttygen -O fingerprint $pub_key
     sort_tests_per_error puttygen -o /dev/null --old-passphrase pass_file_${2} -L $priv_key
 }
@@ -54,7 +54,7 @@ puttygen_tests(){
 sshkeygen_tests(){
     local priv_key=$1
     local pub_key=${1}.pub
-    
+
     sort_tests_per_error ssh-keygen -l -f $pub_key
     if [ $2 = "empty" ]; then
         sort_tests_per_error ssh-keygen -y -f $priv_key

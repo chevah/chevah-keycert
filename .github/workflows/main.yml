@@ -101,10 +101,11 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { test_type: load_dsa }
-          - { test_type: load_rsa }
-          - { test_type: load_eced }
-          - { test_type: generate }
+          - { test_type: "load dsa" }
+          - { test_type: "load rsa" }
+          - { test_type: "load ecdsa" }
+          - { test_type: "load ed25519" }
+          - { test_type: "generate" }
     steps:
     - uses: actions/checkout@v2
 
@@ -121,4 +122,4 @@ jobs:
         ./pythia.sh deps
 
     - name: Test
-      run: ./pythia.sh test_interop_${{ matrix.config.test_type }}
+      run: ./pythia.sh test_interop ${{ matrix.config.test_type }}

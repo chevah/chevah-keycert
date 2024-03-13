@@ -3,12 +3,12 @@
 """
 Test for SSL keys/cert management.
 """
-from __future__ import unicode_literals
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
+
 from argparse import ArgumentParser
 
 from bunch import Bunch
-from chevah_compat.testing import mk, ChevahTestCase
+from chevah_compat.testing import ChevahTestCase, mk
 from OpenSSL import crypto
 
 from chevah_keycert.exceptions import KeyCertException

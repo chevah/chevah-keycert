@@ -4,7 +4,8 @@
 Test for exceptions raise by this package.
 """
 from __future__ import absolute_import
-from chevah_compat.testing import mk, ChevahTestCase
+
+from chevah_compat.testing import ChevahTestCase, mk
 
 from chevah_keycert.exceptions import KeyCertException
 
