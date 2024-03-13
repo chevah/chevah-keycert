@@ -13,7 +13,7 @@ if [ -z "$KEY_TYPES" ]; then
     KEY_TYPES="ed25519 ecdsa rsa dsa"
 fi
 
-KEYCERT_CMD="../build-keycert/bin/python ../keycert-demo.py"
+KEYCERT_CMD="../build-py3/bin/python ../keycert-demo.py"
 KEYCERT_FORMATS="openssh openssh_v1 putty"
 
 SUCCESS_FILE="gen_keys_tests_success"
@@ -24,7 +24,7 @@ ERROR_FILE="gen_keys_tests_error"
 > $ERROR_FILE
 
 # Common routines like setting password files.
-source ../chevah/keycert/tests/ssh_common_test_inc.sh
+source ../src/chevah_keycert/tests/ssh_common_test_inc.sh
 
 sort_tests_per_error(){
     local cmd_to_test=$*
