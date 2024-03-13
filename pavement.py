@@ -37,7 +37,7 @@ def deps():
     if not HAVE_CI:
         pip_args.append('-e')
 
-    pip_args.append('.dev')
+    pip_args.append('.[dev]')
     exit_code = pip(args=pip_args)
     if exit_code:
         raise Exception('Failed to install the deps.')

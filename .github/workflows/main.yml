@@ -10,6 +10,14 @@ on:
     paths:
     - '**.py'
 
+permissions:
+  contents: read
+
+
+concurrency:
+  group: chevah-keycert-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
 
   ubuntu:
