@@ -1,7 +1,7 @@
 Release notes for Chevah KeyCert
 ################################
 
-3.1.0 - 2024-03-11
+3.1.0 - 2024-03-23
 ==================
 
 * Remove support for py2
