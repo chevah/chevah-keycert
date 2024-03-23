@@ -228,7 +228,7 @@ for KEY in $KEY_TYPES; do
                 putty_keys_test "256 384 521"
                 ;;
             "rsa")
-                putty_keys_test "1024 4096"
+                putty_keys_test "1024 2048"
                 ;;
             "dsa")
                 # An unusual prime size is also tested.
