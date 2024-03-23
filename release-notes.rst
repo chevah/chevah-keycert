@@ -7,6 +7,7 @@ Release notes for Chevah KeyCert
 * Remove support for py2
 * Remove support for LSH
 * Add support for Putty key gen3
+* Update automated tests
 
 
 3.0.12 - 2024-01-27
