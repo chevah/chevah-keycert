@@ -499,8 +499,7 @@ SGmXUVc=\r
 Private-MAC: 73cdd8880d60561a21bc23017b191471354158e2f343e1b48e8dbe0e46b74067\r
 """.strip()
 
-PUTTY_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD = """P
-uTTY-User-Key-File-2: ecdsa-sha2-nistp521\r
+PUTTY_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD = """PuTTY-User-Key-File-2: ecdsa-sha2-nistp521\r
 Encryption: none\r
 Comment: ecdsa-key-20210106\r
 Public-Lines: 4\r
@@ -2563,6 +2562,17 @@ IGNORED
         reloaded = Key.fromString(result)
         self.assertEqual(sut, reloaded)
 
+    def test_toString_PUTTY_v3_RSA_plain(self):
+        """
+        Can export to private RSA Putty v3 without encryption.
+        """
+        sut = Key.fromString(OPENSSH_RSA_PRIVATE)
+
+        result = sut.toString(type="putty_v3")
+        # Load the serialized key and see that we get the same key.
+        reloaded = Key.fromString(result)
+        self.assertEqual(sut, reloaded)
+
     def test_toString_PUTTY_RSA_encrypted(self):
         """
         Can export to encrypted private RSA Putty key.
@@ -2577,6 +2587,17 @@ IGNORED
         reloaded = Key.fromString(result, passphrase="write-pass")
         self.assertEqual(sut, reloaded)
 
+    def test_toString_PUTTY_v3_RSA_encrypted(self):
+        """
+        Can export to encrypted private RSA Putty key v3.
+        """
+        sut = Key.fromString(OPENSSH_RSA_PRIVATE)
+
+        result = sut.toString(type="putty_v3", extra="write-pass")
+
+        reloaded = Key.fromString(result, passphrase="write-pass")
+        self.assertEqual(sut, reloaded)
+
     def test_toString_PUTTY_DSA_plain(self):
         """
         Can export to private DSA Putty key without encryption.
@@ -2588,6 +2609,61 @@ IGNORED
         # We can not check the exact text as comment is hardcoded in
         # Twisted.
         # Load the serialized key and see that we get the same key.
+        reloaded = Key.fromString(result)
+        self.assertEqual(sut, reloaded)
+
+    def test_toString_PUTTY_v3_DSA_plain(self):
+        """
+        Can export to private DSA Putty key in v3 format without encryption.
+        """
+        sut = Key.fromString(OPENSSH_DSA_PRIVATE)
+
+        result = sut.toString(type="putty_v3")
+
+        reloaded = Key.fromString(result)
+        self.assertEqual(sut, reloaded)
+
+    def test_toString_PUTTY_v3_ed25519_plain(self):
+        """
+        Can export to private ed25519 Putty key in v3 format without encryption.
+        """
+        sut = Key.fromString(PUTTY_ED25519_PRIVATE_NO_PASSWORD)
+
+        result = sut.toString(type="putty_v3")
+
+        reloaded = Key.fromString(result)
+        self.assertEqual(sut, reloaded)
+
+    def test_toString_PUTTY_v3_ecdsa256_plain(self):
+        """
+        Can export to private ecdsa 256 Putty key in v3 format without encryption.
+        """
+        sut = Key.fromString(PUTTY_ECDSA_SHA2_NISTP256_PRIVATE_NO_PASSWORD)
+
+        result = sut.toString(type="putty_v3")
+
+        reloaded = Key.fromString(result)
+        self.assertEqual(sut, reloaded)
+
+    def test_toString_PUTTY_v3_ecdsa384_plain(self):
+        """
+        Can export to private ecdsa 384 Putty key in v3 format without encryption.
+        """
+        sut = Key.fromString(PUTTY_ECDSA_SHA2_NISTP384_PRIVATE_NO_PASSWORD)
+
+        result = sut.toString(type="putty_v3")
+
+        reloaded = Key.fromString(result)
+        self.assertEqual(sut, reloaded)
+
+    def test_toString_PUTTY_v3_ecdsa521_plain(self):
+        """
+        Can export to private ecdsa 384 Putty key in v3 format without encryption.
+        """
+        sut = Key.fromString(PUTTY_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD)
+
+        result = sut.toString(type="putty_v3")
+
         reloaded = Key.fromString(result)
         self.assertEqual(sut, reloaded)
 
@@ -3126,7 +3202,8 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         exit_code, message, key = generate_ssh_key(options, open_method=open_method)
 
         self.assertEqual(
-            'SSH key of type "ssh-dss" and length "2048" generated as public '
+            'SSH key of type "ssh-dss" and length "2048" generated as '
+            "openssh_v1 public "
             'key file "%s" and private key file "%s" '
             "without comment as not supported by the output format."
             % (file_name_pub, file_name),
@@ -3175,7 +3252,8 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
 
         # Message informs what default values were used.
         self.assertEqual(
-            'SSH key of type "ssh-rsa" and length "1024" generated as public '
+            'SSH key of type "ssh-rsa" and length "1024" generated as '
+            "openssh_v1 public "
             'key file "id_rsa.pub" and private key file "id_rsa" without '
             "a comment.",
             message,

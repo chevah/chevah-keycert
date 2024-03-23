@@ -2667,6 +2667,7 @@ class Key(object):
         )
 
         computed_mac = hmac.new(hmac_key, hmac_data, sha256).hexdigest()
+
         if private_mac != computed_mac:
             if encryption_key:
                 raise EncryptedKeyError("Bad password or HMAC mismatch.")
@@ -2887,15 +2888,14 @@ class Key(object):
             + common.NS(public_blob)
             + common.NS(private_blob_plain)
         )
-        hmac_key = sha256(hmac_key).digest()
-        private_mac = hmac.new(hmac_key, hmac_data, sha256).hexdigest()
 
+        private_mac = hmac.new(hmac_key, hmac_data, sha256).hexdigest()
         lines.append("PuTTY-User-Key-File-3: %s" % key_type.decode("ascii"))
         lines.append("Encryption: %s" % encryption_type)
-        lines.extend(encryption_headers)
         lines.append("Comment: %s" % comment)
         lines.append("Public-Lines: %s" % len(public_lines))
         lines.extend(public_lines)
+        lines.extend(encryption_headers)
         lines.append("Private-Lines: %s" % len(private_lines))
         lines.extend(private_lines)
         lines.append("Private-MAC: %s" % private_mac)
@@ -3111,11 +3111,12 @@ def generate_ssh_key(options, open_method=None):
             )
 
         message = (
-            'SSH key of type "%s" and length "%d" generated as '
+            'SSH key of type "%s" and length "%d" generated as %s '
             'public key file "%s" and private key file "%s" %s.'
         ) % (
             key.sshType().decode("ascii"),
             key.size(),
+            key_format,
             public_file,
             private_file,
             message_comment,

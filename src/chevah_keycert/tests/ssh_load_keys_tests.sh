@@ -53,6 +53,7 @@ keycert_load_key(){
         local keycert_opts="$keycert_opts --password $2"
     fi
     set +e
+    echo "GENERATING: $KEYCERT_CMD $keycert_opts"
     $KEYCERT_CMD $keycert_opts
     local keycert_err_code=$?
     set -e
