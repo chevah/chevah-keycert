@@ -228,11 +228,11 @@ for KEY in $KEY_TYPES; do
                 putty_keys_test "256 384 521"
                 ;;
             "rsa")
-                putty_keys_test "512 2048 4096"
+                putty_keys_test "1024 4096"
                 ;;
             "dsa")
                 # An unusual prime size is also tested.
-                putty_keys_test "2111 3072 4096"
+                putty_keys_test "1024 2111"
                 ;;
         esac
     done

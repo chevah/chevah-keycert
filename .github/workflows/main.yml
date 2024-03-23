@@ -105,11 +105,11 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { test_type: "--load dsa" }
-          - { test_type: "--load rsa" }
-          - { test_type: "--load ecdsa" }
-          - { test_type: "--load ed25519" }
-          - { test_type: "--generate" }
+          - test_type: "--load dsa"
+          - test_type: "--load rsa"
+          - test_type: "--load ecdsa"
+          - test_type: "--load ed25519"
+          - test_type: "--generate ' '"  # We generate all key types
     steps:
     - uses: actions/checkout@v4
 

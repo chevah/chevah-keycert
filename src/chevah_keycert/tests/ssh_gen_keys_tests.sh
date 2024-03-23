@@ -30,7 +30,7 @@ sort_tests_per_error(){
     local cmd_to_test=$*
     local cmd_err_code
 
-    echo "CHECKINg: $*"
+    echo "CHECKING: $*"
     set +e
     $cmd_to_test
     cmd_err_code=$?
