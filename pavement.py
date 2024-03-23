@@ -136,7 +136,7 @@ def _nose(args, cov, base="chevah_keycert.tests"):
 @cmdopts(
     [
         ("load=", "l", "Run key loading tests."),
-        ("generate", "g", "Run key generation tests."),
+        ("generate=", "g", "Run key generation tests."),
     ]
 )
 def test_interop(options):
@@ -146,10 +146,11 @@ def test_interop(options):
     environ = os.environ.copy()
     environ["CHEVAH_BUILD"] = BUILD_DIR
 
-    if _get_option(options, "generate"):
-        test_command = "ssh_gen_keys_tests.sh"
+    generate_option = _get_option(options, "generate")
+    key_type = _get_option(options, "load")
+    if generate_option:
+        test_command = "ssh_gen_keys_tests.sh {}".format(generate_option)
     else:
-        key_type = _get_option(options, "load")
         test_command = "ssh_load_keys_tests.sh {}".format(key_type)
 
     try:

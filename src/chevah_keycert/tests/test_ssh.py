@@ -1518,6 +1518,125 @@ SUrCyZXsNh6VXwjs3gKQ
             int("447059752886431435417087644871194130561824720094"), data["x"]
         )
 
+    def checkParseED25519Private(self, sut):
+        """
+        Check the default private ED key.
+        """
+        self.assertEqual(256, sut.size())
+        self.assertEqual("Ed25519", sut.type())
+        self.assertEqual(b"ssh-ed25519", sut.sshType())
+        self.assertFalse(sut.isPublic())
+        data = sut.data()
+        self.assertEqual(
+            b"H\xf0*\x0b\x8a\x1c\xfa\xea\xa7u\x04\xa9#"
+            b"\xfb]9\x8e\x84\x16\xafq<d\x1f\t\xf3B\xf7\x90\xd8\xc1\x86",
+            data["a"],
+        )
+        self.assertEqual(
+            b"\xd5\xa5\xdb\xad\xde\xfe\x83i\x87\x8c{\x8c"
+            b"\xcfx\x90N\xc1i#\\\\>\xc6\xe9\xb6\xd6j\xdc\xa5\xc3\xad@",
+            data["k"],
+        )
+
+    def checkParseECDSA256Private(self, sut):
+        """
+        Check the default private ECDSA key of size 256.
+        """
+        self.assertEqual(256, sut.size())
+        self.assertEqual("EC", sut.type())
+        self.assertEqual(b"ecdsa-sha2-nistp256", sut.sshType())
+        self.assertFalse(sut.isPublic())
+        data = sut.data()
+        self.assertEqual(
+            int(
+                "108653985922575495831455438688025548017135775794055889135985"
+                "150468304120654256"
+            ),
+            data["x"],
+        )
+        self.assertEqual(
+            int(
+                "3539295734849026692713678957269176284433037397838158425727137"
+                "8201444091096204"
+            ),
+            data["y"],
+        )
+        self.assertEqual(
+            int(
+                "252084699263301204901777793191881954449812697988584991308139"
+                "15648781475852048"
+            ),
+            data["privateValue"],
+        )
+        self.assertEqual("ecdsa-sha2-nistp256", data["curve"])
+
+    def checkParseECDSA384Private(self, sut):
+        """
+        Check the default private ECDSA key of size 384.
+        """
+        self.assertEqual(384, sut.size())
+        self.assertEqual("EC", sut.type())
+        self.assertEqual(b"ecdsa-sha2-nistp384", sut.sshType())
+        self.assertFalse(sut.isPublic())
+        data = sut.data()
+        self.assertEqual(
+            int(
+                "1120377828922608503816705989895402195704724469432815819813909"
+                "3563493784434074664770757552630188877039345451446332075"
+            ),
+            data["x"],
+        )
+        self.assertEqual(
+            int(
+                "820561365460938594173613421894075233970023220702364300455709"
+                "9067975115514374468669516341218754297628118025144267242"
+            ),
+            data["y"],
+        )
+        self.assertEqual(
+            int(
+                "217704394275079527449821219041780952018954068994705805522096"
+                "48672017052607392742400750553189721892676300516837773655"
+            ),
+            data["privateValue"],
+        )
+        self.assertEqual("ecdsa-sha2-nistp384", data["curve"])
+
+    def checkParseECDSA521Private(self, sut):
+        """
+        Check the default private ECDSA key of size 384.
+        """
+        self.assertEqual(521, sut.size())
+        self.assertEqual("EC", sut.type())
+        self.assertEqual(b"ecdsa-sha2-nistp521", sut.sshType())
+        self.assertFalse(sut.isPublic())
+        data = sut.data()
+        self.assertEqual(
+            int(
+                "575946163275684216572287655819753290168045735639065337167146"
+                "2757410336252172929914930328513418153583025932019025257555921"
+                "977303915549355871374495357809927222"
+            ),
+            data["x"],
+        )
+        self.assertEqual(
+            int(
+                "2466648813452073098641976930882615172021518938344202222286332"
+                "6007817176633618054662362944525041064939804805715990911995870"
+                "75381269720405103254588443613182258"
+            ),
+            data["y"],
+        )
+        self.assertEqual(
+            int(
+                "4221861115108077704182122958166381218745996746275086003675630"
+                "8531396812933733891747966663579986273453584268921082684125610"
+                "37807083546341161456593999982299619"
+            ),
+            data["privateValue"],
+        )
+        self.assertEqual("ecdsa-sha2-nistp521", data["curve"])
+
     def checkParsedRSAPublic1024(self, sut):
         """
         Check the default public RSA key of size 1024.
@@ -2620,14 +2739,94 @@ IGNORED
         key = keys.Key.fromString(keydata.publicDSA_openssh)
         self.assertTrue(key.verify(self.dsaSignature[-40:], b""))
 
-    def test_repr(self):
+    def test_repr_rsa(self):
         """
-        Test the pretty representation of Key.
+        It can repr a RSA private and public key..
         """
-        result = repr(keys.Key(self.rsaObj))
+        sut = keys.Key.fromString(OPENSSH_RSA_PRIVATE)
+        result = repr(sut)
+
         self.assertContains(
-            "<RSA Private Key (2048 bits)\n" "attr d:\n" "\t21:4c", result
+            "<RSA Private Key (1024 bits)\n" "attr d:\n" "\t08:1e", result
         )
+        self.assertContains("attr e:\n" "\t01:00:01\n", result)
+        self.assertContains("attr n:\n" "\t00:b8:7d:", result)
+        self.assertContains("attr p:\n" "\t00:e8:02:", result)
+        self.assertContains("attr q:\n" "\t00:cb:91:", result)
+        self.assertContains("attr u:\n" "\t5b:b2:43:", result)
+        result = repr(sut.public())
+
+        self.assertContains(
+            "<RSA Public Key (1024 bits)\n" "attr e:\n" "\t01:00", result
+        )
+        self.assertContains("attr n:\n" "\t00:b8:7d:", result)
+        self.assertNotContains("attr d:", result)
+
+    def test_repr_dsa(self):
+        """
+        It can repr a DSA private and public key..
+        """
+        sut = keys.Key.fromString(OPENSSH_DSA_PRIVATE)
+        result = repr(sut)
+
+        self.assertContains(
+            "<DSA Private Key (1024 bits)\n" "attr g:\n" "\t5c:0f:93:", result
+        )
+        self.assertContains("attr p:\n" "\t00:ce:c2:", result)
+        self.assertContains("attr q:\n" "\t00:86:1b:", result)
+        self.assertContains("attr x:\n" "\t4e:4e:da:", result)
+        self.assertContains("attr y:\n" "\t7f:ea:c2:", result)
+        result = repr(sut.public())
+
+        self.assertContains(
+            "<DSA Public Key (1024 bits)\n" "attr g:\n" "\t5c:0f:93:", result
+        )
+        self.assertNotContains("attr x:", result)
+
+    def test_repr_ecdsa(self):
+        """
+        It can repr a ECDSA private and public key..
+        """
+        sut = keys.Key.fromString(PUTTY_ECDSA_SHA2_NISTP256_PRIVATE_NO_PASSWORD)
+        result = repr(sut)
+
+        self.assertContains(
+            "<Elliptic Curve Private Key (256 bits)\n"
+            "curve:\n"
+            "\tecdsa-sha2-nistp256\n"
+            "privateValue:\n"
+            "\t2520",
+            result,
+        )
+        result = repr(sut.public())
+
+        self.assertContains(
+            "Elliptic Curve Public Key (256 bits)\n"
+            "curve:\n"
+            "\tecdsa-sha2-nistp256\n"
+            "x:\n"
+            "\t1086",
+            result,
+        )
+        self.assertNotContains("2520846992633", result)
+
+    def test_repr_ed25519(self):
+        """
+        It can repr a ed25519 private and public key.
+        """
+        sut = keys.Key.fromString(PUTTY_ED25519_PRIVATE_NO_PASSWORD)
+        result = repr(sut)
+
+        self.assertContains(
+            "Ed25519 Private Key (256 bits)\n" "attr a:\n" "\t48:f0:2a", result
+        )
+        self.assertContains("attr k:\n" "\td5:a5:d", result)
+        result = repr(sut.public())
+
+        self.assertContains(
+            "<Ed25519 Public Key (256 bits)\n" "attr a:\n" "\t48:f0:", result
+        )
+        self.assertNotContains("attr k:", result)
 
     def test_fromString_PRIVATE_PUTTY_V3_short(self):
         """
@@ -2710,6 +2909,85 @@ IGNORED
             content,
             ('Mismatch key type. Header has "ssh-rsa",' ' public has "ssh-dss"'),
         )
+
+    def test_fromString_PRIVATE_PUTTY_v3_RSA_no_encryption(self):
+        """
+        It can load a Putty v3 RSA private key that has no encryption.
+        """
+        sut = Key.fromString(PUTTY_V3_RSA_PRIVATE_V3_NO_PASSWORD)
+
+        self.checkParsedRSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_PUTTY_v3_RSA_argon2id(self):
+        """
+        It can load a Putty v3 RSA private key that has encryption
+        with argon2id
+        """
+        sut = Key.fromString(PUTTY_V3_RSA_PRIVATE_WITH_PASSWORD, passphrase="chevah")
+
+        self.checkParsedRSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_PUTTY_v3_RSA_argon2i(self):
+        """
+        It can load a Putty v3 RSA private key that has encryption
+        with argon2i
+        """
+        sut = Key.fromString(
+            PUTTY_V3_RSA_PRIVATE_WITH_PASSWORD_ARGON2I, passphrase="chevah"
+        )
+
+        self.checkParsedRSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_PUTTY_v3_RSA_argon2d(self):
+        """
+        It can load a Putty v3 RSA private key that has encryption
+        with argon2d.
+        """
+        sut = Key.fromString(
+            PUTTY_V3_RSA_PRIVATE_WITH_PASSWORD_ARGON2D, passphrase="chevah"
+        )
+
+        self.checkParsedRSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_PUTTY_v3_DSA(self):
+        """
+        It can load a Putty v3 DSA private key that no encryption.
+        """
+        sut = Key.fromString(PUTTY_V3_DSA_PRIVATE_NO_PASSWORD_V3)
+
+        self.checkParsedDSAPrivate1024(sut)
+
+    def test_fromString_PRIVATE_PUTTY_v3_ed25519(self):
+        """
+        It can load a Putty v3 ed25519 private key that no encryption.
+        """
+        sut = Key.fromString(PUTTY_V3_ED25519_PRIVATE_NO_PASSWORD)
+
+        self.checkParseED25519Private(sut)
+
+    def test_fromString_PRIVATE_PUTTY_v3_ecdsa_256(self):
+        """
+        It can load a Putty v3 ecdsa private key that no encryption.
+        """
+        sut = Key.fromString(PUTTY_V3_ECDSA_SHA2_NISTP256_PRIVATE_NO_PASSWORD)
+
+        self.checkParseECDSA256Private(sut)
+
+    def test_fromString_PRIVATE_PUTTY_v3_ecdsa_384(self):
+        """
+        It can load a Putty v3 ecdsa private key that no encryption.
+        """
+        sut = Key.fromString(PUTTY_V3_ECDSA_SHA2_NISTP384_PRIVATE_NO_PASSWORD)
+
+        self.checkParseECDSA384Private(sut)
+
+    def test_fromString_PRIVATE_PUTTY_v3_ecdsa_521(self):
+        """
+        It can load a Putty v3 ecdsa private key that no encryption.
+        """
+        sut = Key.fromString(PUTTY_V3_ECDSA_SHA2_NISTP521_PRIVATE_NO_PASSWORD)
+
+        self.checkParseECDSA521Private(sut)
 
 
 class Test_generate_ssh_key_parser(ChevahTestCase, CommandLineMixin):

@@ -950,7 +950,7 @@ class Key(object):
         """
         if self.type() == "EC":
             data = self.data()
-            name = data["curve"].decode("utf-8")
+            name = data["curve"]
 
             if self.isPublic():
                 out = "<Elliptic Curve Public Key (%s bits)" % (name[-3:],)
@@ -1201,7 +1201,7 @@ class Key(object):
             return {
                 "x": numbers.x,
                 "y": numbers.y,
-                "curve": self.sshType(),
+                "curve": self.sshType().decode("ascii"),
             }
         elif isinstance(self._keyObject, ec.EllipticCurvePrivateKey):
             numbers = self._keyObject.private_numbers()
@@ -1209,7 +1209,7 @@ class Key(object):
                 "x": numbers.public_numbers.x,
                 "y": numbers.public_numbers.y,
                 "privateValue": numbers.private_value,
-                "curve": self.sshType(),
+                "curve": self.sshType().decode("ascii"),
             }
         elif isinstance(self._keyObject, ed25519.Ed25519PublicKey):
             return {
@@ -3148,7 +3148,7 @@ def _store_SSHKey(
     if public_file:
         public_serialization = key.public().toString(type=key_format)
         if comment:
-            public_content = "%s %s" % (public_serialization, comment.encode("utf-8"))
+            public_content = public_serialization + b" " + comment.encode("utf-8")
         else:
             public_content = public_serialization
         public_file.write(public_content)

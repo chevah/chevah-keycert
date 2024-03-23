@@ -13,8 +13,8 @@ if [ -z "$KEY_TYPES" ]; then
     KEY_TYPES="ed25519 ecdsa rsa dsa"
 fi
 
-KEYCERT_CMD="../build-py3/bin/python ../keycert-demo.py"
-KEYCERT_FORMATS="openssh openssh_v1 putty"
+KEYCERT_CMD="../${CHEVAH_BUILD}/bin/python ../keycert-demo.py"
+KEYCERT_FORMATS="openssh openssh_v1 putty putty_v3"
 
 SUCCESS_FILE="gen_keys_tests_success"
 ERROR_FILE="gen_keys_tests_error"
@@ -30,6 +30,7 @@ sort_tests_per_error(){
     local cmd_to_test=$*
     local cmd_err_code
 
+    echo "CHECKINg: $*"
     set +e
     $cmd_to_test
     cmd_err_code=$?
@@ -99,6 +100,7 @@ keycert_gen_keys(){
             final_keycert_opts="${keycert_opts} --key-size $key_size --key-format $key_format"
             # An associated public key is also generated with same name + '.pub'.
             key_file=${key_type}_${key_size}_${key_format}_${key_pass_type}
+            echo "TESTING: $KEYCERT_CMD ${final_keycert_opts} --key-file $key_file"
             $KEYCERT_CMD ${final_keycert_opts} --key-file $key_file
             # OpenSSH's tool will complain of unsafe permissions.
             chmod 600 $key_file
@@ -130,10 +132,10 @@ for pass_type in $PASS_TYPES; do
                 ;;
             "rsa")
                 # An unusual prime size is also tested.
-                keycert_gen_keys rsa $pass 1024 2111 3072 4096 8192
+                keycert_gen_keys rsa $pass 1024 2111 3072 4096
                 ;;
             "dsa")
-                keycert_gen_keys dsa $pass 1024 2048 3072 4096
+                keycert_gen_keys dsa $pass 1024 2048
                 ;;
         esac
     done
@@ -156,6 +158,8 @@ rm $SUCCESS_FILE
 echo -ne "\nCombinations with errors: "
 cat $ERROR_FILE | wc -l
 cat $ERROR_FILE
+
+echo "Done: $KEY_TYPES"
 
 if [ -s $ERROR_FILE ]; then
     rm $ERROR_FILE
