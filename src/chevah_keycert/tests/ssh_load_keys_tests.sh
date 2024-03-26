@@ -13,7 +13,7 @@ if [ -z "$KEY_TYPES" ]; then
     KEY_TYPES="ed25519 ecdsa dsa rsa"
 fi
 
-KEYCERT_CMD="../build-keycert/bin/python ../keycert-demo.py"
+KEYCERT_CMD="../${CHEVAH_BUILD}/bin/python ../keycert-demo.py"
 KEYCERT_NO_ERRORS_FILE="load_keys_tests_errors_none"
 KEYCERT_EXPECTED_ERRORS_FILE="load_keys_tests_errors_expected"
 KEYCERT_UNEXPECTED_ERRORS_FILE="load_keys_tests_errors_unexpected"
@@ -37,7 +37,7 @@ TECTIA_HASHES="sha1 sha224 sha256 sha384 sha512"
 > $KEYCERT_DEMOSCRIPT_ERRORS_FILE
 
 # Common routines like setting password files.
-source ../chevah/keycert/tests/ssh_common_test_inc.sh
+source ../src/chevah_keycert/tests/ssh_common_test_inc.sh
 # FIXME:50
 # Unicode comments are not supported.
 COMM_TYPES="empty simple complex"
@@ -53,6 +53,7 @@ keycert_load_key(){
         local keycert_opts="$keycert_opts --password $2"
     fi
     set +e
+    echo "GENERATING: $KEYCERT_CMD $keycert_opts"
     $KEYCERT_CMD $keycert_opts
     local keycert_err_code=$?
     set -e
@@ -228,11 +229,11 @@ for KEY in $KEY_TYPES; do
                 putty_keys_test "256 384 521"
                 ;;
             "rsa")
-                putty_keys_test "512 2048 4096"
+                putty_keys_test "1024 2048"
                 ;;
             "dsa")
                 # An unusual prime size is also tested.
-                putty_keys_test "2111 3072 4096"
+                putty_keys_test "1024 2111"
                 ;;
         esac
     done

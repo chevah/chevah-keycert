@@ -10,60 +10,70 @@ on:
     paths:
     - '**.py'
 
+permissions:
+  contents: read
+
+
+concurrency:
+  group: chevah-keycert-${{ github.ref }}
+  cancel-in-progress: true
+
+
+env:
+  CHEVAH_BUILD: "build-py3"
+
 jobs:
 
   ubuntu:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Cache build
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
-          build-keycert
+          build-py3
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
-      run: ./brink.sh deps
-
-    - name: Lint
-      run: ./brink.sh lint
+      run: |
+        ./pythia.sh deps
 
     - name: Rename build to unicode
-      run: mv build-keycert build-keycert-ț
+      run: mv build-py3 build-py3-ț
 
     - name: Test
-      run: ./brink.sh test
+      run: ./pythia.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        CHEVAH_BUILD: 'build-keycert-ț'
+        CHEVAH_BUILD: 'build-py3-ț'
 
     - name: Rename build from unicode for cache
-      run: mv build-keycert-ț build-keycert
+      run: mv build-py3-ț build-py3
 
 
   macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Cache build
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
-          build-keycert
+          build-py3
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
-      run: ./brink.sh deps
+      run: ./pythia.sh deps
 
     - name: Test
-      run: ./brink.sh test
+      run: ./pythia.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -71,48 +81,70 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Cache build
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
-          build-keycert
+          build-by3
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
-      run: sh ./brink.sh deps
+      run: sh ./pythia.sh deps
 
     - name: Test
-      run: sh ./brink.sh test
+      run: sh ./pythia.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 
   keys-interop:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         config:
-          - { test_type: load_dsa }
-          - { test_type: load_rsa }
-          - { test_type: load_eced }
-          - { test_type: generate }
+          - test_type: "--load dsa"
+          - test_type: "--load rsa"
+          - test_type: "--load ecdsa"
+          - test_type: "--load ed25519"
+          - test_type: "--generate ' '"  # We generate all key types
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Cache build
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
-          build-keycert
+          build-py3
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
       run: |
         sudo apt-get --quiet install putty-tools
-        ./brink.sh deps
+        ./pythia.sh deps
 
     - name: Test
-      run: ./brink.sh test_interop_${{ matrix.config.test_type }}
+      run: ./pythia.sh test_interop ${{ matrix.config.test_type }}
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v4
+
+    - name: Cache build
+      uses: actions/cache@v3
+      with:
+        path: |
+          build-py3
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+
+    - name: Deps
+      run: |
+        ./pythia.sh deps
+
+    - name: Lint
+      run: ./pythia.sh lint

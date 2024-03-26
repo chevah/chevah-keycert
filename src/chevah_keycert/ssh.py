@@ -8,82 +8,91 @@ Handling of RSA, DSA, ECDSA, and Ed25519 keys.
 
 from __future__ import absolute_import, division, unicode_literals
 
-import binascii
-import itertools
-
-from hashlib import md5, sha1, sha256
 import base64
+import binascii
 import hmac
-import unicodedata
+import itertools
 import struct
 import textwrap
+import unicodedata
+from hashlib import md5, sha1, sha256
 
 import bcrypt
+import six
+from argon2 import low_level
+from cryptography import utils
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import (
-    dsa, ec, ed25519, padding, rsa)
+from cryptography.hazmat.primitives.asymmetric import dsa, ec, ed25519, padding, rsa
 from cryptography.hazmat.primitives.serialization import (
-    load_pem_private_key, load_ssh_public_key)
-from cryptography import utils
+    load_pem_private_key,
+    load_ssh_public_key,
+)
+from six.moves import map, range
 
 try:
 
     from cryptography.hazmat.primitives.asymmetric.utils import (
-        encode_dss_signature, decode_dss_signature)
+        decode_dss_signature,
+        encode_dss_signature,
+    )
 except ImportError:
     from cryptography.hazmat.primitives.asymmetric.utils import (
         encode_rfc6979_signature as encode_dss_signature,
-        decode_rfc6979_signature as decode_dss_signature)
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-from pyasn1.error import PyAsn1Error
-from pyasn1.type import univ
-from pyasn1.codec.ber import decoder as berDecoder
-from pyasn1.codec.ber import encoder as berEncoder
+        decode_rfc6979_signature as decode_dss_signature,
+    )
 
 import os
 import os.path
 from os import urandom
-from base64 import encodestring as encodebytes
-from base64 import decodestring as decodebytes
+
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from pyasn1.codec.ber import decoder as berDecoder
+from pyasn1.codec.ber import encoder as berEncoder
+from pyasn1.error import PyAsn1Error
+from pyasn1.type import univ
+
+try:
+    from base64 import decodebytes, encodebytes
+except ImportError:
+    # On py2 we don't have encodebytes.
+    from base64 import encodestring as encodebytes
+    from base64 import decodestring as decodebytes
+
+from constantly import NamedConstant, Names
 from cryptography.utils import int_from_bytes, int_to_bytes
 from OpenSSL import crypto
 
-from chevah.keycert import common, sexpy, _path
-from chevah.keycert.common import (
-    long,
-    force_unicode,
-    iterbytes,
-    izip,
-    )
-from chevah.keycert.exceptions import (
+from chevah_keycert import common
+from chevah_keycert.common import force_unicode, iterbytes
+from chevah_keycert.exceptions import (
     BadKeyError,
     BadSignatureAlgorithmError,
     EncryptedKeyError,
     KeyCertException,
-    )
-from constantly import NamedConstant, Names
+)
 
-DEFAULT_PUBLIC_KEY_EXTENSION = u'.pub'
+DEFAULT_PUBLIC_KEY_EXTENSION = ".pub"
 DEFAULT_KEY_SIZE = 2048
-DEFAULT_KEY_TYPE = 'rsa'
-SSHCOM_MAGIC_NUMBER = int('3f6ff9eb', base=16)
-PUTTY_HMAC_KEY = 'putty-private-key-file-mac-key'
-ID_SHA1 = b'\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
+DEFAULT_KEY_TYPE = "rsa"
+SSHCOM_MAGIC_NUMBER = int("3f6ff9eb", base=16)
+PUTTY_HMAC_KEY = b"putty-private-key-file-mac-key"
+ID_SHA1 = b"\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14"
 
 # Curve lookup table
 _curveTable = {
-    b'ecdsa-sha2-nistp256': ec.SECP256R1(),
-    b'ecdsa-sha2-nistp384': ec.SECP384R1(),
-    b'ecdsa-sha2-nistp521': ec.SECP521R1(),
+    b"ecdsa-sha2-nistp256": ec.SECP256R1(),
+    b"ecdsa-sha2-nistp384": ec.SECP384R1(),
+    b"ecdsa-sha2-nistp521": ec.SECP521R1(),
+    b"ecdsa-sha2-nistp192": ec.SECP192R1(),
 }
 
 _secToNist = {
-    b'secp256r1' : b'nistp256',
-    b'secp384r1' : b'nistp384',
-    b'secp521r1' : b'nistp521',
+    "secp256r1": b"nistp256",
+    "secp384r1": b"nistp384",
+    "secp521r1": b"nistp521",
+    "secp192r1": b"nistp192",
 }
 
 
@@ -93,11 +102,11 @@ _ecSizeTable = {
     521: ec.SECP521R1(),
 }
 
+
 class BadFingerPrintFormat(Exception):
     """
     Raises when unsupported fingerprint formats are presented to fingerprint.
     """
-
 
 
 class FingerprintFormats(Names):
@@ -147,7 +156,7 @@ def _normalizePassphrase(passphrase):
     @raises PassphraseNormalizationError: if the passphrase is Unicode and
     cannot be normalized using the available Unicode character database.
     """
-    if isinstance(passphrase, unicode):
+    if isinstance(passphrase, six.text_type):
         # The Normalization Process for Stabilized Strings requires aborting
         # with an error if the string contains any unassigned code point.
         if any(unicodedata.category(c) == "Cn" for c in passphrase):
@@ -186,7 +195,7 @@ class Key(object):
     """
 
     @classmethod
-    def fromFile(cls, filename, type=None, passphrase=None, encoding='utf-8'):
+    def fromFile(cls, filename, type=None, passphrase=None, encoding="utf-8"):
         """
         Load a key from a file.
 
@@ -203,7 +212,7 @@ class Key(object):
         @rtype: L{Key}
         @return: The loaded key.
         """
-        with open(_path(filename, encoding), 'rb') as file:
+        with open(filename, "rb") as file:
             return cls.fromString(file.read(), type, passphrase)
 
     @classmethod
@@ -229,32 +238,32 @@ class Key(object):
         @rtype: L{Key}
         @return: The loaded key.
         """
-        if isinstance(data, unicode):
+        if isinstance(data, six.text_type):
             data = data.encode("utf-8")
         passphrase = _normalizePassphrase(passphrase)
         if type is None:
             type = cls._guessStringType(data)
         if type is None:
-            raise BadKeyError(
-                'Cannot guess the type for "%s"' % force_unicode(data[:80]))
+            raise BadKeyError('Cannot guess the type for "{}"'.format(repr(data[:80])))
 
         try:
-            method = getattr(cls, '_fromString_%s' % type.upper(), None)
+            method = getattr(cls, "_fromString_%s" % type.upper(), None)
             if method is None:
                 raise BadKeyError(
-                    'no _fromString method for "%s"' % force_unicode(type[:30]))
+                    'no _fromString method for "%s"' % force_unicode(type[:30])
+                )
             if method.__code__.co_argcount == 2:  # no passphrase
                 if passphrase:
-                    raise BadKeyError('key not encrypted')
+                    raise BadKeyError("key not encrypted")
                 return method(data)
             else:
                 return method(data, passphrase)
-        except (IndexError):
+        except IndexError:
             # Most probably some parts are missing from the key, so
             # we consider it too short.
-            raise BadKeyError('Key is too short.')
+            raise BadKeyError("Key is too short.")
         except (struct.error, binascii.Error, TypeError):
-            raise BadKeyError('Fail to parse key content.')
+            raise BadKeyError("Fail to parse key content.")
 
     @classmethod
     def _fromString_BLOB(cls, blob):
@@ -292,23 +301,24 @@ class Key(object):
         @raises BadKeyError: if the key type (the first string) is unknown.
         """
         keyType, rest = common.getNS(blob)
-        if keyType == b'ssh-rsa':
+        if keyType == b"ssh-rsa":
             e, n, rest = common.getMP(rest, 2)
             return cls._fromRSAComponents(n, e)
-        elif keyType == b'ssh-dss':
+        elif keyType == b"ssh-dss":
             p, q, g, y, rest = common.getMP(rest, 4)
-            return cls._fromDSAComponents( y, p, q, g)
+            return cls._fromDSAComponents(y, p, q, g)
         elif keyType in _curveTable:
             return cls._fromECEncodedPoint(
                 encodedPoint=common.getNS(rest, 2)[1],
                 curve=keyType,
-                )
-        elif keyType == b'ssh-ed25519':
+            )
+        elif keyType == b"ssh-ed25519":
             a, rest = common.getNS(rest)
             return cls._fromEd25519Components(a)
         else:
-            raise BadKeyError('unknown blob type: "{}"'.format(
-                force_unicode(keyType[:30])))
+            raise BadKeyError(
+                'unknown blob type: "{}"'.format(force_unicode(keyType[:30]))
+            )
 
     @classmethod
     def _fromString_PRIVATE_BLOB(cls, blob):
@@ -358,32 +368,32 @@ class Key(object):
         """
         keyType, rest = common.getNS(blob)
 
-        if keyType == b'ssh-rsa':
+        if keyType == b"ssh-rsa":
             n, e, d, u, p, q, rest = common.getMP(rest, 6)
             return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q)
-        elif keyType == b'ssh-dss':
+        elif keyType == b"ssh-dss":
             p, q, g, y, x, rest = common.getMP(rest, 5)
             return cls._fromDSAComponents(y=y, g=g, p=p, q=q, x=x)
         elif keyType in _curveTable:
             curve = _curveTable[keyType]
             curveName, q, rest = common.getNS(rest, 2)
-            if curveName != _secToNist[curve.name.encode('ascii')]:
+            if curveName != _secToNist[curve.name]:
                 raise BadKeyError(
-                    'ECDSA curve name "%s" does not match key type "%s"' % (
-                        force_unicode(curveName), force_unicode(keyType)))
+                    'ECDSA curve name "%s" does not match key type "%s"'
+                    % (force_unicode(curveName), force_unicode(keyType))
+                )
             privateValue, rest = common.getMP(rest)
             return cls._fromECEncodedPoint(
-                encodedPoint=q, curve=keyType, privateValue=privateValue)
-        elif keyType == b'ssh-ed25519':
+                encodedPoint=q, curve=keyType, privateValue=privateValue
+            )
+        elif keyType == b"ssh-ed25519":
             # OpenSSH's format repeats the public key bytes for some reason.
             # We're only interested in the private key here anyway.
             a, combined, rest = common.getNS(rest, 2)
             k = combined[:32]
             return cls._fromEd25519Components(a, k=k)
         else:
-            raise BadKeyError(
-                'Unknown blob type: "%s"' % force_unicode(keyType[:30]))
-
+            raise BadKeyError('Unknown blob type: "%s"' % force_unicode(keyType[:30]))
 
     @classmethod
     def _fromString_PUBLIC_OPENSSH(cls, data):
@@ -401,11 +411,10 @@ class Key(object):
         """
         # ECDSA keys don't need base64 decoding which is required
         # for RSA or DSA key.
-        if data.startswith(b'ecdsa-sha2'):
+        if data.startswith(b"ecdsa-sha2"):
             return cls(load_ssh_public_key(data, default_backend()))
         blob = decodebytes(data.split()[1])
         return cls._fromString_BLOB(blob)
-
 
     @classmethod
     def _fromString_PRIVATE_OPENSSH_V1(cls, data, passphrase):
@@ -437,61 +446,69 @@ class Key(object):
             * a passphrase is not provided for an encrypted key
         """
         lines = data.strip().splitlines()
-        keyList = decodebytes(b''.join(lines[1:-1]))
-        if not keyList.startswith(b'openssh-key-v1\0'):
-            raise BadKeyError('unknown OpenSSH private key format')
-        keyList = keyList[len(b'openssh-key-v1\0'):]
+        keyList = decodebytes(b"".join(lines[1:-1]))
+        if not keyList.startswith(b"openssh-key-v1\0"):
+            raise BadKeyError("unknown OpenSSH private key format")
+        keyList = keyList[len(b"openssh-key-v1\0") :]
         cipher, kdf, kdfOptions, rest = common.getNS(keyList, 3)
-        n = struct.unpack('!L', rest[:4])[0]
+        n = struct.unpack("!L", rest[:4])[0]
         if n != 1:
-            raise BadKeyError('only OpenSSH private key files containing '
-                              'a single key are supported')
+            raise BadKeyError(
+                "only OpenSSH private key files containing "
+                "a single key are supported"
+            )
         # Ignore public key
         _, encPrivKeyList, _ = common.getNS(rest[4:], 2)
-        if cipher != b'none':
+        if cipher != b"none":
             if not passphrase:
-                raise EncryptedKeyError('Passphrase must be provided '
-                                        'for an encrypted key')
+                raise EncryptedKeyError(
+                    "Passphrase must be provided " "for an encrypted key"
+                )
             # Determine cipher
-            if cipher in (b'aes128-ctr', b'aes192-ctr', b'aes256-ctr'):
+            if cipher in (b"aes128-ctr", b"aes192-ctr", b"aes256-ctr"):
                 algorithmClass = algorithms.AES
                 blockSize = 16
                 keySize = int(cipher[3:6]) // 8
                 ivSize = blockSize
             else:
-                raise BadKeyError('unknown encryption type "%s"' % (
-                    force_unicode(cipher),))
-            if kdf == b'bcrypt':
-                salt, rest = common.getNS(kdfOptions)
-                rounds = struct.unpack('!L', rest[:4])[0]
-                decKey = bcrypt.kdf(
-                    passphrase, salt, keySize + ivSize, rounds,
-                    # We can only use the number of rounds that OpenSSH used.
-                    ignore_few_rounds=True)
-            else:
                 raise BadKeyError(
-                    'unknown KDF type "%s"' % (force_unicode(kdf),))
+                    'unknown encryption type "%s"' % (force_unicode(cipher),)
+                )
+            if kdf == b"bcrypt":
+                salt, rest = common.getNS(kdfOptions)
+                rounds = struct.unpack("!L", rest[:4])[0]
+                decKey = bcrypt.kdf(
+                    passphrase,
+                    salt,
+                    keySize + ivSize,
+                    rounds,
+                    # We can only use the number of rounds that OpenSSH used.
+                    ignore_few_rounds=True,
+                )
+            else:
+                raise BadKeyError('unknown KDF type "%s"' % (force_unicode(kdf),))
             if (len(encPrivKeyList) % blockSize) != 0:
-                raise BadKeyError('bad padding')
+                raise BadKeyError("bad padding")
             decryptor = Cipher(
                 algorithmClass(decKey[:keySize]),
-                modes.CTR(decKey[keySize:keySize + ivSize]),
-                backend=default_backend()
+                modes.CTR(decKey[keySize : keySize + ivSize]),
+                backend=default_backend(),
             ).decryptor()
-            privKeyList = (
-                decryptor.update(encPrivKeyList) + decryptor.finalize())
+            privKeyList = decryptor.update(encPrivKeyList) + decryptor.finalize()
         else:
-            if kdf != b'none':
-                raise BadKeyError('private key specifies KDF "%s" but no '
-                                  'cipher' % (force_unicode(kdf),))
+            if kdf != b"none":
+                raise BadKeyError(
+                    'private key specifies KDF "%s" but no '
+                    "cipher" % (force_unicode(kdf),)
+                )
             privKeyList = encPrivKeyList
-        check1 = struct.unpack('!L', privKeyList[:4])[0]
-        check2 = struct.unpack('!L', privKeyList[4:8])[0]
+        check1 = struct.unpack("!L", privKeyList[:4])[0]
+        check2 = struct.unpack("!L", privKeyList[4:8])[0]
         if check1 != check2:
             raise BadKeyError(
-                'Private key sanity check failed. Maybe invalid passphrase.')
+                "Private key sanity check failed. Maybe invalid passphrase."
+            )
         return cls._fromString_PRIVATE_BLOB(privKeyList[8:])
-
 
     @classmethod
     def _fromString_PRIVATE_OPENSSH(cls, data, passphrase):
@@ -532,74 +549,73 @@ class Key(object):
         """
         lines = data.strip().splitlines()
         kind = lines[0][11:-17]
-        if lines[1].startswith(b'Proc-Type: 4,ENCRYPTED'):
+        if lines[1].startswith(b"Proc-Type: 4,ENCRYPTED"):
             if not passphrase:
-                raise EncryptedKeyError('Passphrase must be provided '
-                                        'for an encrypted key')
+                raise EncryptedKeyError(
+                    "Passphrase must be provided " "for an encrypted key"
+                )
 
             # Determine cipher and initialization vector
             try:
-                _, cipherIVInfo = lines[2].split(b' ', 1)
-                cipher, ivdata = cipherIVInfo.rstrip().split(b',', 1)
+                _, cipherIVInfo = lines[2].split(b" ", 1)
+                cipher, ivdata = cipherIVInfo.rstrip().split(b",", 1)
             except ValueError:
-                raise BadKeyError(
-                    'invalid DEK-info "%s"' % (force_unicode(lines[2]),))
+                raise BadKeyError('invalid DEK-info "%s"' % (force_unicode(lines[2]),))
 
-            if cipher in (b'AES-128-CBC', b'AES-256-CBC'):
+            if cipher in (b"AES-128-CBC", b"AES-256-CBC"):
                 algorithmClass = algorithms.AES
-                keySize = int(cipher.split(b'-')[1]) // 8
+                keySize = int(cipher.split(b"-")[1]) // 8
                 if len(ivdata) != 32:
-                    raise BadKeyError('AES encrypted key with a bad IV')
-            elif cipher == b'DES-EDE3-CBC':
+                    raise BadKeyError("AES encrypted key with a bad IV")
+            elif cipher == b"DES-EDE3-CBC":
                 algorithmClass = algorithms.TripleDES
                 keySize = 24
                 if len(ivdata) != 16:
-                    raise BadKeyError('DES encrypted key with a bad IV')
+                    raise BadKeyError("DES encrypted key with a bad IV")
             else:
                 raise BadKeyError(
-                    'unknown encryption type "%s"' % (force_unicode(cipher),))
+                    'unknown encryption type "%s"' % (force_unicode(cipher),)
+                )
 
             # Extract keyData for decoding
-            iv = bytes(bytearray([int(ivdata[i:i + 2], 16)
-                                  for i in range(0, len(ivdata), 2)]))
+            iv = bytes(
+                bytearray(
+                    [int(ivdata[i : i + 2], 16) for i in range(0, len(ivdata), 2)]
+                )
+            )
             ba = md5(passphrase + iv[:8]).digest()
             bb = md5(ba + passphrase + iv[:8]).digest()
             decKey = (ba + bb)[:keySize]
-            b64Data = decodebytes(b''.join(lines[3:-1]))
+            b64Data = decodebytes(b"".join(lines[3:-1]))
 
             decryptor = Cipher(
-                algorithmClass(decKey),
-                modes.CBC(iv),
-                backend=default_backend()
+                algorithmClass(decKey), modes.CBC(iv), backend=default_backend()
             ).decryptor()
             keyData = decryptor.update(b64Data) + decryptor.finalize()
 
             removeLen = ord(keyData[-1:])
             keyData = keyData[:-removeLen]
         else:
-            b64Data = b''.join(lines[1:-1])
+            b64Data = b"".join(lines[1:-1])
             keyData = decodebytes(b64Data)
 
         try:
             decodedKey = berDecoder.decode(keyData)[0]
         except PyAsn1Error as e:
             raise BadKeyError(
-                'Failed to decode key (Bad Passphrase?): %s' % (
-                    force_unicode(e),))
+                "Failed to decode key (Bad Passphrase?): %s" % (force_unicode(e),)
+            )
 
-        if kind == b'EC':
-            return cls(
-                load_pem_private_key(data, passphrase, default_backend()))
+        if kind == b"EC":
+            return cls(load_pem_private_key(data, passphrase, default_backend()))
 
-        if kind == b'RSA':
+        if kind == b"RSA":
             if len(decodedKey) == 2:  # Alternate RSA key
                 decodedKey = decodedKey[0]
             if len(decodedKey) < 6:
-                raise BadKeyError('RSA key failed to decode properly')
+                raise BadKeyError("RSA key failed to decode properly")
 
-            n, e, d, p, q, dmp1, dmq1, iqmp = [
-                long(value) for value in decodedKey[1:9]
-                ]
+            n, e, d, p, q, dmp1, dmq1, iqmp = [int(value) for value in decodedKey[1:9]]
             return cls(
                 rsa.RSAPrivateNumbers(
                     p=p,
@@ -611,83 +627,13 @@ class Key(object):
                     public_numbers=rsa.RSAPublicNumbers(e=e, n=n),
                 ).private_key(default_backend())
             )
-        elif kind == b'DSA':
-            p, q, g, y, x = [long(value) for value in decodedKey[1: 6]]
+        elif kind == b"DSA":
+            p, q, g, y, x = [int(value) for value in decodedKey[1:6]]
             if len(decodedKey) < 6:
-                raise BadKeyError('DSA key failed to decode properly')
+                raise BadKeyError("DSA key failed to decode properly")
             return cls._fromDSAComponents(y, p, q, g, x)
         else:
             raise BadKeyError('unknown key type "%s"' % (force_unicode(kind),))
-
-
-    @classmethod
-    def _fromString_PUBLIC_LSH(cls, data):
-        """
-        Return a public key corresponding to this LSH public key string.
-        The LSH public key string format is::
-            <s-expression: ('public-key', (<key type>, (<name, <value>)+))>
-
-        The names for a RSA (key type 'rsa-pkcs1-sha1') key are: n, e.
-        The names for a DSA (key type 'dsa') key are: y, g, p, q.
-
-        @type data: L{bytes}
-        @param data: The key data.
-
-        @return: A new key.
-        @rtype: L{twisted.conch.ssh.keys.Key}
-        @raises BadKeyError: if the key type is unknown
-        """
-        sexp = sexpy.parse(decodebytes(data[1:-1]))
-        assert sexp[0] == b'public-key'
-        kd = {}
-        for name, data in sexp[1][1:]:
-            kd[name] = common.getMP(common.NS(data))[0]
-        if sexp[1][0] == b'dsa':
-            return cls._fromDSAComponents(
-                y=kd[b'y'], g=kd[b'g'], p=kd[b'p'], q=kd[b'q'])
-
-        elif sexp[1][0] == b'rsa-pkcs1-sha1':
-            return cls._fromRSAComponents(n=kd[b'n'], e=kd[b'e'])
-        else:
-            raise BadKeyError('unknown lsh key type "%s"' % (
-                force_unicode(sexp[1][0][:30]),))
-
-    @classmethod
-    def _fromString_PRIVATE_LSH(cls, data):
-        """
-        Return a private key corresponding to this LSH private key string.
-        The LSH private key string format is::
-            <s-expression: ('private-key', (<key type>, (<name>, <value>)+))>
-
-        The names for a RSA (key type 'rsa-pkcs1-sha1') key are: n, e, d, p, q.
-        The names for a DSA (key type 'dsa') key are: y, g, p, q, x.
-
-        @type data: L{bytes}
-        @param data: The key data.
-
-        @return: A new key.
-        @rtype: L{twisted.conch.ssh.keys.Key}
-        @raises BadKeyError: if the key type is unknown
-        """
-        sexp = sexpy.parse(data)
-        assert sexp[0] == b'private-key'
-        kd = {}
-        for name, data in sexp[1][1:]:
-            kd[name] = common.getMP(common.NS(data))[0]
-        if sexp[1][0] == b'dsa':
-            assert len(kd) == 5, len(kd)
-            return cls._fromDSAComponents(
-                y=kd[b'y'], g=kd[b'g'], p=kd[b'p'], q=kd[b'q'], x=kd[b'x'])
-        elif sexp[1][0] == b'rsa-pkcs1':
-            assert len(kd) == 8, len(kd)
-            if kd[b'p'] > kd[b'q']:  # Make p smaller than q
-                kd[b'p'], kd[b'q'] = kd[b'q'], kd[b'p']
-            return cls._fromRSAComponents(
-                n=kd[b'n'], e=kd[b'e'], d=kd[b'd'], p=kd[b'p'], q=kd[b'q'])
-
-        else:
-            raise BadKeyError(
-                'unknown lsh key type "%s"' % (force_unicode(sexp[1][0][:30]),))
 
     @classmethod
     def _fromString_AGENTV3(cls, data):
@@ -720,14 +666,14 @@ class Key(object):
         @raises BadKeyError: if the key type (the first string) is unknown
         """
         keyType, data = common.getNS(data)
-        if keyType == b'ssh-dss':
+        if keyType == b"ssh-dss":
             p, data = common.getMP(data)
             q, data = common.getMP(data)
             g, data = common.getMP(data)
             y, data = common.getMP(data)
             x, data = common.getMP(data)
             return cls._fromDSAComponents(y=y, g=g, p=p, q=q, x=x)
-        elif keyType == b'ssh-rsa':
+        elif keyType == b"ssh-rsa":
             e, data = common.getMP(data)
             d, data = common.getMP(data)
             n, data = common.getMP(data)
@@ -736,8 +682,7 @@ class Key(object):
             q, data = common.getMP(data)
             return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q, u=u)
         else:  # pragma: no cover
-            raise BadKeyError(
-                'unknown key type "%s"' % (force_unicode(keyType[:30]),))
+            raise BadKeyError('unknown key type "%s"' % (force_unicode(keyType[:30]),))
 
     @classmethod
     def _guessStringType(cls, data):
@@ -748,53 +693,53 @@ class Key(object):
         @type data: L{bytes}
         @param data: The key data.
         """
-        if data.startswith(b'ssh-') or data.startswith(b'ecdsa-sha2-'):
-            return 'public_openssh'
-        elif data.startswith(b'---- BEGIN SSH2 PUBLIC KEY ----'):
-            return 'public_sshcom'
-        elif data.startswith(b'---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----'):
-            return 'private_sshcom'
-        elif data.startswith(b'-----BEGIN RSA PUBLIC'):
-            return 'public_pkcs1_rsa'
+        if data.startswith(b"ssh-") or data.startswith(b"ecdsa-sha2-"):
+            return "public_openssh"
+        elif data.startswith(b"---- BEGIN SSH2 PUBLIC KEY ----"):
+            return "public_sshcom"
+        elif data.startswith(b"---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----"):
+            return "private_sshcom"
+        elif data.startswith(b"-----BEGIN RSA PUBLIC"):
+            return "public_pkcs1_rsa"
         elif (
-            data.startswith(b'-----BEGIN RSA PRIVATE') or
-            data.startswith(b'-----BEGIN DSA PRIVATE') or
-            data.startswith(b'-----BEGIN EC PRIVATE')
-                ):
+            data.startswith(b"-----BEGIN RSA PRIVATE")
+            or data.startswith(b"-----BEGIN DSA PRIVATE")
+            or data.startswith(b"-----BEGIN EC PRIVATE")
+        ):
             # This is also private PKCS#1 format.
-            return 'private_openssh'
-        elif data.startswith(b'-----BEGIN OPENSSH PRIVATE KEY-----'):
-            return 'private_openssh_v1'
+            return "private_openssh"
+        elif data.startswith(b"-----BEGIN OPENSSH PRIVATE KEY-----"):
+            return "private_openssh_v1"
 
-        elif data.startswith(b'-----BEGIN CERTIFICATE-----'):
-            return 'public_x509_certificate'
+        elif data.startswith(b"-----BEGIN CERTIFICATE-----"):
+            return "public_x509_certificate"
 
-        elif data.startswith(b'-----BEGIN PUBLIC KEY-----'):
+        elif data.startswith(b"-----BEGIN PUBLIC KEY-----"):
             # Public Key in X.509 format it's as follows
-            return 'public_x509'
+            return "public_x509"
 
-        elif data.startswith(b'-----BEGIN PRIVATE KEY-----'):
-            return 'private_pkcs8'
-        elif data.startswith(b'-----BEGIN ENCRYPTED PRIVATE KEY-----'):
-            return 'private_encrypted_pkcs8'
-        elif data.startswith(b'PuTTY-User-Key-File-2'):
-            return 'private_putty'
-        elif data.startswith(b'{'):
-            return 'public_lsh'
-        elif data.startswith(b'('):
-            return 'private_lsh'
-        elif (data.startswith(b'\x00\x00\x00\x07ssh-') or
-              data.startswith(b'\x00\x00\x00\x13ecdsa-') or
-              data.startswith(b'\x00\x00\x00\x0bssh-ed25519')):
+        elif data.startswith(b"-----BEGIN PRIVATE KEY-----"):
+            return "private_pkcs8"
+        elif data.startswith(b"-----BEGIN ENCRYPTED PRIVATE KEY-----"):
+            return "private_encrypted_pkcs8"
+        elif data.startswith(b"PuTTY-User-Key-File-2"):
+            return "private_putty"
+        elif data.startswith(b"PuTTY-User-Key-File-3"):
+            return "private_putty_v3"
+        elif (
+            data.startswith(b"\x00\x00\x00\x07ssh-")
+            or data.startswith(b"\x00\x00\x00\x13ecdsa-")
+            or data.startswith(b"\x00\x00\x00\x0bssh-ed25519")
+        ):
             ignored, rest = common.getNS(data)
             count = 0
             while rest:
                 count += 1
                 ignored, rest = common.getMP(rest)
             if count > 4:
-                return 'agentv3'
+                return "agentv3"
             else:
-                return 'blob'
+                return "blob"
 
     @classmethod
     def _fromRSAComponents(cls, n, e, d=None, p=None, q=None, u=None):
@@ -865,7 +810,8 @@ class Key(object):
         @return: A DSA key constructed from the values as given.
         """
         publicNumbers = dsa.DSAPublicNumbers(
-            y=y, parameter_numbers=dsa.DSAParameterNumbers(p=p, q=q, g=g))
+            y=y, parameter_numbers=dsa.DSAParameterNumbers(p=p, q=q, g=g)
+        )
 
         if x is None:
             try:
@@ -874,15 +820,16 @@ class Key(object):
                 return cls(keyObject)
             except ValueError as error:
                 raise BadKeyError(
-                    'Unsupported DSA public key: "%s"' % (force_unicode(error),))
+                    'Unsupported DSA public key: "%s"' % (force_unicode(error),)
+                )
 
         try:
-            privateNumbers = dsa.DSAPrivateNumbers(
-                x=x, public_numbers=publicNumbers)
+            privateNumbers = dsa.DSAPrivateNumbers(x=x, public_numbers=publicNumbers)
             keyObject = privateNumbers.private_key(default_backend())
         except ValueError as error:
             raise BadKeyError(
-                'Unsupported DSA private key: "%s"' % (force_unicode(error),))
+                'Unsupported DSA private key: "%s"' % (force_unicode(error),)
+            )
 
         return cls(keyObject)
 
@@ -905,13 +852,15 @@ class Key(object):
         """
 
         publicNumbers = ec.EllipticCurvePublicNumbers(
-            x=x, y=y, curve=_curveTable[curve])
+            x=x, y=y, curve=_curveTable[curve]
+        )
         if privateValue is None:
             # We have public components.
             keyObject = publicNumbers.public_key(default_backend())
         else:
             privateNumbers = ec.EllipticCurvePrivateNumbers(
-                private_value=privateValue, public_numbers=publicNumbers)
+                private_value=privateValue, public_numbers=publicNumbers
+            )
             keyObject = privateNumbers.private_key(default_backend())
 
         return cls(keyObject)
@@ -965,7 +914,7 @@ class Key(object):
 
             return cls(keyObject)
         except UnsupportedAlgorithm:
-            raise BadKeyError('Ed25519 keys are not supported.')
+            raise BadKeyError("Ed25519 keys are not supported.")
 
     def __init__(self, keyObject):
         """
@@ -999,14 +948,14 @@ class Key(object):
         """
         Return a pretty representation of this object.
         """
-        if self.type() == 'EC':
+        if self.type() == "EC":
             data = self.data()
-            name = data['curve'].decode('utf-8')
+            name = data["curve"]
 
             if self.isPublic():
-                out = '<Elliptic Curve Public Key (%s bits)' % (name[-3:],)
+                out = "<Elliptic Curve Public Key (%s bits)" % (name[-3:],)
             else:
-                out = '<Elliptic Curve Private Key (%s bits)' % (name[-3:],)
+                out = "<Elliptic Curve Private Key (%s bits)" % (name[-3:],)
 
             for k, v in sorted(data.items()):
                 out += "\n%s:\n\t%s" % (k, v)
@@ -1014,24 +963,27 @@ class Key(object):
             return out + ">\n"
         else:
             lines = [
-                '<%s %s (%s bits)' % (
+                "<%s %s (%s bits)"
+                % (
                     self.type(),
-                    self.isPublic() and 'Public Key' or 'Private Key',
-                    self.size())]
+                    self.isPublic() and "Public Key" or "Private Key",
+                    self.size(),
+                )
+            ]
             for k, v in sorted(self.data().items()):
-                lines.append('attr %s:' % (k,))
-                by = v if self.type() == 'Ed25519' else common.MP(v)[4:]
+                lines.append("attr %s:" % (k,))
+                by = v if self.type() == "Ed25519" else common.MP(v)[4:]
                 while by:
                     m = by[:15]
                     by = by[15:]
-                    o = ''
+                    o = ""
                     for c in iterbytes(m):
-                        o = o + '%02x:' % (ord(c),)
+                        o = o + "%02x:" % (ord(c),)
                     if len(m) < 15:
                         o = o[:-1]
-                    lines.append('\t' + o)
-            lines[-1] = lines[-1] + '>'
-            return '\n'.join(lines)
+                    lines.append("\t" + o)
+            lines[-1] = lines[-1] + ">"
+            return "\n".join(lines)
 
     def isPublic(self):
         """
@@ -1041,8 +993,13 @@ class Key(object):
         """
         return isinstance(
             self._keyObject,
-            (rsa.RSAPublicKey, dsa.DSAPublicKey, ec.EllipticCurvePublicKey,
-             ed25519.Ed25519PublicKey))
+            (
+                rsa.RSAPublicKey,
+                dsa.DSAPublicKey,
+                ec.EllipticCurvePublicKey,
+                ed25519.Ed25519PublicKey,
+            ),
+        )
 
     def public(self):
         """
@@ -1092,17 +1049,16 @@ class Key(object):
         @rtype: L{str}
         """
         if format is FingerprintFormats.SHA256_BASE64:
-            return base64.b64encode(
-                sha256(self.blob()).digest()).decode('ascii')
+            return base64.b64encode(sha256(self.blob()).digest()).decode("ascii")
         elif format is FingerprintFormats.SHA1_BASE64:
-            return base64.b64encode(
-                sha1(self.blob()).digest()).decode('ascii')
+            return base64.b64encode(sha1(self.blob()).digest()).decode("ascii")
         elif format is FingerprintFormats.MD5_HEX:
-            return ':'.join([binascii.hexlify(x)
-                             for x in iterbytes(md5(self.blob()).digest())])
+            result = b":".join(
+                [binascii.hexlify(x) for x in iterbytes(md5(self.blob()).digest())]
+            )
+            return result.decode("ascii")
         else:
-            raise BadFingerPrintFormat(
-                'Unsupported fingerprint format: %s' % (format,))
+            raise BadFingerPrintFormat("Unsupported fingerprint format: %s" % (format,))
 
     def type(self):
         """
@@ -1112,23 +1068,20 @@ class Key(object):
         @rtype: L{str}
         @raises RuntimeError: If the object type is unknown.
         """
-        if isinstance(
-                self._keyObject, (rsa.RSAPublicKey, rsa.RSAPrivateKey)):
-            return 'RSA'
+        if isinstance(self._keyObject, (rsa.RSAPublicKey, rsa.RSAPrivateKey)):
+            return "RSA"
+        elif isinstance(self._keyObject, (dsa.DSAPublicKey, dsa.DSAPrivateKey)):
+            return "DSA"
         elif isinstance(
-                self._keyObject, (dsa.DSAPublicKey, dsa.DSAPrivateKey)):
-            return 'DSA'
+            self._keyObject, (ec.EllipticCurvePublicKey, ec.EllipticCurvePrivateKey)
+        ):
+            return "EC"
         elif isinstance(
-                self._keyObject,
-                (ec.EllipticCurvePublicKey, ec.EllipticCurvePrivateKey)):
-            return 'EC'
-        elif isinstance(
-                self._keyObject,
-                (ed25519.Ed25519PublicKey, ed25519.Ed25519PrivateKey)):
-            return 'Ed25519'
+            self._keyObject, (ed25519.Ed25519PublicKey, ed25519.Ed25519PrivateKey)
+        ):
+            return "Ed25519"
         else:
-            raise RuntimeError(
-                'unknown type of object: %r' % (self._keyObject,))
+            raise RuntimeError("unknown type of object: %r" % (self._keyObject,))
 
     def sshType(self):
         """
@@ -1141,15 +1094,13 @@ class Key(object):
         @return: The key type format.
         @rtype: L{bytes}
         """
-        if self.type() == 'EC':
-            return (
-                b'ecdsa-sha2-' +
-                _secToNist[self._keyObject.curve.name.encode('ascii')])
+        if self.type() == "EC":
+            return b"ecdsa-sha2-" + _secToNist[self._keyObject.curve.name]
         else:
             return {
-                'RSA': b'ssh-rsa',
-                'DSA': b'ssh-dss',
-                'Ed25519': b'ssh-ed25519',
+                "RSA": b"ssh-rsa",
+                "DSA": b"ssh-dss",
+                "Ed25519": b"ssh-ed25519",
             }[self.type()]
 
     def supportedSignatureAlgorithms(self):
@@ -1199,9 +1150,9 @@ class Key(object):
         """
         if self._keyObject is None:
             return 0
-        elif self.type() == 'EC':
+        elif self.type() == "EC":
             return self._keyObject.curve.key_size
-        elif self.type() == 'Ed25519':
+        elif self.type() == "Ed25519":
             return 256
         return self._keyObject.key_size
 
@@ -1250,7 +1201,7 @@ class Key(object):
             return {
                 "x": numbers.x,
                 "y": numbers.y,
-                "curve": self.sshType(),
+                "curve": self.sshType().decode("ascii"),
             }
         elif isinstance(self._keyObject, ec.EllipticCurvePrivateKey):
             numbers = self._keyObject.private_numbers()
@@ -1258,25 +1209,23 @@ class Key(object):
                 "x": numbers.public_numbers.x,
                 "y": numbers.public_numbers.y,
                 "privateValue": numbers.private_value,
-                "curve": self.sshType(),
+                "curve": self.sshType().decode("ascii"),
             }
         elif isinstance(self._keyObject, ed25519.Ed25519PublicKey):
             return {
                 "a": self._keyObject.public_bytes(
-                    serialization.Encoding.Raw,
-                    serialization.PublicFormat.Raw
+                    serialization.Encoding.Raw, serialization.PublicFormat.Raw
                 ),
             }
         elif isinstance(self._keyObject, ed25519.Ed25519PrivateKey):
             return {
                 "a": self._keyObject.public_key().public_bytes(
-                    serialization.Encoding.Raw,
-                    serialization.PublicFormat.Raw
+                    serialization.Encoding.Raw, serialization.PublicFormat.Raw
                 ),
                 "k": self._keyObject.private_bytes(
                     serialization.Encoding.Raw,
                     serialization.PrivateFormat.Raw,
-                    serialization.NoEncryption()
+                    serialization.NoEncryption(),
                 ),
             }
 
@@ -1317,25 +1266,38 @@ class Key(object):
         """
         type = self.type()
         data = self.data()
-        if type == 'RSA':
-            return (common.NS(b'ssh-rsa') + common.MP(data['e']) +
-                    common.MP(data['n']))
-        elif type == 'DSA':
-            return (common.NS(b'ssh-dss') + common.MP(data['p']) +
-                    common.MP(data['q']) + common.MP(data['g']) +
-                    common.MP(data['y']))
-        elif type == 'EC':
+        if type == "RSA":
+            return common.NS(b"ssh-rsa") + common.MP(data["e"]) + common.MP(data["n"])
+        elif type == "DSA":
+            return (
+                common.NS(b"ssh-dss")
+                + common.MP(data["p"])
+                + common.MP(data["q"])
+                + common.MP(data["g"])
+                + common.MP(data["y"])
+            )
+        elif type == "EC":
             byteLength = (self._keyObject.curve.key_size + 7) // 8
             return (
-                common.NS(data['curve']) + common.NS(data["curve"][-8:]) +
-                common.NS(
-                    b'\x04' + utils.int_to_bytes(data['x'], byteLength) +
-                    utils.int_to_bytes(data['y'], byteLength)))
-        elif type == 'Ed25519':
-            return common.NS(b'ssh-ed25519') + common.NS(data['a'])
+                common.NS(data["curve"])
+                + common.NS(data["curve"][-8:])
+                + common.NS(
+                    b"\x04"
+                    + utils.int_to_bytes(data["x"], byteLength)
+                    + utils.int_to_bytes(data["y"], byteLength)
+                )
+            )
+        elif type == "Ed25519":
+            return common.NS(b"ssh-ed25519") + common.NS(data["a"])
         else:
-            raise BadKeyError('unknown key type: "%s"' % (force_unicode(type,)))
-
+            raise BadKeyError(
+                'unknown key type: "%s"'
+                % (
+                    force_unicode(
+                        type,
+                    )
+                )
+            )
 
     def privateBlob(self):
         """
@@ -1376,31 +1338,54 @@ class Key(object):
         """
         type = self.type()
         data = self.data()
-        if type == 'RSA':
-            iqmp = rsa.rsa_crt_iqmp(data['p'], data['q'])
-            return (common.NS(b'ssh-rsa') + common.MP(data['n']) +
-                    common.MP(data['e']) + common.MP(data['d']) +
-                    common.MP(iqmp) + common.MP(data['p']) +
-                    common.MP(data['q']))
-        elif type == 'DSA':
-            return (common.NS(b'ssh-dss') + common.MP(data['p']) +
-                    common.MP(data['q']) + common.MP(data['g']) +
-                    common.MP(data['y']) + common.MP(data['x']))
-        elif type == 'EC':
+        if type == "RSA":
+            iqmp = rsa.rsa_crt_iqmp(data["p"], data["q"])
+            return (
+                common.NS(b"ssh-rsa")
+                + common.MP(data["n"])
+                + common.MP(data["e"])
+                + common.MP(data["d"])
+                + common.MP(iqmp)
+                + common.MP(data["p"])
+                + common.MP(data["q"])
+            )
+        elif type == "DSA":
+            return (
+                common.NS(b"ssh-dss")
+                + common.MP(data["p"])
+                + common.MP(data["q"])
+                + common.MP(data["g"])
+                + common.MP(data["y"])
+                + common.MP(data["x"])
+            )
+        elif type == "EC":
             encPub = self._keyObject.public_key().public_bytes(
                 serialization.Encoding.X962,
-                serialization.PublicFormat.UncompressedPoint
+                serialization.PublicFormat.UncompressedPoint,
             )
-            return (common.NS(data['curve']) + common.NS(data['curve'][-8:]) +
-                    common.NS(encPub) + common.MP(data['privateValue']))
-        elif type == 'Ed25519':
-            return (common.NS(b'ssh-ed25519') + common.NS(data['a']) +
-                    common.NS(data['k'] + data['a']))
+            return (
+                common.NS(data["curve"])
+                + common.NS(data["curve"][-8:])
+                + common.NS(encPub)
+                + common.MP(data["privateValue"])
+            )
+        elif type == "Ed25519":
+            return (
+                common.NS(b"ssh-ed25519")
+                + common.NS(data["a"])
+                + common.NS(data["k"] + data["a"])
+            )
         else:
-            raise BadKeyError('unknown key type: "%s"' % (force_unicode(type,)))
+            raise BadKeyError(
+                'unknown key type: "%s"'
+                % (
+                    force_unicode(
+                        type,
+                    )
+                )
+            )
 
-    def toString(self, type, extra=None, comment=None,
-                 passphrase=None):
+    def toString(self, type, extra=None, comment=None, passphrase=None):
         """
         Create a string representation of this key.  If the key is a private
         key and you want the representation of its public key, use
@@ -1438,15 +1423,12 @@ class Key(object):
                 comment = extra
             else:
                 passphrase = extra
-        if isinstance(comment, unicode):
-            comment = comment.encode("utf-8")
-        if isinstance(passphrase, unicode):
-            passphrase = passphrase.encode("utf-8")
-        method = getattr(self, '_toString_%s' % (type.upper(),), None)
-        if method is None:
-            raise BadKeyError(
-                'unknown key type: "%s"' % (force_unicode(type[:30]),))
 
+        method = getattr(self, "_toString_%s" % (type.upper(),), None)
+        if method is None:
+            raise BadKeyError('unknown key type: "%s"' % (force_unicode(type[:30]),))
+
+        passphrase = _normalizePassphrase(passphrase)
         return method(comment=comment, passphrase=passphrase)
 
     def _toPublicOpenSSH(self, comment=None):
@@ -1459,18 +1441,21 @@ class Key(object):
         @param comment: A comment to include with the key, or L{None} to
         omit the comment.
         """
-        if self.type() == 'EC':
+        if self.type() == "EC":
             if not comment:
-                comment = b''
-            return (self._keyObject.public_bytes(
-                serialization.Encoding.OpenSSH,
-                serialization.PublicFormat.OpenSSH
-                ) + b' ' + comment).strip()
+                comment = b""
+            return (
+                self._keyObject.public_bytes(
+                    serialization.Encoding.OpenSSH, serialization.PublicFormat.OpenSSH
+                )
+                + b" "
+                + comment
+            ).strip()
 
-        b64Data = encodebytes(self.blob()).replace(b'\n', b'')
+        b64Data = encodebytes(self.blob()).replace(b"\n", b"")
         if not comment:
-            comment = b''
-        return (self.sshType() + b' ' + b64Data + b' ' + comment).strip()
+            comment = b""
+        return (self.sshType() + b" " + b64Data + b" " + comment).strip()
 
     def _toString_OPENSSH_V1(self, comment=None, passphrase=None):
         """
@@ -1491,50 +1476,51 @@ class Key(object):
             # OpenSSH.  We could make this configurable later if it's
             # needed.
             cipher = algorithms.AES
-            cipherName = b'aes256-ctr'
-            kdfName = b'bcrypt'
+            cipherName = b"aes256-ctr"
+            kdfName = b"bcrypt"
             blockSize = cipher.block_size // 8
             keySize = 32
             ivSize = blockSize
             salt = self.secureRandom(ivSize)
             rounds = 100
-            kdfOptions = common.NS(salt) + struct.pack('!L', rounds)
+            kdfOptions = common.NS(salt) + struct.pack("!L", rounds)
         else:
-            cipherName = b'none'
-            kdfName = b'none'
+            cipherName = b"none"
+            kdfName = b"none"
             blockSize = 8
-            kdfOptions = b''
+            kdfOptions = b""
         check = self.secureRandom(4)
-        privKeyList = (
-            check + check + self.privateBlob() + common.NS(comment or b''))
+        privKeyList = check + check + self.privateBlob() + common.NS(comment or b"")
         padByte = 0
         while len(privKeyList) % blockSize:
             padByte += 1
-            privKeyList += chr(padByte & 0xFF)
+            privKeyList += six.int2byte(padByte & 0xFF)
         if passphrase:
             encKey = bcrypt.kdf(passphrase, salt, keySize + ivSize, 100)
             encryptor = Cipher(
                 cipher(encKey[:keySize]),
-                modes.CTR(encKey[keySize:keySize + ivSize]),
-                backend=default_backend()
+                modes.CTR(encKey[keySize : keySize + ivSize]),
+                backend=default_backend(),
             ).encryptor()
-            encPrivKeyList = (
-                encryptor.update(privKeyList) + encryptor.finalize())
+            encPrivKeyList = encryptor.update(privKeyList) + encryptor.finalize()
         else:
             encPrivKeyList = privKeyList
         blob = (
-            b'openssh-key-v1\0' +
-            common.NS(cipherName) +
-            common.NS(kdfName) + common.NS(kdfOptions) +
-            struct.pack('!L', 1) +
-            common.NS(self.blob()) +
-            common.NS(encPrivKeyList))
-        b64Data = encodebytes(blob).replace(b'\n', b'')
+            b"openssh-key-v1\0"
+            + common.NS(cipherName)
+            + common.NS(kdfName)
+            + common.NS(kdfOptions)
+            + struct.pack("!L", 1)
+            + common.NS(self.blob())
+            + common.NS(encPrivKeyList)
+        )
+        b64Data = encodebytes(blob).replace(b"\n", b"")
         lines = (
-            [b'-----BEGIN OPENSSH PRIVATE KEY-----'] +
-            [b64Data[i:i + 64] for i in range(0, len(b64Data), 64)] +
-            [b'-----END OPENSSH PRIVATE KEY-----'])
-        return b'\n'.join(lines) + b'\n'
+            [b"-----BEGIN OPENSSH PRIVATE KEY-----"]
+            + [b64Data[i : i + 64] for i in range(0, len(b64Data), 64)]
+            + [b"-----END OPENSSH PRIVATE KEY-----"]
+        )
+        return b"\n".join(lines) + b"\n"
 
     def _toString_OPENSSH(self, comment=None, passphrase=None):
         """
@@ -1549,7 +1535,7 @@ class Key(object):
         if self.isPublic():
             return self._toPublicOpenSSH(comment=comment)
 
-        if self.type() == 'EC':
+        if self.type() == "EC":
             # EC keys has complex ASN.1 structure hence we do this this way.
             if not passphrase:
                 # unencrypted private key
@@ -1560,109 +1546,64 @@ class Key(object):
             return self._keyObject.private_bytes(
                 serialization.Encoding.PEM,
                 serialization.PrivateFormat.TraditionalOpenSSL,
-                encryptor)
-        elif self.type() == 'Ed25519':
+                encryptor,
+            )
+        elif self.type() == "Ed25519":
             raise BadKeyError(
-                'Cannot serialize Ed25519 key to openssh format; '
-                'use openssh_v1 instead.'
+                "Cannot serialize Ed25519 key to openssh format; "
+                "use openssh_v1 instead."
             )
 
         data = self.data()
-        lines = [b''.join((b'-----BEGIN ', self.type().encode('ascii'),
-                           b' PRIVATE KEY-----'))]
-        if self.type() == 'RSA':
-            p, q = data['p'], data['q']
+        lines = [
+            b"".join(
+                (b"-----BEGIN ", self.type().encode("ascii"), b" PRIVATE KEY-----")
+            )
+        ]
+        if self.type() == "RSA":
+            p, q = data["p"], data["q"]
             iqmp = rsa.rsa_crt_iqmp(p, q)
-            objData = (0, data['n'], data['e'], data['d'], p, q,
-                       data['d'] % (p - 1), data['d'] % (q - 1),
-                       iqmp)
+            objData = (
+                0,
+                data["n"],
+                data["e"],
+                data["d"],
+                p,
+                q,
+                data["d"] % (p - 1),
+                data["d"] % (q - 1),
+                iqmp,
+            )
         else:
-            objData = (0, data['p'], data['q'], data['g'], data['y'],
-                       data['x'])
+            objData = (0, data["p"], data["q"], data["g"], data["y"], data["x"])
         asn1Sequence = univ.Sequence()
-        for index, value in izip(itertools.count(), objData):
+        for index, value in zip(itertools.count(), objData):
             asn1Sequence.setComponentByPosition(index, univ.Integer(value))
         asn1Data = berEncoder.encode(asn1Sequence)
         if passphrase:
             iv = self.secureRandom(8)
-            hexiv = ''.join(['%02X' % (ord(x),) for x in iterbytes(iv)])
-            hexiv = hexiv.encode('ascii')
-            lines.append(b'Proc-Type: 4,ENCRYPTED')
-            lines.append(b'DEK-Info: DES-EDE3-CBC,' + hexiv + b'\n')
+            hexiv = "".join(["%02X" % (ord(x),) for x in iterbytes(iv)])
+            hexiv = hexiv.encode("ascii")
+            lines.append(b"Proc-Type: 4,ENCRYPTED")
+            lines.append(b"DEK-Info: DES-EDE3-CBC," + hexiv + b"\n")
             ba = md5(passphrase + iv).digest()
             bb = md5(ba + passphrase + iv).digest()
             encKey = (ba + bb)[:24]
             padLen = 8 - (len(asn1Data) % 8)
-            asn1Data += chr(padLen) * padLen
+            asn1Data += six.int2byte(padLen) * padLen
 
             encryptor = Cipher(
-                algorithms.TripleDES(encKey),
-                modes.CBC(iv),
-                backend=default_backend()
+                algorithms.TripleDES(encKey), modes.CBC(iv), backend=default_backend()
             ).encryptor()
 
             asn1Data = encryptor.update(asn1Data) + encryptor.finalize()
 
-        b64Data = encodebytes(asn1Data).replace(b'\n', b'')
-        lines += [b64Data[i:i + 64] for i in range(0, len(b64Data), 64)]
-        lines.append(b''.join((b'-----END ', self.type().encode('ascii'),
-                               b' PRIVATE KEY-----')))
-        return b'\n'.join(lines)
-
-    def _toString_LSH(self, **kwargs):
-        """
-        Return a public or private LSH key.  See _fromString_PUBLIC_LSH and
-        _fromString_PRIVATE_LSH for the key formats.
-
-        @rtype: L{bytes}
-        """
-        data = self.data()
-        type = self.type()
-        if self.isPublic():
-            if type == 'RSA':
-                keyData = sexpy.pack([[b'public-key',
-                                       [b'rsa-pkcs1-sha1',
-                                        [b'n', common.MP(data['n'])[4:]],
-                                        [b'e', common.MP(data['e'])[4:]]]]])
-            elif type == 'DSA':
-                keyData = sexpy.pack([[b'public-key',
-                                       [b'dsa',
-                                        [b'p', common.MP(data['p'])[4:]],
-                                        [b'q', common.MP(data['q'])[4:]],
-                                        [b'g', common.MP(data['g'])[4:]],
-                                        [b'y', common.MP(data['y'])[4:]]]]])
-            else:
-                raise BadKeyError(
-                    'unknown key type "%s"' % (force_unicode(type,)))
-            return (b'{' + encodebytes(keyData).replace(b'\n', b'') +
-                    b'}')
-        else:
-            if type == 'RSA':
-                p, q = data['p'], data['q']
-                iqmp = rsa.rsa_crt_iqmp(p, q)
-                return sexpy.pack([[b'private-key',
-                                    [b'rsa-pkcs1',
-                                     [b'n', common.MP(data['n'])[4:]],
-                                     [b'e', common.MP(data['e'])[4:]],
-                                     [b'd', common.MP(data['d'])[4:]],
-                                     [b'p', common.MP(q)[4:]],
-                                     [b'q', common.MP(p)[4:]],
-                                     [b'a', common.MP(
-                                         data['d'] % (q - 1))[4:]],
-                                     [b'b', common.MP(
-                                         data['d'] % (p - 1))[4:]],
-                                     [b'c', common.MP(iqmp)[4:]]]]])
-            elif type == 'DSA':
-                return sexpy.pack([[b'private-key',
-                                    [b'dsa',
-                                     [b'p', common.MP(data['p'])[4:]],
-                                     [b'q', common.MP(data['q'])[4:]],
-                                     [b'g', common.MP(data['g'])[4:]],
-                                     [b'y', common.MP(data['y'])[4:]],
-                                     [b'x', common.MP(data['x'])[4:]]]]])
-            else:
-                raise BadKeyError(
-                    'unknown key type "%s"' % (force_unicode(type,)))
+        b64Data = encodebytes(asn1Data).replace(b"\n", b"")
+        lines += [b64Data[i : i + 64] for i in range(0, len(b64Data), 64)]
+        lines.append(
+            b"".join((b"-----END ", self.type().encode("ascii"), b" PRIVATE KEY-----"))
+        )
+        return b"\n".join(lines)
 
     def _toString_AGENTV3(self, **kwargs):
         """
@@ -1673,13 +1614,18 @@ class Key(object):
         """
         data = self.data()
         if not self.isPublic():
-            if self.type() == 'RSA':
-                values = (data['e'], data['d'], data['n'], data['u'],
-                          data['p'], data['q'])
-            elif self.type() == 'DSA':
-                values = (data['p'], data['q'], data['g'], data['y'],
-                          data['x'])
-            return common.NS(self.sshType()) + b''.join(map(common.MP, values))
+            if self.type() == "RSA":
+                values = (
+                    data["e"],
+                    data["d"],
+                    data["n"],
+                    data["u"],
+                    data["p"],
+                    data["q"],
+                )
+            elif self.type() == "DSA":
+                values = (data["p"], data["q"], data["g"], data["y"], data["x"])
+            return common.NS(self.sshType()) + b"".join(map(common.MP, values))
 
     def sign(self, data, signatureType=None):
         """
@@ -1694,7 +1640,7 @@ class Key(object):
         @return: A signature for the given data.
         """
         if self.isPublic():
-            raise KeyCertException('A private key is require to sign data.')
+            raise KeyCertException("A private key is require to sign data.")
 
         keyType = self.type()
 
@@ -1712,11 +1658,11 @@ class Key(object):
                 "defined for {} keys".format(signatureType, keyType)
             )
 
-        if keyType == 'RSA':
+        if keyType == "RSA":
             sig = self._keyObject.sign(data, padding.PKCS1v15(), hashAlgorithm)
             ret = common.NS(sig)
 
-        elif keyType == 'DSA':
+        elif keyType == "DSA":
             sig = self._keyObject.sign(data, hashAlgorithm)
             (r, s) = decode_dss_signature(sig)
             # SSH insists that the DSS signature blob be two 160-bit integers
@@ -1725,7 +1671,7 @@ class Key(object):
             # Make sure they are padded out to 160 bits (20 bytes each)
             ret = common.NS(int_to_bytes(r, 20) + int_to_bytes(s, 20))
 
-        elif keyType == 'EC':  # Pragma: no branch
+        elif keyType == "EC":  # Pragma: no branch
             signature = self._keyObject.sign(data, ec.ECDSA(hashAlgorithm))
             (r, s) = decode_dss_signature(signature)
 
@@ -1753,7 +1699,7 @@ class Key(object):
 
             ret = common.NS(common.NS(rb) + common.NS(sb))
 
-        elif keyType == 'Ed25519':
+        elif keyType == "Ed25519":
             ret = common.NS(self._keyObject.sign(data))
 
         return common.NS(signatureType) + ret
@@ -1773,7 +1719,7 @@ class Key(object):
         """
         if len(signature) == 40:
             # DSA key with no padding
-            signatureType, signature = b'ssh-dss', common.NS(signature)
+            signatureType, signature = b"ssh-dss", common.NS(signature)
         else:
             signatureType, signature = common.getNS(signature)
 
@@ -1782,7 +1728,7 @@ class Key(object):
             return False
 
         keyType = self.type()
-        if keyType == 'RSA':
+        if keyType == "RSA":
             k = self._keyObject
             if not self.isPublic():
                 k = k.public_key()
@@ -1792,21 +1738,21 @@ class Key(object):
                 padding.PKCS1v15(),
                 hashAlgorithm,
             )
-        elif keyType == 'DSA':
+        elif keyType == "DSA":
             concatenatedSignature = common.getNS(signature)[0]
-            r = int_from_bytes(concatenatedSignature[:20], 'big')
-            s = int_from_bytes(concatenatedSignature[20:], 'big')
+            r = int_from_bytes(concatenatedSignature[:20], "big")
+            s = int_from_bytes(concatenatedSignature[20:], "big")
             signature = encode_dss_signature(r, s)
             k = self._keyObject
             if not self.isPublic():
                 k = k.public_key()
             args = (signature, data, hashAlgorithm)
 
-        elif keyType == 'EC':  # Pragma: no branch
+        elif keyType == "EC":  # Pragma: no branch
             concatenatedSignature = common.getNS(signature)[0]
             rstr, sstr, rest = common.getNS(concatenatedSignature, 2)
-            r = int_from_bytes(rstr, 'big')
-            s = int_from_bytes(sstr, 'big')
+            r = int_from_bytes(rstr, "big")
+            s = int_from_bytes(sstr, "big")
             signature = encode_dss_signature(r, s)
 
             k = self._keyObject
@@ -1815,7 +1761,7 @@ class Key(object):
 
             args = (signature, data, ec.ECDSA(hashAlgorithm))
 
-        elif keyType == 'Ed25519':
+        elif keyType == "Ed25519":
             k = self._keyObject
             if not self.isPublic():
                 k = k.public_key()
@@ -1842,44 +1788,42 @@ class Key(object):
         `key_size` is ignored for ed25519.
         """
         if not key_type:
-            key_type = 'not-specified'
+            key_type = "not-specified"
         key_type = key_type.lower()
 
         if not key_size:
-            if key_type == 'ecdsa':
+            if key_type == "ecdsa":
                 key_size = 384
             else:
                 key_size = DEFAULT_KEY_SIZE
 
         key = None
         try:
-            if key_type == u'rsa':
+            if key_type == "rsa":
                 key = rsa.generate_private_key(
                     public_exponent=65537,
                     key_size=key_size,
-                    )
-            elif key_type == u'dsa':
+                )
+            elif key_type == "dsa":
                 key = dsa.generate_private_key(key_size=key_size)
-            elif key_type == 'ecdsa':
+            elif key_type == "ecdsa":
                 try:
                     curve = _ecSizeTable[key_size]
                 except KeyError:
                     raise KeyCertException(
-                        'Wrong key size "%s". Supported: %s.' % (
-                            key_size,
-                            ', '.join([str(s) for s in _ecSizeTable.keys()])))
+                        'Wrong key size "%s". Supported: %s.'
+                        % (key_size, ", ".join([str(s) for s in _ecSizeTable.keys()]))
+                    )
                 key = ec.generate_private_key(curve)
-            elif key_type == 'ed25519':
+            elif key_type == "ed25519":
                 key = ed25519.Ed25519PrivateKey.generate()
             else:
                 raise KeyCertException('Unknown key type "%s".' % (key_type))
 
         except ValueError as error:
-            raise KeyCertException(
-                u'Wrong key size "%d". %s' % (key_size, error))
+            raise KeyCertException('Wrong key size "%d". %s' % (key_size, error))
 
         return cls(key)
-
 
     @classmethod
     def getKeyFormat(cls, data):
@@ -1888,22 +1832,23 @@ class Key(object):
         """
         key_type = cls._guessStringType(data)
         human_readable = {
-            'public_openssh': 'OpenSSH Public',
-            'private_openssh': 'OpenSSH Private old format',
-            'private_openssh_v1': 'OpenSSH Private new format',
-            'public_sshcom': 'SSH.com Public',
-            'private_sshcom': 'SSH.com Private',
-            'private_putty': 'PuTTY Private',
-            'public_lsh': 'LSH Public',
-            'private_lsh': 'LSH Private',
-            'public_x509_certificate': 'X509 Certificate',
-            'public_x509': 'X509 Public',
-            'public_pkcs1_rsa': 'PKCS#1 RSA Public',
-            'private_pkcs8': 'PKCS#8 Private',
-            'private_encrypted_pkcs8': 'PKCS#8 Encrypted Private',
-            }
+            "public_openssh": "OpenSSH Public",
+            "private_openssh": "OpenSSH Private old format",
+            "private_openssh_v1": "OpenSSH Private new format",
+            "public_sshcom": "SSH.com Public",
+            "private_sshcom": "SSH.com Private",
+            "private_putty": "PuTTY Private v2",
+            "private_putty_v3": "PuTTY Private v3",
+            "public_lsh": "LSH Public",
+            "private_lsh": "LSH Private",
+            "public_x509_certificate": "X509 Certificate",
+            "public_x509": "X509 Public",
+            "public_pkcs1_rsa": "PKCS#1 RSA Public",
+            "private_pkcs8": "PKCS#8 Private",
+            "private_encrypted_pkcs8": "PKCS#8 Encrypted Private",
+        }
 
-        return human_readable.get(key_type, 'Unknown format')
+        return human_readable.get(key_type, "Unknown format")
 
     @staticmethod
     def _getSSHCOMKeyContent(data):
@@ -1911,7 +1856,7 @@ class Key(object):
         Return the raw content of the SSH.com key (private or public) without
         armor and headers.
         """
-        lines = data.strip().splitlines()
+        lines = data.decode("utf-8").strip().splitlines()
         # Split in lines, ignoring the first and last armors.
         lines = lines[1:-1]
 
@@ -1927,14 +1872,14 @@ class Key(object):
             if continuation:
                 # We have a continued line.
                 # ignore it and check if this line still continues.
-                if not line.endswith('\\'):
+                if not line.endswith("\\"):
                     continuation = False
                 continue
 
-            if ':' in line:
+            if ":" in line:
                 # We have a header line
                 # Ignore it and check if this is a long header.
-                if line.endswith('\\'):
+                if line.endswith("\\"):
                     continuation = True
                 continue
             # This is not a header and not a continuation, so it must be the
@@ -1943,8 +1888,8 @@ class Key(object):
             lines.insert(0, line)
             break
 
-        content = ''.join(lines)
-        return base64.decodestring(content)
+        content = "".join(lines)
+        return base64.decodestring(content.encode("ascii"))
 
     @classmethod
     def _fromString_PUBLIC_SSHCOM(cls, data):
@@ -1976,7 +1921,7 @@ class Key(object):
         @return: A {Crypto.PublicKey.pubkey.pubkey} object
         @raises BadKeyError: if the blob type is unknown.
         """
-        if not data.strip().endswith('---- END SSH2 PUBLIC KEY ----'):
+        if not data.strip().endswith(b"---- END SSH2 PUBLIC KEY ----"):
             raise BadKeyError("Fail to find END tag for SSH.com key.")
 
         blob = cls._getSSHCOMKeyContent(data)
@@ -2016,8 +1961,8 @@ class Key(object):
         * mpint d
         * mpint n
         * mpint u
-        * mpint p
         * mpint q
+        * mpint p
 
         The payload for a DSA key:
         * uint32 0
@@ -2034,62 +1979,65 @@ class Key(object):
             * a passphrase is provided for an unencrypted key
         """
         blob = cls._getSSHCOMKeyContent(data)
-        magic_number = struct.unpack('>I', blob[:4])[0]
+        magic_number = struct.unpack(">I", blob[:4])[0]
         if magic_number != SSHCOM_MAGIC_NUMBER:
             raise BadKeyError(
-                'Bad magic number for SSH.com key "%s"' % (
-                    force_unicode(magic_number),))
-        struct.unpack('>I', blob[4:8])[0]  # Ignore value for total size.
+                'Bad magic number for SSH.com key "%s"' % (force_unicode(magic_number),)
+            )
+        struct.unpack(">I", blob[4:8])[0]  # Ignore value for total size.
         type_signature, rest = common.getNS(blob[8:])
 
         key_type = None
-        if type_signature.startswith('if-modn{sign{rsa'):
-            key_type = 'rsa'
-        elif type_signature.startswith('dl-modp{sign{dsa'):
-            key_type = 'dsa'
+        if type_signature.startswith(b"if-modn{sign{rsa"):
+            key_type = "rsa"
+        elif type_signature.startswith(b"dl-modp{sign{dsa"):
+            key_type = "dsa"
         else:
             raise BadKeyError(
-                'Unknown SSH.com key type "%s"' % force_unicode(type_signature))
+                'Unknown SSH.com key type "%s"' % force_unicode(type_signature)
+            )
 
         cipher_type, rest = common.getNS(rest)
         encrypted_blob, _ = common.getNS(rest)
 
         encryption_key = None
-        if cipher_type.lower() == b'none':
+        if cipher_type.lower() == b"none":
             if passphrase:
-                raise BadKeyError('SSH.com key not encrypted')
+                raise BadKeyError("SSH.com key not encrypted")
             key_data = encrypted_blob
-        elif cipher_type.lower() == b'3des-cbc':
+        elif cipher_type.lower() == b"3des-cbc":
             if not passphrase:
                 raise EncryptedKeyError(
-                    'Passphrase must be provided for an encrypted key.')
+                    "Passphrase must be provided for an encrypted key."
+                )
             encryption_key = cls._getDES3EncryptionKey(passphrase)
             decryptor = Cipher(
                 algorithms.TripleDES(encryption_key),
-                modes.CBC(b'\x00' * 8),
-                backend=default_backend()
+                modes.CBC(b"\x00" * 8),
+                backend=default_backend(),
             ).decryptor()
             key_data = decryptor.update(encrypted_blob) + decryptor.finalize()
         else:
             raise BadKeyError(
-                'Encryption method not supported: "%s"' % (
-                    force_unicode(cipher_type[:30])))
+                'Encryption method not supported: "%s"'
+                % (force_unicode(cipher_type[:30]))
+            )
 
         try:
             payload, _ = common.getNS(key_data)
-            if key_type == 'rsa':
-                e, d, n, u, p, q, rest = cls._unpackMPSSHCOM(payload, 6)
+            if key_type == "rsa":
+                e, d, n, u, q, p, rest = cls._unpackMPSSHCOM(payload, 6)
                 return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q, u=u)
 
-            if key_type == 'dsa':
+            if key_type == "dsa":
                 # First 32bit is an uint with value 0. We just ignore it.
                 p, g, q, y, x, rest = cls._unpackMPSSHCOM(payload[4:], 5)
                 return cls._fromDSAComponents(y=y, g=g, p=p, q=q, x=x)
         except struct.error:
             if encryption_key:
-                raise EncryptedKeyError('Bad password or bad key format.')
+                raise EncryptedKeyError("Bad password or bad key format.")
             else:
-                BadKeyError('Failed to parse payload.')
+                BadKeyError("Failed to parse payload.")
 
     @staticmethod
     def _getDES3EncryptionKey(passphrase):
@@ -2113,9 +2061,9 @@ class Key(object):
         c = 0
         mp = []
         for i in range(count):
-            length = struct.unpack('>I', data[c:c + 4])[0]
+            length = struct.unpack(">I", data[c : c + 4])[0]
             length = (length + 7) // 8
-            mp.append(int_from_bytes(data[c + 4:c + 4 + length], 'big'))
+            mp.append(int_from_bytes(data[c + 4 : c + 4 + length], "big"))
             c += length + 4
         return tuple(mp) + (data[c:],)
 
@@ -2127,12 +2075,12 @@ class Key(object):
         Similar to Twisted MP method.
         """
         if number == 0:
-            return '\000' * 4
+            return "\000" * 4
 
         wire_number = int_to_bytes(number)
 
         wire_length = (len(wire_number) * 8) - 7
-        return struct.pack('>L', wire_length) + wire_number
+        return struct.pack(">L", wire_length) + wire_number
 
     def _toString_SSHCOM(self, comment=None, passphrase=None):
         """
@@ -2156,15 +2104,15 @@ class Key(object):
         """
         Return the public SSH.com string.
         """
-        lines = ['---- BEGIN SSH2 PUBLIC KEY ----']
+        lines = ["---- BEGIN SSH2 PUBLIC KEY ----"]
         if extra:
-            line = 'Comment: "%s"' % (extra.encode('utf-8'),)
-            lines.append('\\\n'.join(textwrap.wrap(line, 70)))
+            line = 'Comment: "%s"' % (extra,)
+            lines.append("\\\n".join(textwrap.wrap(line, 70)))
 
-        base64Data = base64.b64encode(self.blob())
+        base64Data = base64.b64encode(self.blob()).decode("ascii")
         lines.extend(textwrap.wrap(base64Data, 70))
-        lines.append('---- END SSH2 PUBLIC KEY ----')
-        return '\n'.join(lines)
+        lines.append("---- END SSH2 PUBLIC KEY ----")
+        return "\n".join(lines).encode("utf-8")
 
     def _toString_SSHCOM_private(self, extra):
         """
@@ -2172,33 +2120,32 @@ class Key(object):
         """
         # Now we are left with a private key.
         # Both encrypted and unencrypted keys have the same armor.
-        lines = ['---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----']
+        lines = ["---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----"]
 
         type_signature = None
         payload_blob = None
         data = self.data()
         type = self.type()
-        if type == 'RSA':
-            type_signature = (
-                'if-modn{sign{rsa-pkcs1-sha1},encrypt{rsa-pkcs1v2-oaep}}')
+        if type == "RSA":
+            type_signature = "if-modn{sign{rsa-pkcs1-sha1},encrypt{rsa-pkcs1v2-oaep}}"
             payload_blob = (
-                self._packMPSSHCOM(data['e']) +
-                self._packMPSSHCOM(data['d']) +
-                self._packMPSSHCOM(data['n']) +
-                self._packMPSSHCOM(data['u']) +
-                self._packMPSSHCOM(data['p']) +
-                self._packMPSSHCOM(data['q'])
-                )
-        elif type == 'DSA':
-            type_signature = 'dl-modp{sign{dsa-nist-sha1},dh{plain}}'
+                self._packMPSSHCOM(data["e"])
+                + self._packMPSSHCOM(data["d"])
+                + self._packMPSSHCOM(data["n"])
+                + self._packMPSSHCOM(data["u"])
+                + self._packMPSSHCOM(data["q"])
+                + self._packMPSSHCOM(data["p"])
+            )
+        elif type == "DSA":
+            type_signature = "dl-modp{sign{dsa-nist-sha1},dh{plain}}"
             payload_blob = (
-                struct.pack('>I', 0) +
-                self._packMPSSHCOM(data['p']) +
-                self._packMPSSHCOM(data['g']) +
-                self._packMPSSHCOM(data['q']) +
-                self._packMPSSHCOM(data['y']) +
-                self._packMPSSHCOM(data['x'])
-                )
+                struct.pack(">I", 0)
+                + self._packMPSSHCOM(data["p"])
+                + self._packMPSSHCOM(data["g"])
+                + self._packMPSSHCOM(data["q"])
+                + self._packMPSSHCOM(data["y"])
+                + self._packMPSSHCOM(data["x"])
+            )
         else:  # pragma: no cover
             raise BadKeyError('Unsupported key type "%s"' % force_unicode(type))
 
@@ -2206,20 +2153,19 @@ class Key(object):
 
         if extra:
             # We got a password, so encrypt it.
-            cipher_type = '3des-cbc'
-            padding = b'\x00' * (8 - (len(payload_blob) % 8))
+            cipher_type = "3des-cbc"
+            padding = b"\x00" * (8 - (len(payload_blob) % 8))
             payload_blob = payload_blob + padding
             encryption_key = self._getDES3EncryptionKey(extra)
 
             encryptor = Cipher(
                 algorithms.TripleDES(encryption_key),
-                modes.CBC(b'\x00' * 8),
-                backend=default_backend()
+                modes.CBC(b"\x00" * 8),
+                backend=default_backend(),
             ).encryptor()
-            encrypted_blob = (
-                encryptor.update(payload_blob) + encryptor.finalize())
+            encrypted_blob = encryptor.update(payload_blob) + encryptor.finalize()
         else:
-            cipher_type = 'none'
+            cipher_type = "none"
             encrypted_blob = payload_blob
 
         # We first create the content without magic number and
@@ -2229,25 +2175,27 @@ class Key(object):
             common.NS(type_signature)
             + common.NS(cipher_type)
             + common.NS(encrypted_blob)
-            )
+        )
         total_size = 8 + len(blob)
         blob = (
-            struct.pack('>I', SSHCOM_MAGIC_NUMBER)
-            + struct.pack('>I', total_size)
+            struct.pack(">I", SSHCOM_MAGIC_NUMBER)
+            + struct.pack(">I", total_size)
             + blob
-            )
+        )
 
         # In the end, encode in base 64 and wrap it.
-        blob = base64.b64encode(blob)
+        blob = base64.b64encode(blob).decode("ascii")
         lines.extend(textwrap.wrap(blob, 70))
 
-        lines.append('---- END SSH2 ENCRYPTED PRIVATE KEY ----')
-        return '\n'.join(lines).encode('ascii')
+        lines.append("---- END SSH2 ENCRYPTED PRIVATE KEY ----")
+        return "\n".join(lines).encode("utf-8")
 
     @classmethod
     def _fromString_PRIVATE_PUTTY(cls, data, passphrase):
         """
-        Read a private Putty key.
+        Read a private Putty key v2.
+
+        See https://tartarus.org/~simon/putty-snapshots/htmldoc/AppendixC.html
 
         Format is:
 
@@ -2266,8 +2214,8 @@ class Key(object):
         * mpint n
         Private part RSA:
         * mpint d
-        * mpint q
         * mpint p
+        * mpint q
         * mpint u
 
         Pulic part DSA:
@@ -2303,129 +2251,134 @@ class Key(object):
         Lines are terminated by CRLF, although CR-only and LF-only are
         tolerated on input.
 
-        Only version 2 is supported.
         Version 2 was introduced in PuTTY 0.52.
         Version 1 was an in-development format used in 0.52 snapshot
         """
-        lines = data.strip().splitlines()
+        lines = data.decode("utf-8").strip().splitlines()
 
         key_type = lines[0][22:].strip().lower()
-        if key_type not in [
-            b'ssh-rsa',
-            b'ssh-dss',
-            b'ssh-ed25519',
-                ] and key_type not in _curveTable:
+        if (
+            key_type
+            not in [
+                "ssh-rsa",
+                "ssh-dss",
+                "ssh-ed25519",
+            ]
+            and key_type.encode("ascii") not in _curveTable
+        ):
             raise BadKeyError(
-                'Unsupported key type: "%s"' % force_unicode(key_type[:30]))
+                'Unsupported key type: "%s"' % force_unicode(key_type[:30])
+            )
 
         encryption_type = lines[1][11:].strip().lower()
 
-        if encryption_type == b'none':
+        if encryption_type == "none":
             if passphrase:
-                raise BadKeyError('PuTTY key not encrypted')
-        elif encryption_type != b'aes256-cbc':
+                raise BadKeyError("PuTTY key not encrypted")
+        elif encryption_type != "aes256-cbc":
             raise BadKeyError(
-                'Unsupported encryption type: "%s"' % force_unicode(
-                    encryption_type[:30]))
+                'Unsupported encryption type: "%s"'
+                % force_unicode(encryption_type[:30])
+            )
 
         comment = lines[2][9:].strip()
 
         public_count = int(lines[3][14:].strip())
-        base64_content = ''.join(lines[
-            4:
-            4 + public_count
-            ])
-        public_blob = base64.decodestring(base64_content)
+        base64_content = "".join(lines[4 : 4 + public_count])
+        public_blob = base64.decodestring(base64_content.encode("utf-8"))
         public_type, public_payload = common.getNS(public_blob)
 
-        if public_type.lower() != key_type:
+        if public_type.decode("ascii").lower() != key_type:
             raise BadKeyError(
-                'Mismatch key type. Header has "%s", public has "%s"' % (
-                    force_unicode(key_type[:30]),
-                    force_unicode(public_type[:30])))
+                'Mismatch key type. Header has "%s", public has "%s"'
+                % (force_unicode(key_type[:30]), force_unicode(public_type[:30]))
+            )
 
         # We skip 4 lines so far and the total public lines.
         private_start_line = 4 + public_count
         private_count = int(lines[private_start_line][15:].strip())
-        base64_content = ''.join(lines[
-            private_start_line + 1:
-            private_start_line + 1 + private_count
-            ])
-        private_blob = base64.decodestring(base64_content)
+        base64_content = "".join(
+            lines[private_start_line + 1 : private_start_line + 1 + private_count]
+        )
+        private_blob = base64.decodestring(base64_content.encode("ascii"))
 
         private_mac = lines[-1][12:].strip()
 
         hmac_key = PUTTY_HMAC_KEY
         encryption_key = None
-        if encryption_type == b'aes256-cbc':
+        if encryption_type == "aes256-cbc":
             if not passphrase:
                 raise EncryptedKeyError(
-                    'Passphrase must be provided for an encrypted key.')
+                    "Passphrase must be provided for an encrypted key."
+                )
             hmac_key += passphrase
             encryption_key = cls._getPuttyAES256EncryptionKey(passphrase)
             decryptor = Cipher(
                 algorithms.AES(encryption_key),
-                modes.CBC(b'\x00' * 16),
-                backend=default_backend()
+                modes.CBC(b"\x00" * 16),
+                backend=default_backend(),
             ).decryptor()
-            private_blob = (
-                decryptor.update(private_blob) + decryptor.finalize())
+            private_blob = decryptor.update(private_blob) + decryptor.finalize()
 
         # I have no idea why these values are packed form HMAC as net strings.
         hmac_data = (
-            common.NS(key_type) +
-            common.NS(encryption_type) +
-            common.NS(comment) +
-            common.NS(public_blob) +
-            common.NS(private_blob)
-            )
+            common.NS(key_type)
+            + common.NS(encryption_type)
+            + common.NS(comment)
+            + common.NS(public_blob)
+            + common.NS(private_blob)
+        )
         hmac_key = sha1(hmac_key).digest()
         computed_mac = hmac.new(hmac_key, hmac_data, sha1).hexdigest()
         if private_mac != computed_mac:
             if encryption_key:
-                raise EncryptedKeyError('Bad password or HMAC mismatch.')
+                raise EncryptedKeyError("Bad password or HMAC mismatch.")
             else:
                 raise BadKeyError(
-                    'HMAC mismatch: file declare "%s", actual is "%s"' % (
-                        force_unicode(private_mac),
-                        force_unicode(computed_mac)))
+                    'HMAC mismatch: file declare "%s", actual is "%s"'
+                    % (force_unicode(private_mac), force_unicode(computed_mac))
+                )
 
-        if key_type == b'ssh-rsa':
+        if key_type == "ssh-rsa":
             e, n, _ = common.getMP(public_payload, count=2)
-            d, q, p, u, _ = common.getMP(private_blob, count=4)
+            d, p, q, u, _ = common.getMP(private_blob, count=4)
             return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q, u=u)
 
-        if key_type == b'ssh-dss':
+        if key_type == "ssh-dss":
             p, q, g, y, _ = common.getMP(public_payload, count=4)
             x, _ = common.getMP(private_blob)
             return cls._fromDSAComponents(y=y, g=g, p=p, q=q, x=x)
 
-        if key_type == b'ssh-ed25519':
+        if key_type == "ssh-ed25519":
             a, _ = common.getNS(public_payload)
             k, _ = common.getNS(private_blob)
             return cls._fromEd25519Components(a=a, k=k)
 
-        if key_type in _curveTable:
-            curve = _curveTable[key_type]
+        if key_type.encode("ascii") in _curveTable:
+            curve = _curveTable[key_type.encode("ascii")]
             curveName, q, _ = common.getNS(public_payload, 2)
-            if curveName != _secToNist[curve.name.encode('ascii')]:
+            if curveName != _secToNist[curve.name]:
                 raise BadKeyError(
-                    'ECDSA curve name "%s" does not match key type "%s"' % (
-                        force_unicode(curveName),
-                        force_unicode(key_type)))
+                    'ECDSA curve name "%s" does not match key type "%s"'
+                    % (force_unicode(curveName), force_unicode(key_type))
+                )
 
             privateValue, _ = common.getMP(private_blob)
             return cls._fromECEncodedPoint(
-                encodedPoint=q, curve=key_type, privateValue=privateValue)
+                encodedPoint=q,
+                curve=key_type.encode("ascii"),
+                privateValue=privateValue,
+            )
 
     @staticmethod
     def _getPuttyAES256EncryptionKey(passphrase):
         """
-        Return the encryption key used in Putty AES 256 cipher.
+        Return the encryption key used in Putty AES 256 cipher for
+        version 2 of the format.
         """
         key_size = 32
-        part_1 = sha1(b'\x00\x00\x00\x00' + passphrase).digest()
-        part_2 = sha1(b'\x00\x00\x00\x01' + passphrase).digest()
+        part_1 = sha1(b"\x00\x00\x00\x00" + passphrase).digest()
+        part_2 = sha1(b"\x00\x00\x00\x01" + passphrase).digest()
         return (part_1 + part_2)[:key_size]
 
     def _toString_PUTTY(self, comment=None, passphrase=None):
@@ -2460,57 +2413,54 @@ class Key(object):
         aes_block_size = 16
         lines = []
         key_type = self.sshType()
-        comment = 'Exported by chevah-keycert.'
+        comment = "Exported by chevah-keycert."
         data = self.data()
 
         hmac_key = PUTTY_HMAC_KEY
         if extra:
-            encryption_type = b'aes256-cbc'
+            encryption_type = "aes256-cbc"
             hmac_key += extra
         else:
-            encryption_type = 'none'
+            encryption_type = "none"
 
-        if key_type == b'ssh-rsa':
+        if key_type == b"ssh-rsa":
             public_blob = (
-                common.NS(key_type) +
-                common.MP(data['e']) +
-                common.MP(data['n'])
-                )
+                common.NS(key_type) + common.MP(data["e"]) + common.MP(data["n"])
+            )
             private_blob = (
-                common.MP(data['d']) +
-                common.MP(data['q']) +
-                common.MP(data['p']) +
-                common.MP(data['u'])
-                )
-        elif key_type == b'ssh-dss':
+                common.MP(data["d"])
+                + common.MP(data["p"])
+                + common.MP(data["q"])
+                + common.MP(data["u"])
+            )
+        elif key_type == b"ssh-dss":
             public_blob = (
-                common.NS(key_type) +
-                common.MP(data['p']) +
-                common.MP(data['q']) +
-                common.MP(data['g']) +
-                common.MP(data['y'])
-                )
-            private_blob = common.MP(data['x'])
+                common.NS(key_type)
+                + common.MP(data["p"])
+                + common.MP(data["q"])
+                + common.MP(data["g"])
+                + common.MP(data["y"])
+            )
+            private_blob = common.MP(data["x"])
 
-        elif key_type == b'ssh-ed25519':
-            public_blob = (
-                common.NS(key_type) +
-                common.NS(data['a'])
-                )
-            private_blob = common.NS(data['k'])
+        elif key_type == b"ssh-ed25519":
+            public_blob = common.NS(key_type) + common.NS(data["a"])
+            private_blob = common.NS(data["k"])
 
         elif key_type in _curveTable:
 
             curve_name = _secToNist[self._keyObject.curve.name]
+            encode_point = self._keyObject.public_key().public_bytes(
+                serialization.Encoding.X962,
+                serialization.PublicFormat.UncompressedPoint,
+            )
             public_blob = (
-                common.NS(key_type) +
-                common.NS(curve_name) +
-                common.NS(self._keyObject.public_key().public_numbers().encode_point())
-                )
-            private_blob = common.MP(data['privateValue'])
+                common.NS(key_type) + common.NS(curve_name) + common.NS(encode_point)
+            )
+            private_blob = common.MP(data["privateValue"])
 
         else:  # pragma: no cover
-            raise BadKeyError('Unsupported key type.')
+            raise BadKeyError("Unsupported key type.")
 
         private_blob_plain = private_blob
         private_blob_encrypted = private_blob
@@ -2518,41 +2468,438 @@ class Key(object):
         if extra:
             # Encryption is requested.
             # Padding is required for encryption.
-            padding_size = -1 * (
-                (len(private_blob) % aes_block_size) - aes_block_size)
-            private_blob_plain += b'\x00' * padding_size
+            padding_size = -1 * ((len(private_blob) % aes_block_size) - aes_block_size)
+            private_blob_plain += b"\x00" * padding_size
             encryption_key = self._getPuttyAES256EncryptionKey(extra)
             encryptor = Cipher(
                 algorithms.AES(encryption_key),
-                modes.CBC(b'\x00' * aes_block_size),
-                backend=default_backend()
+                modes.CBC(b"\x00" * aes_block_size),
+                backend=default_backend(),
             ).encryptor()
             private_blob_encrypted = (
-                encryptor.update(private_blob_plain) + encryptor.finalize())
+                encryptor.update(private_blob_plain) + encryptor.finalize()
+            )
 
-        public_lines = textwrap.wrap(base64.b64encode(public_blob), 64)
+        public_lines = textwrap.wrap(base64.b64encode(public_blob).decode("ascii"), 64)
         private_lines = textwrap.wrap(
-            base64.b64encode(private_blob_encrypted), 64)
+            base64.b64encode(private_blob_encrypted).decode("ascii"), 64
+        )
 
         hmac_data = (
-            common.NS(key_type) +
-            common.NS(encryption_type) +
-            common.NS(comment) +
-            common.NS(public_blob) +
-            common.NS(private_blob_plain)
-            )
+            common.NS(key_type)
+            + common.NS(encryption_type)
+            + common.NS(comment)
+            + common.NS(public_blob)
+            + common.NS(private_blob_plain)
+        )
         hmac_key = sha1(hmac_key).digest()
         private_mac = hmac.new(hmac_key, hmac_data, sha1).hexdigest()
 
-        lines.append('PuTTY-User-Key-File-2: %s' % key_type)
-        lines.append('Encryption: %s' % encryption_type)
-        lines.append('Comment: %s' % comment)
-        lines.append('Public-Lines: %s' % len(public_lines))
+        lines.append("PuTTY-User-Key-File-2: %s" % key_type.decode("ascii"))
+        lines.append("Encryption: %s" % encryption_type)
+        lines.append("Comment: %s" % comment)
+        lines.append("Public-Lines: %s" % len(public_lines))
         lines.extend(public_lines)
-        lines.append('Private-Lines: %s' % len(private_lines))
+        lines.append("Private-Lines: %s" % len(private_lines))
         lines.extend(private_lines)
-        lines.append('Private-MAC: %s' % private_mac)
-        return '\r\n'.join(lines)
+        lines.append("Private-MAC: %s" % private_mac)
+        return "\r\n".join(lines).encode("utf-8")
+
+    @classmethod
+    def _fromString_PRIVATE_PUTTY_V3(cls, data, passphrase):
+        """
+        Read a private Putty key v3.
+
+        See https://tartarus.org/~simon/putty-snapshots/htmldoc/AppendixC.html
+
+        Format is:
+
+        PuTTY-User-Key-File-3: ssh-rsa
+        Encryption: none
+        Comment: SINGLE_LINE_COMMENT
+        Public-Lines: PUBLIC_LINES
+        < base64 public part always in plain >
+        Private-Lines: 8
+        < base64 private part >
+        Private-MAC: 1398fbfc7ce307d9ee0e42851f183f88c728398f
+
+        PuTTY-User-Key-File-3: ssh-rsa
+        Encryption: aes256-cbc
+        Comment: SINGLE_LINE_COMMENT
+        Public-Lines: PUBLIC_LINES
+        < base64 public part always in plain >
+        Key-Derivation: Argon2id | Argon2d | Argon2i
+        Argon2-Memory: 8192
+        Argon2-Passes: 34
+        Argon2-Parallelism: 1
+        Argon2-Salt: f50f57e4294c1db7e677cf38b7010ff2
+        Private-Lines: 8
+        < base64 private part >
+        Private-MAC: 1398fbfc7ce307d9ee0e42851f183f88c728398f
+
+        Pulic part RSA:
+        * string type (ssh-rsa)
+        * mpint e
+        * mpint n
+        Private part RSA:
+        * mpint d
+        * mpint p
+        * mpint q
+        * mpint u
+
+        Pulic part DSA:
+        * string type (ssh-dss)
+        * mpint p
+        * mpint q
+        * mpint g
+        * mpint v`
+        Private part DSA:
+        * mpint x
+
+        Public part ECDSA-SHA2-*:
+        * string 'ecdsa-sha2-[identifier]'
+        * string identifier
+        * mpint x
+        * mpint y
+        Private part ECDSA-SHA2-*:
+        * string q
+        * mpint privateValue
+
+        Public part Ed25519:
+        * string type (ssh-ed25519)
+        * string a
+        Private part Ed25519:
+        * string k
+
+        Private part is padded for encryption.
+
+        Encryption key is composed of concatenating, up to block size:
+        * uint32 sequence, starting from 0
+        * passphrase
+
+        Lines are terminated by CRLF, although CR-only and LF-only are
+        tolerated on input.
+
+        Version 3 was introduced in PuTTY 0.75.
+        """
+        lines = data.decode("utf-8").strip().splitlines()
+
+        key_type = lines[0][22:].strip().lower()
+        if (
+            key_type
+            not in [
+                "ssh-rsa",
+                "ssh-dss",
+                "ssh-ed25519",
+            ]
+            and key_type.encode("ascii") not in _curveTable
+        ):
+            raise BadKeyError(
+                'Unsupported key type: "%s"' % force_unicode(key_type[:30])
+            )
+
+        encryption_type = lines[1][11:].strip().lower()
+        private_offset = 0
+
+        if encryption_type == "none":
+            if passphrase:
+                raise BadKeyError("PuTTY key not encrypted")
+        elif encryption_type != "aes256-cbc":
+            raise BadKeyError(
+                'Unsupported encryption type: "%s"'
+                % force_unicode(encryption_type[:30])
+            )
+        else:
+            # Key is encrypted.
+            private_offset = 5
+
+        comment = lines[2][9:].strip()
+
+        public_count = int(lines[3][14:].strip())
+        base64_content = "".join(lines[4 : 4 + public_count])
+        public_blob = base64.decodestring(base64_content.encode("utf-8"))
+        public_type, public_payload = common.getNS(public_blob)
+
+        if public_type.decode("ascii").lower() != key_type:
+            raise BadKeyError(
+                'Mismatch key type. Header has "%s", public has "%s"'
+                % (force_unicode(key_type[:30]), force_unicode(public_type[:30]))
+            )
+
+        # We skip 4 lines so far and the total public lines and any option
+        # private key derivation parameters.
+        private_start_line = 4 + public_count + private_offset
+        private_count = int(lines[private_start_line][15:].strip())
+        base64_content = "".join(
+            lines[private_start_line + 1 : private_start_line + 1 + private_count]
+        )
+        private_blob = base64.decodestring(base64_content.encode("ascii"))
+
+        private_mac = lines[-1][12:].strip()
+
+        # Default for non-encryption is empty HMAC key.
+        # THis is updated later if we have encrypted key.
+        hmac_key = b""
+
+        encryption_key = None
+        if encryption_type == "aes256-cbc":
+            if not passphrase:
+                raise EncryptedKeyError(
+                    "Passphrase must be provided for an encrypted key."
+                )
+            encryption_key, iv, hmac_key = cls._getPuttyAES256EncryptionKey_v3(
+                lines[4 + public_count : private_start_line], passphrase
+            )
+            decryptor = Cipher(
+                algorithms.AES256(encryption_key),
+                modes.CBC(iv),
+                backend=default_backend(),
+            ).decryptor()
+            private_blob = decryptor.update(private_blob) + decryptor.finalize()
+
+        # I have no idea why these values are packed form HMAC as net strings.
+        hmac_data = (
+            common.NS(key_type)
+            + common.NS(encryption_type)
+            + common.NS(comment)
+            + common.NS(public_blob)
+            + common.NS(private_blob)
+        )
+
+        computed_mac = hmac.new(hmac_key, hmac_data, sha256).hexdigest()
+
+        if private_mac != computed_mac:
+            if encryption_key:
+                raise EncryptedKeyError("Bad password or HMAC mismatch.")
+            else:
+                raise BadKeyError(
+                    'HMAC mismatch: file declare "%s", actual is "%s"'
+                    % (force_unicode(private_mac), force_unicode(computed_mac))
+                )
+
+        if key_type == "ssh-rsa":
+            e, n, _ = common.getMP(public_payload, count=2)
+            d, p, q, u, _ = common.getMP(private_blob, count=4)
+            return cls._fromRSAComponents(n=n, e=e, d=d, p=p, q=q, u=u)
+
+        if key_type == "ssh-dss":
+            p, q, g, y, _ = common.getMP(public_payload, count=4)
+            x, _ = common.getMP(private_blob)
+            return cls._fromDSAComponents(y=y, g=g, p=p, q=q, x=x)
+
+        if key_type == "ssh-ed25519":
+            a, _ = common.getNS(public_payload)
+            k, _ = common.getNS(private_blob)
+            return cls._fromEd25519Components(a=a, k=k)
+
+        if key_type.encode("ascii") in _curveTable:
+            curve = _curveTable[key_type.encode("ascii")]
+            curveName, q, _ = common.getNS(public_payload, 2)
+            if curveName != _secToNist[curve.name]:
+                raise BadKeyError(
+                    'ECDSA curve name "%s" does not match key type "%s"'
+                    % (force_unicode(curveName), force_unicode(key_type))
+                )
+
+            privateValue, _ = common.getMP(private_blob)
+            return cls._fromECEncodedPoint(
+                encodedPoint=q,
+                curve=key_type.encode("ascii"),
+                privateValue=privateValue,
+            )
+
+    @classmethod
+    def _getPuttyAES256EncryptionKey_v3(cls, headers, passphrase):
+        """
+        Return (cipher key, IV, MAC key) used to decrypt the private key.
+        """
+        parameters = cls._getPuttyEncryptionKeyParameters(headers)
+
+        argon_type = low_level.Type.ID
+        if parameters["Key-Derivation"] == "Argon2id":
+            argon_type = low_level.Type.ID
+        elif parameters["Key-Derivation"] == "Argon2i":
+            argon_type = low_level.Type.I
+        elif parameters["Key-Derivation"] == "Argon2d":
+            argon_type = low_level.Type.D
+        else:
+            raise BadKeyError("Key-Derivation algorithm not supported.")
+
+        result = low_level.hash_secret_raw(
+            secret=passphrase,
+            salt=bytes.fromhex(parameters["Argon2-Salt"]),
+            time_cost=int(parameters["Argon2-Passes"]),
+            memory_cost=int(parameters["Argon2-Memory"]),
+            parallelism=int(parameters["Argon2-Parallelism"]),
+            type=argon_type,
+            # cipher key length + IV length + MAC key length
+            hash_len=80,
+            version=19,
+        )
+        return (
+            result[:32],
+            result[32:48],
+            result[48:],
+        )
+
+    @classmethod
+    def _getPuttyEncryptionKeyParameters(cls, headers):
+        """
+        Return a dictionary with the key->value for key derivation headers.
+        Returned values are text.
+        """
+        result = {}
+        for line in headers:
+            parts = line.split(":", 1)
+            result[parts[0].strip()] = parts[1].strip()
+
+        expected_headers = set(
+            [
+                "Key-Derivation",
+                "Argon2-Memory",
+                "Argon2-Passes",
+                "Argon2-Parallelism",
+                "Argon2-Salt",
+            ]
+        )
+        if expected_headers != set(result.keys()):
+            raise BadKeyError(
+                "Putty v3 encrypted key has invalid key derivation headers."
+            )
+        return result
+
+    def _toString_PUTTY_V3(self, comment=None, passphrase=None):
+        """
+        Return a public or private Putty v3 string.
+
+        See _fromString_PRIVATE_PUTTY for the private format.
+        See _fromString_PUBLIC_SSHCOM for the public format.
+
+        If extra is present, it represents a comment for a
+        public key, or a passphrase for a private key.
+
+        @param extra: Comment for a public key or passphrase for a private key.
+        @type extra: C{bytes}
+
+        @rtype: C{bytes}
+        """
+        if self.isPublic():
+            # Putty uses SSH.com as public format.
+            return self._toString_SSHCOM_public(comment)
+        else:
+            return self._toString_PUTTY_V3_private(passphrase)
+
+    def _toString_PUTTY_V3_private(self, extra):
+        """
+        Return the Putty private key representation.
+
+        See fromString for Putty file format.
+        """
+        aes_block_size = 16
+        lines = []
+        key_type = self.sshType()
+        comment = "Exported by chevah-keycert."
+        data = self.data()
+
+        hmac_key = b""
+        encryption_headers = []
+        if extra:
+            encryption_type = "aes256-cbc"
+            hmac_key += extra
+        else:
+            encryption_type = "none"
+
+        if key_type == b"ssh-rsa":
+            public_blob = (
+                common.NS(key_type) + common.MP(data["e"]) + common.MP(data["n"])
+            )
+            private_blob = (
+                common.MP(data["d"])
+                + common.MP(data["p"])
+                + common.MP(data["q"])
+                + common.MP(data["u"])
+            )
+        elif key_type == b"ssh-dss":
+            public_blob = (
+                common.NS(key_type)
+                + common.MP(data["p"])
+                + common.MP(data["q"])
+                + common.MP(data["g"])
+                + common.MP(data["y"])
+            )
+            private_blob = common.MP(data["x"])
+
+        elif key_type == b"ssh-ed25519":
+            public_blob = common.NS(key_type) + common.NS(data["a"])
+            private_blob = common.NS(data["k"])
+
+        elif key_type in _curveTable:
+
+            curve_name = _secToNist[self._keyObject.curve.name]
+            encode_point = self._keyObject.public_key().public_bytes(
+                serialization.Encoding.X962,
+                serialization.PublicFormat.UncompressedPoint,
+            )
+            public_blob = (
+                common.NS(key_type) + common.NS(curve_name) + common.NS(encode_point)
+            )
+            private_blob = common.MP(data["privateValue"])
+
+        else:  # pragma: no cover
+            raise BadKeyError("Unsupported key type.")
+
+        private_blob_plain = private_blob
+        private_blob_encrypted = private_blob
+
+        if extra:
+            # Encryption is requested.
+            # Padding is required for encryption.
+            padding_size = -1 * ((len(private_blob) % aes_block_size) - aes_block_size)
+            private_blob_plain += b"\x00" * padding_size
+
+            encryption_headers.append("Key-Derivation: Argon2id")
+            encryption_headers.append("Argon2-Memory: 8192")
+            encryption_headers.append("Argon2-Passes: 34")
+            encryption_headers.append("Argon2-Parallelism: 1")
+            encryption_headers.append(
+                "Argon2-Salt: {}".format(self.secureRandom(16).hex())
+            )
+            encryption_key, iv, hmac_key = self._getPuttyAES256EncryptionKey_v3(
+                encryption_headers, extra
+            )
+            encryptor = Cipher(
+                algorithms.AES256(encryption_key),
+                modes.CBC(iv),
+                backend=default_backend(),
+            ).encryptor()
+            private_blob_encrypted = (
+                encryptor.update(private_blob_plain) + encryptor.finalize()
+            )
+
+        public_lines = textwrap.wrap(base64.b64encode(public_blob).decode("ascii"), 64)
+        private_lines = textwrap.wrap(
+            base64.b64encode(private_blob_encrypted).decode("ascii"), 64
+        )
+
+        hmac_data = (
+            common.NS(key_type)
+            + common.NS(encryption_type)
+            + common.NS(comment)
+            + common.NS(public_blob)
+            + common.NS(private_blob_plain)
+        )
+
+        private_mac = hmac.new(hmac_key, hmac_data, sha256).hexdigest()
+        lines.append("PuTTY-User-Key-File-3: %s" % key_type.decode("ascii"))
+        lines.append("Encryption: %s" % encryption_type)
+        lines.append("Comment: %s" % comment)
+        lines.append("Public-Lines: %s" % len(public_lines))
+        lines.extend(public_lines)
+        lines.extend(encryption_headers)
+        lines.append("Private-Lines: %s" % len(private_lines))
+        lines.extend(private_lines)
+        lines.append("Private-MAC: %s" % private_mac)
+        return "\r\n".join(lines).encode("utf-8")
 
     @classmethod
     def _fromString_PUBLIC_X509_CERTIFICATE(cls, data):
@@ -2563,9 +2910,10 @@ class Key(object):
             cert = crypto.load_certificate(crypto.FILETYPE_PEM, data)
         except crypto.Error as error:
             raise BadKeyError(
-                'Failed to load certificate. "%s"' % (force_unicode(error),))
+                'Failed to load certificate. "%s"' % (force_unicode(error),)
+            )
 
-        return cls._fromOpenSSLPublic(cert.get_pubkey(), 'certificate')
+        return cls._fromOpenSSLPublic(cert.get_pubkey(), "certificate")
 
     @classmethod
     def _fromString_PUBLIC_X509(cls, data):
@@ -2576,10 +2924,10 @@ class Key(object):
             pkey = crypto.load_publickey(crypto.FILETYPE_PEM, data)
         except crypto.Error as error:
             raise BadKeyError(
-                'Failed to load PKCS#1 public key. "%s"' % (
-                    force_unicode(error),))
+                'Failed to load PKCS#1 public key. "%s"' % (force_unicode(error),)
+            )
 
-        return cls._fromOpenSSLPublic(pkey, 'X509 public PEM file')
+        return cls._fromOpenSSLPublic(pkey, "X509 public PEM file")
 
     @classmethod
     def _fromOpenSSLPublic(cls, pkey, source_type):
@@ -2593,7 +2941,7 @@ class Key(object):
         """
         Read the private key from PKCS8 PEM format.
         """
-        return cls._load_PRIVATE_PKCS8(data, passphrase='')
+        return cls._load_PRIVATE_PKCS8(data, passphrase=b"")
 
     @classmethod
     def _fromString_PRIVATE_ENCRYPTED_PKCS8(cls, data, passphrase=None):
@@ -2601,8 +2949,7 @@ class Key(object):
         Read the encrypted private key from PKCS8 PEM format.
         """
         if not passphrase:
-            raise EncryptedKeyError(
-                'Passphrase must be provided for an encrypted key')
+            raise EncryptedKeyError("Passphrase must be provided for an encrypted key")
 
         return cls._load_PRIVATE_PKCS8(data, passphrase)
 
@@ -2613,10 +2960,12 @@ class Key(object):
         """
         try:
             key = crypto.load_privatekey(
-                crypto.FILETYPE_PEM, data, passphrase=passphrase)
+                crypto.FILETYPE_PEM, data, passphrase=passphrase
+            )
         except crypto.Error as error:
             raise BadKeyError(
-                'Failed to load PKCS#8 PEM. "%s"' % (force_unicode(error),))
+                'Failed to load PKCS#8 PEM. "%s"' % (force_unicode(error),)
+            )
 
         return cls(key.to_cryptography_key())
 
@@ -2634,61 +2983,65 @@ class Key(object):
 
         """
         lines = data.strip().splitlines()
-        data = base64.decodestring(b''.join(lines[1:-1]))
+        data = base64.decodestring(b"".join(lines[1:-1]))
         decodedKey = berDecoder.decode(data)[0]
         if len(decodedKey) != 2:
-            raise BadKeyError('Invalid ASN.1 payload for PKCS1 PEM.')
+            raise BadKeyError("Invalid ASN.1 payload for PKCS1 PEM.")
 
-        n = long(decodedKey[0])
-        e = long(decodedKey[1])
+        n = int(decodedKey[0])
+        e = int(decodedKey[1])
         return cls._fromRSAComponents(n=n, e=e)
 
 
-def generate_ssh_key_parser(subparsers, name, default_key_type='rsa'):
+def generate_ssh_key_parser(subparsers, name, default_key_type="rsa"):
     """
     Create an argparse sub-command with `name` attached to `subparsers`.
     """
     generate_ssh_key = subparsers.add_parser(
         name,
-        help='Create a SSH public and private key pair.',
-        )
+        help="Create a SSH public and private key pair.",
+    )
     generate_ssh_key.add_argument(
-        '--key-file',
-        metavar='FILE',
-        help=(
-            'Store the keys pair in FILE and FILE.pub. Default id_TYPE.'),
-        )
+        "--key-file",
+        metavar="FILE",
+        help=("Store the keys pair in FILE and FILE.pub. Default id_TYPE."),
+    )
     generate_ssh_key.add_argument(
-        '--key-size',
-        type=int, metavar="SIZE", default=None,
-        help='Generate a SSH key of size SIZE',
-        )
+        "--key-size",
+        type=int,
+        metavar="SIZE",
+        default=None,
+        help="Generate a SSH key of size SIZE",
+    )
     generate_ssh_key.add_argument(
-        '--key-type',
-        metavar="[rsa|dsa|ecdsa|ed25519]", default=default_key_type,
-        help='Generate a new SSH private and public key. Default %(default)s.',
-        )
+        "--key-type",
+        metavar="[rsa|dsa|ecdsa|ed25519]",
+        default=default_key_type,
+        help="Generate a new SSH private and public key. Default %(default)s.",
+    )
     generate_ssh_key.add_argument(
-        '--key-comment',
+        "--key-comment",
         metavar="COMMENT_TEXT",
-        help=(
-            'Generate the public key using this comment. Default no comment.'),
-        )
+        help=("Generate the public key using this comment. Default no comment."),
+    )
     generate_ssh_key.add_argument(
-        '--key-format',
-        metavar="[openssh|openssh_v1|putty]", default='openssh_v1',
-        help='Generate a new SSH private and public key. Default %(default)s.',
-        )
+        "--key-format",
+        metavar="[openssh|openssh_v1|putty]",
+        default="openssh_v1",
+        help="Generate a new SSH private and public key. Default %(default)s.",
+    )
     generate_ssh_key.add_argument(
-        '--key-password',
-        metavar="PLAIN-PASS", default=None,
-        help='Password used to store the SSH private key.',
-        )
+        "--key-password",
+        metavar="PLAIN-PASS",
+        default=None,
+        help="Password used to store the SSH private key.",
+    )
     generate_ssh_key.add_argument(
-        '--key-skip',
-        action='store_true', default=False,
-        help='Do not create a new key if a key file already exists.',
-        )
+        "--key-skip",
+        action="store_true",
+        default=False,
+        help="Do not create a new key if a key file already exists.",
+    )
     return generate_ssh_key
 
 
@@ -2710,62 +3063,64 @@ def generate_ssh_key(options, open_method=None):
         open_method = open
 
     exit_code = 0
-    message = ''
+    message = ""
     try:
         key_size = options.key_size
         key_type = options.key_type.lower()
         key_format = options.key_format.lower()
 
-        if not hasattr(options, 'key_file') or options.key_file is None:
-            options.key_file = u'id_%s' % (key_type)
+        if not hasattr(options, "key_file") or options.key_file is None:
+            options.key_file = "id_%s" % (key_type)
 
         private_file = options.key_file
 
-        public_file = u'%s%s' % (
-            options.key_file, DEFAULT_PUBLIC_KEY_EXTENSION)
+        public_file = "%s%s" % (options.key_file, DEFAULT_PUBLIC_KEY_EXTENSION)
 
         skip = _skip_key_generation(options, private_file, public_file)
         if skip:
-            return (0, u'Key already exists.', key)
+            return (0, "Key already exists.", key)
 
         key = Key.generate(key_type=key_type, key_size=key_size)
 
-        with open_method(_path(private_file), 'wb') as file_handler:
+        with open_method(private_file, "wb") as file_handler:
             _store_SSHKey(
                 key,
                 private_file=file_handler,
                 key_format=key_format,
                 password=options.key_password,
-                )
+            )
 
         key_comment = None
-        if hasattr(options, 'key_comment') and options.key_comment:
+        if hasattr(options, "key_comment") and options.key_comment:
             key_comment = options.key_comment
-            message_comment = u'having comment "%s"' % key_comment
-            if key_format != 'openssh':
+            message_comment = 'having comment "%s"' % key_comment
+            if key_format != "openssh":
                 key_comment = None
                 message_comment = (
-                    'without comment as not supported by the output format')
+                    "without comment as not supported by the output format"
+                )
         else:
-            message_comment = u'without a comment'
+            message_comment = "without a comment"
 
-        with open_method(_path(public_file), 'wb') as file_handler:
+        with open_method(public_file, "wb") as file_handler:
             _store_SSHKey(
                 key,
                 public_file=file_handler,
                 comment=key_comment,
                 key_format=key_format,
-                )
+            )
 
         message = (
-            u'SSH key of type "%s" and length "%d" generated as '
-            u'public key file "%s" and private key file "%s" %s.') % (
-            key.sshType(),
+            'SSH key of type "%s" and length "%d" generated as %s '
+            'public key file "%s" and private key file "%s" %s.'
+        ) % (
+            key.sshType().decode("ascii"),
             key.size(),
+            key_format,
             public_file,
             private_file,
             message_comment,
-            )
+        )
 
         exit_code = 0
 
@@ -2774,26 +3129,27 @@ def generate_ssh_key(options, open_method=None):
         message = error.message
     except Exception as error:
         exit_code = 1
-        message = unicode(error)
+        message = force_unicode(error)
 
     return (exit_code, message, key)
 
 
 def _store_SSHKey(
     key,
-    public_file=None, private_file=None,
-    comment=None, password=None, key_format='openssh_v1',
-        ):
+    public_file=None,
+    private_file=None,
+    comment=None,
+    password=None,
+    key_format="openssh_v1",
+):
     """
     Store the public and private key into a file like object using
     OpenSSH format.
     """
     if public_file:
-        public_serialization = key.public().toString(
-            type=key_format)
+        public_serialization = key.public().toString(type=key_format)
         if comment:
-            public_content = '%s %s' % (
-                public_serialization, comment.encode('utf-8'))
+            public_content = public_serialization + b" " + comment.encode("utf-8")
         else:
             public_content = public_serialization
         public_file.write(public_content)
@@ -2811,13 +3167,12 @@ def _skip_key_generation(options, private_file, public_file):
 
     Raise KeyCertException if file exists.
     """
-    if os.path.exists(_path(private_file)):
+    if os.path.exists(private_file):
         if options.key_skip:
             return True
         else:
-            raise KeyCertException(
-                u'Private key already exists. %s' % private_file)
+            raise KeyCertException("Private key already exists. %s" % private_file)
 
-    if os.path.exists(_path(public_file)):
-        raise KeyCertException(u'Public key already exists. %s' % public_file)
+    if os.path.exists(public_file):
+        raise KeyCertException("Public key already exists. %s" % public_file)
     return False

@@ -3,9 +3,11 @@
 """
 Test for exceptions raise by this package.
 """
-from chevah.compat.testing import mk, ChevahTestCase
+from __future__ import absolute_import
 
-from chevah.keycert.exceptions import KeyCertException
+from chevah_compat.testing import ChevahTestCase, mk
+
+from chevah_keycert.exceptions import KeyCertException
 
 
 class TestExceptions(ChevahTestCase):
@@ -31,4 +33,4 @@ class TestExceptions(ChevahTestCase):
 
         error = KeyCertException(message)
 
-        self.assertEqual(message.encode('utf-8'), str(error))
+        self.assertEqual(message, str(error))

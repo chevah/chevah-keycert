@@ -1,20 +1,42 @@
 """
 Build file for the project.
 """
+
 import os
-import re
 import sys
+import threading
 from subprocess import call
+
+from paver.easy import call_task, cmdopts, consume_args, pushd, task
 from pkg_resources import load_entry_point
 
-from paver.easy import call_task, consume_args, task, pushd
+EXTRA_PYPI_INDEX = os.environ["PIP_INDEX_URL"]
+BUILD_DIR = os.environ.get("CHEVAH_BUILD", "build-py3")
+HAVE_CI = os.environ.get("CI", "false") == "true"
+SOURCE_FILES = ["pavement.py", "src"]
 
-EXTRA_PYPI_INDEX = os.environ['PIP_INDEX_URL']
+
+def _get_option(options, name, default=None):
+    """
+    Helper to extract the command line options from paver.
+    """
+    option_keys = list(options.keys())
+    option_keys.remove("dry_run")
+    option_keys.remove("pavement_file")
+    bunch = options.get(option_keys[0])
+    value = bunch.get(name, None)
+    if value is None:
+        return default
+
+    if value is True:
+        return True
+
+    return value.lstrip("=")
 
 
 @task
 def default():
-    call_task('test')
+    call_task("test")
 
 
 @task
@@ -22,12 +44,24 @@ def deps():
     """
     Install all dependencies.
     """
-    pip = load_entry_point('pip', 'console_scripts', 'pip')
-    pip(args=[
-        'install',
-        '--extra-index-url', EXTRA_PYPI_INDEX,
-        '-e', '.[dev]',
-        ])
+    pip = load_entry_point("pip", "console_scripts", "pip")
+    pip_args = [
+        "install",
+        "-U",
+        "--extra-index-url",
+        EXTRA_PYPI_INDEX,
+    ]
+
+    # Install wheel.
+    pip(args=pip_args + ["wheel"])
+
+    if not HAVE_CI:
+        pip_args.append("-e")
+
+    pip_args.append(".[dev]")
+    exit_code = pip(args=pip_args)
+    if exit_code:
+        raise Exception("Failed to install the deps.")
 
 
 @task
@@ -36,85 +70,102 @@ def test(args):
     """
     Run the test tests.
     """
-    import nose
+    _nose(args, cov=None)
 
-    nose_args = ['nosetests']
-    nose_args.extend(args)
-    nose_code = nose.run(argv=nose_args)
-    nose_code = 0 if nose_code else 1
 
-    sys.exit(nose_code)
+def _nose(args, cov, base="chevah_keycert.tests"):
+    """
+    Run nose tests in the same process.
+    """
+    # Delay import after coverage is started.
+    import psutil
+    from chevah_compat.testing import ChevahTestCase
+    from chevah_compat.testing.nose_memory_usage import MemoryUsage
+    from chevah_compat.testing.nose_run_reporter import RunReporter
+    from chevah_compat.testing.nose_test_timer import TestTimer
+    from nose.core import main as nose_main
+    from nose.plugins.base import Plugin
+
+    class LoopPlugin(Plugin):
+        name = "loop"
+
+    new_arguments = [
+        "--with-randomly",
+        "--with-run-reporter",
+        "--with-timer",
+        "-v",
+        "-s",
+    ]
+
+    have_tests = False
+    for argument in args:
+        if not argument.startswith("-"):
+            argument = "%s.%s" % (base, argument)
+            have_tests = True
+        new_arguments.append(argument)
+
+    if not have_tests:
+        # Run all base tests if no specific tests was requested.
+        new_arguments.append(base)
+
+    sys.argv = new_arguments
+    print(new_arguments)
+
+    plugins = [TestTimer(), RunReporter(), MemoryUsage(), LoopPlugin()]
+
+    with pushd(BUILD_DIR):
+        ChevahTestCase.initialize(drop_user="-")
+        ChevahTestCase.dropPrivileges()
+        try:
+            nose_main(addplugins=plugins)
+        finally:
+            process = psutil.Process(os.getpid())
+            print("Max RSS: {} MB".format(process.memory_info().rss / 1000000))
+            if cov:
+                cov.stop()
+                cov.save()
+            threads = threading.enumerate()
+            if len(threads) > 1:
+                print("There are still active threads: %s" % threads)
+                sys.stdout.flush()
+                sys.stderr.flush()
+                os._exit(1)
 
 
 @task
-@consume_args
-def test_interop_load_dsa(args):
+@cmdopts(
+    [
+        ("load=", "l", "Run key loading tests."),
+        ("generate=", "g", "Run key generation tests."),
+    ]
+)
+def test_interop(options):
     """
-    Run the SSH key interoperability tests for loading external DSA keys.
+    Run the SSH key interoperability tests.
     """
+    environ = os.environ.copy()
+    environ["CHEVAH_BUILD"] = BUILD_DIR
+
+    generate_option = _get_option(options, "generate")
+    key_type = _get_option(options, "load")
+    if generate_option:
+        test_command = "ssh_gen_keys_tests.sh {}".format(generate_option)
+    else:
+        test_command = "ssh_load_keys_tests.sh {}".format(key_type)
+
     try:
-        os.mkdir('build')
+        os.mkdir(BUILD_DIR)
     except OSError:
         """Already exists"""
 
     exit_code = 1
-    with pushd('build'):
+    with pushd(BUILD_DIR):
+        print("Testing: {}".format(test_command))
         exit_code = call(
-            "../chevah/keycert/tests/ssh_load_keys_tests.sh dsa", shell=True)
-
-    sys.exit(exit_code)
-
-@task
-@consume_args
-def test_interop_load_rsa(args):
-    """
-    Run the SSH key interoperability tests for loading external RSA keys.
-    """
-    try:
-        os.mkdir('build')
-    except OSError:
-        """Already exists"""
-
-    exit_code = 1
-    with pushd('build'):
-        exit_code = call(
-            "../chevah/keycert/tests/ssh_load_keys_tests.sh rsa", shell=True)
-
-    sys.exit(exit_code)
-
-@task
-@consume_args
-def test_interop_load_eced(args):
-    """
-    Run the SSH key interoperability tests for loading external ECDSA and Ed25519 keys.
-    """
-    try:
-        os.mkdir('build')
-    except OSError:
-        """Already exists"""
-
-    exit_code = 1
-    with pushd('build'):
-        exit_code = call(
-            "../chevah/keycert/tests/ssh_load_keys_tests.sh ecdsa ed25519", shell=True)
-
-    sys.exit(exit_code)
-
-@task
-@consume_args
-def test_interop_generate(args):
-    """
-    Run the SSH key interoperability tests for internally-generated keys.
-    """
-    try:
-        os.mkdir('build')
-    except OSError:
-        """Already exists"""
-
-    exit_code = 1
-    with pushd('build'):
-        exit_code = call(
-            "../chevah/keycert/tests/ssh_gen_keys_tests.sh", shell=True)
+            "../src/chevah_keycert/tests/{}".format(test_command),
+            shell=True,
+            env=environ,
+        )
 
     sys.exit(exit_code)
 
@@ -124,20 +175,35 @@ def lint():
     """
     Run the static code analyzer.
     """
+    from black import patched_main
+    from isort.main import main as isort_main
     from pyflakes.api import main as pyflakes_main
-    from pycodestyle import _main as pycodestyle_main
-
-    sys.argv = [
-        re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])] + [
-        'chevah',
-        ]
 
     try:
-        pyflakes_main()
-    except SystemExit as pyflakes_exit:
-        pass
+        pyflakes_main(args=SOURCE_FILES)
+    except SystemExit as error:
+        if error.code:
+            raise
 
-    sys.argv.extend(['--ignore=E741', '--hang-closing'])
-    pycodestyle_exit = pycodestyle_main()
+    exit_code = isort_main(argv=["--check"] + SOURCE_FILES)
+    if exit_code:
+        raise Exception("isort needs to update the code.")
 
-    sys.exit(pyflakes_exit.code or pycodestyle_exit)
+    sys.argv = ["black", "--check"] + SOURCE_FILES
+    exit_code = patched_main()
+    if exit_code:
+        raise Exception("Black needs to update the code.")
+
+
+@task
+def black():
+    """
+    Run black on the whole source code.
+    """
+    from black import patched_main
+    from isort.main import main as isort_main
+
+    isort_main(argv=SOURCE_FILES)
+
+    sys.argv = ["black"] + SOURCE_FILES
+    patched_main()

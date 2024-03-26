@@ -1,10 +1,97 @@
 Release notes for Chevah KeyCert
 ################################
 
+3.1.0 - 2024-03-23
+==================
+
+* Remove support for py2
+* Remove support for LSH
+* Add support for Putty key gen3
+* Update automated tests
+
+
+3.0.12 - 2024-01-27
+===================
+
+* Update to support pyOpenSSL 24.0.0.
+
+
+3.0.11 - 2023-07-29
+===================
+
+* No longer ask for compat and scandir as they are only needed for testing.
+
+
+3.0.10 - 2023-07-04
+==================
+
+* Update for cryptography 39 and newer.
+
+
+3.0.9 - 2023-05-22
+==================
+
+* Handle already encoded paths on Linux.
+
+
+3.0.8 - 2023-05-03
+==================
+
+* SSH.com and Putty string serialization is done to bytes.
+
+
+3.0.7 - 2023-04-28
+==================
+
+* Fix generating and reading Putty v2 keys.
+
+
+3.0.6 - 2023-04-24
+==================
+
+* Get SSH.com and Putty ssh key handling working on py3.
+
+
+3.0.5 - 2023-04-01
+==================
+
+* Get CSR generation working on py2 and py3.
+
+
+3.0.4 - 2023-04-01
+==================
+
+* More fixes for CSR generation.
+
+
+3.0.3 - 2023-03-27
+==================
+
+* Fix ssl.py CSR and cert generation on Py3.
+
+
+3.0.2 - 2023-03-24
+==================
+
+* Improve py2 and py3 support.
+
+
+3.0.1 - 2023-03-22
+==================
+
+* Have exception str() return text, not bytes.
+
+
+3.0.0 - 2023-03-21
+==================
+
+* Get py3 code and move into a non-namespace package.
+
+
 2.1.2 - 2023-03-01
 ==================
 
-* Just an update to test our internal pypi server..
+* Just an update to test our internal pypi server.
 
 
 2.1.1 - 2023-02-01
