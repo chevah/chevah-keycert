@@ -22,3 +22,6 @@ You can manually test the command line tools::
 
     $ ./build/venv/bin/python keycert-demo.py
 
+Use setuptools to build the wheel::
+
+    $ ./build/venv/bin/python setup.py bdist_wheel

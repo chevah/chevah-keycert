@@ -20,13 +20,14 @@ import six
 from cryptography import utils
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import dsa, ec, ed25519, padding, rsa
+from cryptography.hazmat.primitives.kdf import argon2
 from cryptography.hazmat.primitives.serialization import (
     load_pem_private_key,
     load_ssh_public_key,
 )
-from cryptography.hazmat.primitives.kdf import argon2
 
 try:
 
@@ -565,7 +566,7 @@ class Key(object):
                 if len(ivdata) != 32:
                     raise BadKeyError("AES encrypted key with a bad IV")
             elif cipher == b"DES-EDE3-CBC":
-                algorithmClass = algorithms.TripleDES
+                algorithmClass = TripleDES
                 keySize = 24
                 if len(ivdata) != 16:
                     raise BadKeyError("DES encrypted key with a bad IV")
@@ -1590,7 +1591,7 @@ class Key(object):
             asn1Data += six.int2byte(padLen) * padLen
 
             encryptor = Cipher(
-                algorithms.TripleDES(encKey), modes.CBC(iv), backend=default_backend()
+                TripleDES(encKey), modes.CBC(iv), backend=default_backend()
             ).encryptor()
 
             asn1Data = encryptor.update(asn1Data) + encryptor.finalize()
@@ -2009,7 +2010,7 @@ class Key(object):
                 )
             encryption_key = cls._getDES3EncryptionKey(passphrase)
             decryptor = Cipher(
-                algorithms.TripleDES(encryption_key),
+                TripleDES(encryption_key),
                 modes.CBC(b"\x00" * 8),
                 backend=default_backend(),
             ).decryptor()
@@ -2156,7 +2157,7 @@ class Key(object):
             encryption_key = self._getDES3EncryptionKey(extra)
 
             encryptor = Cipher(
-                algorithms.TripleDES(encryption_key),
+                TripleDES(encryption_key),
                 modes.CBC(b"\x00" * 8),
                 backend=default_backend(),
             ).encryptor()
