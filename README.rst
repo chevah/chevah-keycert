@@ -30,9 +30,3 @@ Release is done automatically for each tag, using Travis-CI.
 .. image:: https://img.shields.io/pypi/v/chevah-keycert.svg
     :target: https://pypi.python.org/pypi/chevah-keycert/
     :alt: Latest Version
-
-.. image:: https://travis-ci.org/chevah/chevah-keycert.svg?branch=master
-    :target: https://travis-ci.org/chevah/chevah-keycert
-
-.. image:: https://codecov.io/github/chevah/chevah-keycert/coverage.svg?branch=master
-    :target: https://codecov.io/github/chevah/chevah-keycert?branch=master

@@ -6,9 +6,12 @@ Test for SSL keys/cert management.
 from __future__ import absolute_import, unicode_literals
 
 from argparse import ArgumentParser
+from ipaddress import ip_address
 
 from bunch import Bunch
 from chevah_compat.testing import ChevahTestCase, mk
+from cryptography import x509
+from cryptography.x509.oid import ExtensionOID
 from OpenSSL import crypto
 
 from chevah_keycert.exceptions import KeyCertException
@@ -104,24 +107,35 @@ class Test_generate_ssl_self_signed_certificate(CommandLineTestBase):
         issuer = cert.get_issuer()
         self.assertEqual(cert.subject_name_hash(), issuer.hash())
 
-        constraints = cert.get_extension(0)
-        self.assertEqual(b"basicConstraints", constraints.get_short_name())
-        self.assertTrue(constraints.get_critical())
-        self.assertEqual(b"0\x03\x01\x01\xff", constraints.get_data())
+        x509_cert = x509.load_pem_x509_certificate(cert_pem.encode("utf-8"))
 
-        key_usage = cert.get_extension(1)
-        self.assertEqual(b"keyUsage", key_usage.get_short_name())
-        self.assertFalse(key_usage.get_critical())
+        constraints = x509_cert.extensions.get_extension_for_oid(
+            ExtensionOID.BASIC_CONSTRAINTS
+        )
+        self.assertTrue(constraints.critical)
+        self.assertTrue(constraints.value.ca)
 
-        extended_usage = cert.get_extension(2)
-        self.assertEqual(b"extendedKeyUsage", extended_usage.get_short_name())
-        self.assertFalse(extended_usage.get_critical())
+        key_usage = x509_cert.extensions.get_extension_for_oid(ExtensionOID.KEY_USAGE)
+        self.assertFalse(key_usage.critical)
+        self.assertTrue(key_usage.value.crl_sign)
 
-        alt_name = cert.get_extension(3)
-        self.assertEqual(b"subjectAltName", alt_name.get_short_name())
-        self.assertFalse(alt_name.get_critical())
+        extended_usage = x509_cert.extensions.get_extension_for_oid(
+            ExtensionOID.EXTENDED_KEY_USAGE
+        )
+        self.assertFalse(extended_usage.critical)
         self.assertEqual(
-            b"0\x0e\x82\x06ex.com\x87\x04\x01\x02\x03\x04", alt_name.get_data()
+            [x509.oid.ExtendedKeyUsageOID.SERVER_AUTH],
+            list(extended_usage.value),
+        )
+
+        alt_name = x509_cert.extensions.get_extension_for_oid(
+            ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+        )
+        self.assertFalse(alt_name.critical)
+        self.assertEqual(["ex.com"], alt_name.value.get_values_for_type(x509.DNSName))
+        self.assertEqual(
+            [ip_address("1.2.3.4")],
+            alt_name.value.get_values_for_type(x509.IPAddress),
         )
 
     def test_generate_basic_options(self):

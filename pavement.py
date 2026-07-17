@@ -115,7 +115,7 @@ def _nose(args, cov, base="chevah_keycert.tests"):
 
     with pushd(BUILD_DIR):
         ChevahTestCase.initialize(drop_user="-")
-        ChevahTestCase.dropPrivileges()
+        ChevahTestCase.setupPrivileges()
         try:
             nose_main(addplugins=plugins)
         finally:

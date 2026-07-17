@@ -1,6 +1,14 @@
 Release notes for Chevah KeyCert
 ################################
 
+next
+====
+
+* Update dependencies to pyOpenSSL 26.2.0 and cryptography 48.0.1.
+* Replace pyOpenSSL extension APIs with cryptography.x509 for CSR/certificate
+  generation.
+
+
 3.1.0 - 2024-03-23
 ==================
 
