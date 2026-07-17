@@ -8,7 +8,6 @@ from datetime import datetime, timedelta, timezone
 from ipaddress import ip_address
 from random import randint
 
-import six
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from OpenSSL import crypto
