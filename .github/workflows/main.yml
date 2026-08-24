@@ -44,18 +44,10 @@ jobs:
       run: |
         ./pythia.sh deps
 
-    - name: Rename build to unicode
-      run: mv build-py3 build-ț
-
     - name: Test
       run: ./pythia.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        CHEVAH_BUILD: 'build-ț'
-
-    - name: Rename build from unicode for cache
-      run: mv build-py3-ț build-py3
-
 
   macos:
     runs-on: macos-latest
