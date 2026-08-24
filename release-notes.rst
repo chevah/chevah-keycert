@@ -1,15 +1,22 @@
 Release notes for Chevah KeyCert
 ################################
 
-next
-====
+
+3.3.0 - 2026-08-24
+==================
+
+* Update dependencies to pyOpenSSL 26.4.0 and cryptography 50.0.0.
+* Replace pyOpenSSL CSR loading and serialization with cryptography.x509.
+
+
+3.2.0 - 2026-07-17
+==================
 
 * Update dependencies to pyOpenSSL 26.2.0 and cryptography 48.0.1.
 * Replace pyOpenSSL extension APIs with cryptography.x509 for CSR/certificate
   generation.
 * Load TripleDES from cryptography's decrepit namespace to avoid deprecation
   warnings and keep 3DES key handling compatibility.
-
 
 3.1.0 - 2024-03-23
 ==================

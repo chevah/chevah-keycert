@@ -1436,7 +1436,8 @@ SUrCyZXsNh6VXwjs3gKQ
 
         result = key.toString("openssh_v1")
         self.assertStartsWith(
-            b"-----BEGIN OPENSSH PRIVATE KEY-----\n" b"b3BlbnNzaC1rZXk", result
+            result,
+            b"-----BEGIN OPENSSH PRIVATE KEY-----\n" b"b3BlbnNzaC1rZXk"
         )
         reloaded = Key.fromString(result)
         self.assertEqual(reloaded, key)
@@ -1973,8 +1974,8 @@ Gt7MBDMYYr8yfcZS94pZEUfhebR3CYAZ
             Key.fromString(data)
 
         self.assertStartsWith(
-            "Failed to load certificate. \"[('asn1 encoding routines'",
             context.exception.message,
+            "Failed to load certificate. \"[('asn1 encoding routines'",
         )
 
     def test_fromString_X509_PEM_EC(self):
@@ -2064,8 +2065,8 @@ O1u6TvSz6Of7rB5clQIDAQAB
             Key.fromString(data)
 
         self.assertStartsWith(
-            "Failed to load PKCS#1 public key. \"[('DECODER routines'",
             context.exception.message,
+            "Failed to load PKCS#1 public key. \"[('DECODER routines'",
         )
 
     def test_fromString_PKCS1_PUBLIC_RSA(self):
@@ -2225,8 +2226,8 @@ r3fAiJ9U0aDLrcUh
             Key.fromString(data)
 
         self.assertStartsWith(
-            "Failed to load PKCS#8 PEM. \"[('DECODER routines'",
             context.exception.message,
+            "Failed to load PKCS#8 PEM. \"[('DECODER routines'",
         )
 
     def test_fromString_PRIVATE_PKCS8_RSA(self):
@@ -2366,9 +2367,9 @@ MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgrNfvVhrhJeyufkeZ
 
         # Check that it looks like SSH.com private key.
         self.assertStartsWith(
+            result,
             b"---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----\n"
             b"P2/56wAAAi4AAAA3aWYtbW9kbntzaWdue3JzYS1wa2NzMS1zaGExfSxlbmNyeXB0",
-            result,
         )
 
         # Load the serialized key and see that we get the same key.
@@ -2385,9 +2386,9 @@ MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgrNfvVhrhJeyufkeZ
 
         # Check that it looks like SSH.com private key.
         self.assertStartsWith(
+            result,
             b"---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----\n"
             b"P2/56wAAAjMAAAA3aWYtbW9kbntzaWdue3",
-            result,
         )
 
         # Load the serialized key and see that we get the same key.
@@ -3222,8 +3223,8 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         # OpenSSH V1 format has a random value generated when storing
         # the private key.
         self.assertStartsWith(
-            b"-----BEGIN OPENSSH PRIVATE KEY-----\n" b"b3BlbnNzaC1r",
             first_file["stream"].getvalue(),
+            b"-----BEGIN OPENSSH PRIVATE KEY-----\n" b"b3BlbnNzaC1r",
         )
 
         # Second it writes the public key.
@@ -3267,9 +3268,9 @@ class Testgenerate_ssh_key(ChevahTestCase, CommandLineMixin):
         self.assertPathEqual("id_rsa", first_file["path"])
         self.assertEqual("wb", first_file["mode"])
         self.assertStartsWith(
+            first_file["stream"].getvalue(),
             b"-----BEGIN OPENSSH PRIVATE KEY-----\n"
             b"b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAA",
-            first_file["stream"].getvalue(),
         )
 
         # Second it writes the public key.

@@ -2,16 +2,16 @@
 Build file for the project.
 """
 
+from importlib.metadata import entry_points
 import os
 import sys
 import threading
 from subprocess import call
 
 from paver.easy import call_task, cmdopts, consume_args, pushd, task
-from pkg_resources import load_entry_point
 
 EXTRA_PYPI_INDEX = os.environ["PIP_INDEX_URL"]
-BUILD_DIR = os.environ.get("CHEVAH_BUILD", "build-py3")
+BUILD_DIR = os.environ.get("CHEVAH_BUILD", "build")
 HAVE_CI = os.environ.get("CI", "false") == "true"
 SOURCE_FILES = ["pavement.py", "src"]
 
@@ -44,16 +44,16 @@ def deps():
     """
     Install all dependencies.
     """
-    pip = load_entry_point("pip", "console_scripts", "pip")
+    pip_entry_point = entry_points(group="console_scripts", name="pip")["pip"]
+    pip = pip_entry_point.load()
     pip_args = [
         "install",
-        "-U",
         "--extra-index-url",
         EXTRA_PYPI_INDEX,
     ]
 
     # Install wheel.
-    pip(args=pip_args + ["wheel"])
+    pip(args=pip_args)
 
     if not HAVE_CI:
         pip_args.append("-e")
@@ -175,35 +175,3 @@ def lint():
     """
     Run the static code analyzer.
     """
-    from black import patched_main
-    from isort.main import main as isort_main
-    from pyflakes.api import main as pyflakes_main
-
-    try:
-        pyflakes_main(args=SOURCE_FILES)
-    except SystemExit as error:
-        if error.code:
-            raise
-
-    exit_code = isort_main(argv=["--check"] + SOURCE_FILES)
-    if exit_code:
-        raise Exception("isort needs to update the code.")
-
-    sys.argv = ["black", "--check"] + SOURCE_FILES
-    exit_code = patched_main()
-    if exit_code:
-        raise Exception("Black needs to update the code.")
-
-
-@task
-def black():
-    """
-    Run black on the whole source code.
-    """
-    from black import patched_main
-    from isort.main import main as isort_main
-
-    isort_main(argv=SOURCE_FILES)
-
-    sys.argv = ["black"] + SOURCE_FILES
-    patched_main()

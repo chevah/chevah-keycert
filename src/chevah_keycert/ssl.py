@@ -460,7 +460,7 @@ def _generate_csr(options):
     return {
         "csr_pem": csr_pem,
         "key_pem": key_pem,
-        "csr": crypto.load_certificate_request(crypto.FILETYPE_PEM, csr_pem),
+        "csr": x509.load_pem_x509_csr(csr_pem),
         "key": key,
     }
 

@@ -2,7 +2,7 @@ from __future__ import print_function
 import os
 import sys
 from codecs import open
-from pkg_resources import load_entry_point
+from importlib.metadata import entry_points
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
@@ -58,12 +58,13 @@ class NoseTestCommand(TestCommand):
             '--include=chevah/keycert/tests/*',
             '--fail-under=100',
             ]
-        covergate_code = load_entry_point(
-            'coverage', 'console_scripts', 'coverage')(argv=coverage_args)
-        if not covergate_code:
+        coverage_entry_point = entry_points(group="console_scripts", name="coverage")["coverage"]
+        coverage = coverage_entry_point.load()
+        coverage_code = coverage(argv=coverage_args)
+        if not coverage_code:
             print('Tests coverage OK')
 
-        sys.exit(pocket_code or nose_code or covergate_code)
+        sys.exit(pocket_code or nose_code or coverage_code)
 
 
 here = os.path.abspath(os.path.dirname(__file__))
