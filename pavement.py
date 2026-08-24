@@ -40,6 +40,15 @@ def default():
 
 
 @task
+def build():
+    """
+    Here to make pythia.sh happy.
+
+    Project is built via deps.
+    """
+
+
+@task
 def deps():
     """
     Install all dependencies.
@@ -175,6 +184,7 @@ def lint():
     """
     Run the static code analyzer.
     """
+
 
 @task
 @consume_args
