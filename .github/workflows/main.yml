@@ -20,7 +20,7 @@ concurrency:
 
 
 env:
-  CHEVAH_BUILD: "build-py3"
+  CHEVAH_BUILD: "build"
 
 jobs:
 
@@ -37,7 +37,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          build-py3
+          build
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
@@ -45,13 +45,13 @@ jobs:
         ./pythia.sh deps
 
     - name: Rename build to unicode
-      run: mv build-py3 build-py3-ț
+      run: mv build-py3 build-ț
 
     - name: Test
       run: ./pythia.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        CHEVAH_BUILD: 'build-py3-ț'
+        CHEVAH_BUILD: 'build-ț'
 
     - name: Rename build from unicode for cache
       run: mv build-py3-ț build-py3
@@ -66,7 +66,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          build-py3
+          build
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
@@ -87,7 +87,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          build-by3
+          build
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
@@ -117,7 +117,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          build-py3
+          build
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
@@ -139,7 +139,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          build-py3
+          build
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps

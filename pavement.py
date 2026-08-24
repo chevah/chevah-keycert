@@ -175,3 +175,16 @@ def lint():
     """
     Run the static code analyzer.
     """
+
+@task
+@consume_args
+def ruff(args):
+    """
+    Run the static code analyzer.
+    """
+    ruff = os.path.join(BUILD_DIR, "bin", "ruff")
+    ruff_args = ['check']  + (args or SOURCE_FILES)
+    exit_code = call([ruff] + ruff_args)
+    if exit_code:
+        raise Exception("Ruff checks failed.")
+
