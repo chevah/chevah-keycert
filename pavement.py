@@ -144,13 +144,15 @@ def _nose(args, cov, base="chevah_keycert.tests"):
 @task
 @cmdopts(
     [
-        ("load=", "l", "Run key loading tests."),
-        ("generate=", "g", "Run key generation tests."),
+        ("load=", "l", "Run key loading tests. Ex: '-l ecdsa'."),
+        ("generate=", "g", "Run key generation tests. Ex: -g ' ', to run all"),
     ]
 )
 def test_interop(options):
     """
     Run the SSH key interoperability tests.
+
+    This is the helper for our automated tests.
     """
     environ = os.environ.copy()
     environ["CHEVAH_BUILD"] = BUILD_DIR
