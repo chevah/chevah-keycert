@@ -1,0 +1,10 @@
+build/
+build-py3/
+.git/
+.vscode/
+.ruff_cache/
+node_modules/
+publish/
+__pycache__/
+.pytest_cache/
+.hypothesis/

@@ -6,8 +6,6 @@
 Handling of RSA, DSA, ECDSA, and Ed25519 keys.
 """
 
-from __future__ import absolute_import, division, unicode_literals
-
 import base64
 import binascii
 import hmac
@@ -19,17 +17,17 @@ from hashlib import md5, sha1, sha256
 
 import bcrypt
 import six
-from argon2 import low_level
 from cryptography import utils
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import dsa, ec, ed25519, padding, rsa
+from cryptography.hazmat.primitives.kdf import argon2
 from cryptography.hazmat.primitives.serialization import (
     load_pem_private_key,
     load_ssh_public_key,
 )
-from six.moves import map, range
 
 try:
 
@@ -156,7 +154,7 @@ def _normalizePassphrase(passphrase):
     @raises PassphraseNormalizationError: if the passphrase is Unicode and
     cannot be normalized using the available Unicode character database.
     """
-    if isinstance(passphrase, six.text_type):
+    if isinstance(passphrase, str):
         # The Normalization Process for Stabilized Strings requires aborting
         # with an error if the string contains any unassigned code point.
         if any(unicodedata.category(c) == "Cn" for c in passphrase):
@@ -238,7 +236,7 @@ class Key(object):
         @rtype: L{Key}
         @return: The loaded key.
         """
-        if isinstance(data, six.text_type):
+        if isinstance(data, str):
             data = data.encode("utf-8")
         passphrase = _normalizePassphrase(passphrase)
         if type is None:
@@ -568,7 +566,7 @@ class Key(object):
                 if len(ivdata) != 32:
                     raise BadKeyError("AES encrypted key with a bad IV")
             elif cipher == b"DES-EDE3-CBC":
-                algorithmClass = algorithms.TripleDES
+                algorithmClass = TripleDES
                 keySize = 24
                 if len(ivdata) != 16:
                     raise BadKeyError("DES encrypted key with a bad IV")
@@ -1593,7 +1591,7 @@ class Key(object):
             asn1Data += six.int2byte(padLen) * padLen
 
             encryptor = Cipher(
-                algorithms.TripleDES(encKey), modes.CBC(iv), backend=default_backend()
+                TripleDES(encKey), modes.CBC(iv), backend=default_backend()
             ).encryptor()
 
             asn1Data = encryptor.update(asn1Data) + encryptor.finalize()
@@ -2012,7 +2010,7 @@ class Key(object):
                 )
             encryption_key = cls._getDES3EncryptionKey(passphrase)
             decryptor = Cipher(
-                algorithms.TripleDES(encryption_key),
+                TripleDES(encryption_key),
                 modes.CBC(b"\x00" * 8),
                 backend=default_backend(),
             ).decryptor()
@@ -2159,7 +2157,7 @@ class Key(object):
             encryption_key = self._getDES3EncryptionKey(extra)
 
             encryptor = Cipher(
-                algorithms.TripleDES(encryption_key),
+                TripleDES(encryption_key),
                 modes.CBC(b"\x00" * 8),
                 backend=default_backend(),
             ).encryptor()
@@ -2715,27 +2713,26 @@ class Key(object):
         """
         parameters = cls._getPuttyEncryptionKeyParameters(headers)
 
-        argon_type = low_level.Type.ID
+        ArgonClass = argon2.Argon2id
         if parameters["Key-Derivation"] == "Argon2id":
-            argon_type = low_level.Type.ID
+            ArgonClass = argon2.Argon2id
         elif parameters["Key-Derivation"] == "Argon2i":
-            argon_type = low_level.Type.I
+            ArgonClass = argon2.Argon2i
         elif parameters["Key-Derivation"] == "Argon2d":
-            argon_type = low_level.Type.D
+            ArgonClass = argon2.Argon2d
         else:
             raise BadKeyError("Key-Derivation algorithm not supported.")
 
-        result = low_level.hash_secret_raw(
-            secret=passphrase,
+        kdf = ArgonClass(
             salt=bytes.fromhex(parameters["Argon2-Salt"]),
-            time_cost=int(parameters["Argon2-Passes"]),
+            length=80,
+            iterations=int(parameters["Argon2-Passes"]),
+            lanes=int(parameters["Argon2-Parallelism"]),
             memory_cost=int(parameters["Argon2-Memory"]),
-            parallelism=int(parameters["Argon2-Parallelism"]),
-            type=argon_type,
-            # cipher key length + IV length + MAC key length
-            hash_len=80,
-            version=19,
+            ad=None,
+            secret=None,
         )
+        result = kdf.derive(passphrase)
         return (
             result[:32],
             result[32:48],

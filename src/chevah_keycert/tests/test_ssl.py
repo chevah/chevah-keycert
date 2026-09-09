@@ -6,9 +6,13 @@ Test for SSL keys/cert management.
 from __future__ import absolute_import, unicode_literals
 
 from argparse import ArgumentParser
+from ipaddress import ip_address
 
 from bunch import Bunch
 from chevah_compat.testing import ChevahTestCase, mk
+from cryptography import x509
+from cryptography.hazmat.primitives import serialization
+from cryptography.x509.oid import ExtensionOID, NameOID
 from OpenSSL import crypto
 
 from chevah_keycert.exceptions import KeyCertException
@@ -104,24 +108,35 @@ class Test_generate_ssl_self_signed_certificate(CommandLineTestBase):
         issuer = cert.get_issuer()
         self.assertEqual(cert.subject_name_hash(), issuer.hash())
 
-        constraints = cert.get_extension(0)
-        self.assertEqual(b"basicConstraints", constraints.get_short_name())
-        self.assertTrue(constraints.get_critical())
-        self.assertEqual(b"0\x03\x01\x01\xff", constraints.get_data())
+        x509_cert = x509.load_pem_x509_certificate(cert_pem.encode("utf-8"))
 
-        key_usage = cert.get_extension(1)
-        self.assertEqual(b"keyUsage", key_usage.get_short_name())
-        self.assertFalse(key_usage.get_critical())
+        constraints = x509_cert.extensions.get_extension_for_oid(
+            ExtensionOID.BASIC_CONSTRAINTS
+        )
+        self.assertTrue(constraints.critical)
+        self.assertTrue(constraints.value.ca)
 
-        extended_usage = cert.get_extension(2)
-        self.assertEqual(b"extendedKeyUsage", extended_usage.get_short_name())
-        self.assertFalse(extended_usage.get_critical())
+        key_usage = x509_cert.extensions.get_extension_for_oid(ExtensionOID.KEY_USAGE)
+        self.assertFalse(key_usage.critical)
+        self.assertTrue(key_usage.value.crl_sign)
 
-        alt_name = cert.get_extension(3)
-        self.assertEqual(b"subjectAltName", alt_name.get_short_name())
-        self.assertFalse(alt_name.get_critical())
+        extended_usage = x509_cert.extensions.get_extension_for_oid(
+            ExtensionOID.EXTENDED_KEY_USAGE
+        )
+        self.assertFalse(extended_usage.critical)
         self.assertEqual(
-            b"0\x0e\x82\x06ex.com\x87\x04\x01\x02\x03\x04", alt_name.get_data()
+            [x509.oid.ExtendedKeyUsageOID.SERVER_AUTH],
+            list(extended_usage.value),
+        )
+
+        alt_name = x509_cert.extensions.get_extension_for_oid(
+            ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+        )
+        self.assertFalse(alt_name.critical)
+        self.assertEqual(["ex.com"], alt_name.value.get_values_for_type(x509.DNSName))
+        self.assertEqual(
+            [ip_address("1.2.3.4")],
+            alt_name.value.get_values_for_type(x509.IPAddress),
         )
 
     def test_generate_basic_options(self):
@@ -165,11 +180,11 @@ class Test_generate_csr_parser(ChevahTestCase, CommandLineMixin):
 
         code, error = self.parseArgumentsFailure(["key-gen"])
 
-        self.assertStartsWith("usage: test-command key-gen [-h]", error)
+        self.assertStartsWith(error, "usage: test-command key-gen [-h]")
         self.assertEndsWith(
+            error,
             "\ntest-command key-gen: "
             "error: the following arguments are required: --common-name\n",
-            error,
         )
 
     def test_default(self):
@@ -420,19 +435,25 @@ class Test_generate_csr(CommandLineTestBase):
         self.assertEqual(crypto.TYPE_RSA, result["key"].type())
         key = crypto.dump_privatekey(crypto.FILETYPE_PEM, result["key"])
         self.assertEqual(key, result["key_pem"])
-        # For CSR we can not get extensions so we only check the subject.
-        csr = crypto.dump_certificate_request(crypto.FILETYPE_PEM, result["csr"])
+        csr = result["csr"].public_bytes(serialization.Encoding.PEM)
         self.assertEqual(csr, result["csr_pem"])
-        subject = result["csr"].get_subject()
-        self.assertEqual("domain.com", subject.commonName)
-        self.assertIsNone(subject.emailAddress)
-        self.assertIsNone(subject.organizationName)
-        self.assertIsNone(subject.organizationalUnitName)
-        self.assertIsNone(subject.localityName)
-        self.assertIsNone(subject.stateOrProvinceName)
-        self.assertIsNone(subject.countryName)
-        # CSR version is at 0.
-        self.assertEqual(0, result["csr"].get_version())
+        subject = result["csr"].subject
+        self.assertEqual(
+            "domain.com",
+            subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value,
+        )
+        self.assertEqual([], subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS))
+        self.assertEqual([], subject.get_attributes_for_oid(NameOID.ORGANIZATION_NAME))
+        self.assertEqual(
+            [],
+            subject.get_attributes_for_oid(NameOID.ORGANIZATIONAL_UNIT_NAME),
+        )
+        self.assertEqual([], subject.get_attributes_for_oid(NameOID.LOCALITY_NAME))
+        self.assertEqual(
+            [],
+            subject.get_attributes_for_oid(NameOID.STATE_OR_PROVINCE_NAME),
+        )
+        self.assertEqual([], subject.get_attributes_for_oid(NameOID.COUNTRY_NAME))
 
     def test_gen_unicode(self):
         """
@@ -455,16 +476,23 @@ class Test_generate_csr(CommandLineTestBase):
 
         result = generate_csr(options)
 
-        csr = crypto.dump_certificate_request(crypto.FILETYPE_PEM, result["csr"])
+        csr = result["csr"].public_bytes(serialization.Encoding.PEM)
         self.assertEqual(csr, result["csr_pem"])
-        subject = result["csr"].get_subject()
-        self.assertEqual("xn--domain-uro-x77e.com", subject.commonName)
-        self.assertEqual("name@xn--domain-uro-x77e.com", subject.emailAddress)
-        self.assertEqual("OU Nam\u20acuro", subject.organizationName)
-        self.assertEqual("OU Unit\u20acuro", subject.organizationalUnitName)
-        self.assertEqual("Som\u20acwhere", subject.localityName)
-        self.assertEqual("Stat\u20ac", subject.stateOrProvinceName)
-        self.assertEqual("GB", subject.countryName)
+        subject = result["csr"].subject
+        expected_attributes = {
+            NameOID.COMMON_NAME: "xn--domain-uro-x77e.com",
+            NameOID.EMAIL_ADDRESS: "name@xn--domain-uro-x77e.com",
+            NameOID.ORGANIZATION_NAME: "OU Nam\u20acuro",
+            NameOID.ORGANIZATIONAL_UNIT_NAME: "OU Unit\u20acuro",
+            NameOID.LOCALITY_NAME: "Som\u20acwhere",
+            NameOID.STATE_OR_PROVINCE_NAME: "Stat\u20ac",
+            NameOID.COUNTRY_NAME: "GB",
+        }
+        for oid, expected in expected_attributes.items():
+            self.assertEqual(
+                expected,
+                subject.get_attributes_for_oid(oid)[0].value,
+            )
 
     def test_encrypted_key(self):
         """
@@ -511,11 +539,13 @@ class Test_generate_csr(CommandLineTestBase):
         self.assertEqual(1024, result["key"].bits())
         self.assertEqual(crypto.TYPE_RSA, result["key"].type())
         self.assertEqual(key_pem, result["key_pem"])
-        # For CSR we can not get extensions so we only check the subject.
-        csr = crypto.dump_certificate_request(crypto.FILETYPE_PEM, result["csr"])
+        csr = result["csr"].public_bytes(serialization.Encoding.PEM)
         self.assertEqual(csr, result["csr_pem"])
-        subject = result["csr"].get_subject()
-        self.assertEqual("domain.com", subject.commonName)
+        subject = result["csr"].subject
+        self.assertEqual(
+            "domain.com",
+            subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value,
+        )
 
     def test_existing_key_path(self):
         """
@@ -540,11 +570,13 @@ class Test_generate_csr(CommandLineTestBase):
         self.assertEqual(1024, result["key"].bits())
         self.assertEqual(crypto.TYPE_RSA, result["key"].type())
         self.assertEqual(key_pem, result["key_pem"])
-        # For CSR we can not get extensions so we only check the subject.
-        csr = crypto.dump_certificate_request(crypto.FILETYPE_PEM, result["csr"])
+        csr = result["csr"].public_bytes(serialization.Encoding.PEM)
         self.assertEqual(csr, result["csr_pem"])
-        subject = result["csr"].get_subject()
-        self.assertEqual("domain.com", subject.commonName)
+        subject = result["csr"].subject
+        self.assertEqual(
+            "domain.com",
+            subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value,
+        )
 
 
 class Test_generate_and_store_csr(CommandLineTestBase):
@@ -597,8 +629,13 @@ class Test_generate_and_store_csr(CommandLineTestBase):
         key = crypto.load_privatekey(crypto.FILETYPE_PEM, key_content)
         self.assertEqual(512, key.bits())
         csr_content = mk.fs.getFileContent(csr_segments)
-        csr = crypto.load_certificate_request(crypto.FILETYPE_PEM, csr_content)
-        self.assertEqual("domain.com", csr.get_subject().CN)
+        if isinstance(csr_content, str):
+            csr_content = csr_content.encode("ascii")
+        csr = x509.load_pem_x509_csr(csr_content)
+        self.assertEqual(
+            "domain.com",
+            csr.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value,
+        )
 
     def test_store_error(self):
         """
@@ -618,5 +655,6 @@ class Test_generate_and_store_csr(CommandLineTestBase):
             generate_and_store_csr(options)
 
         self.assertStartsWith(
-            "[Errno 2] No such file or directory: ", context.exception.message
+            context.exception.message,
+            "[Errno 2] No such file or directory: ",
         )

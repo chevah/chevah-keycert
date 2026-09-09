@@ -3,14 +3,14 @@ Create issues and send pull requests.
 All changes need to have tests.
 All test code need to have 100% coverage.
 
-Auto-released on PyPi using Travis-CI for each tag.
+Auto-released on PyPi using GitHub Actions for each tag.
 
 Build development environment and activate it.
 It uses the chevah-brink script to create the virtual environment ::
 
     ./pythia.sh deps
 
-Run checks executed on Travis-CI: test, linters and coverage::
+Run checks executed on GitHub Actions: test, linters and coverage::
 
     ./pythia.sh test
 
@@ -22,3 +22,6 @@ You can manually test the command line tools::
 
     $ ./build/venv/bin/python keycert-demo.py
 
+Use setuptools to build the wheel::
+
+    $ ./build/venv/bin/python setup.py bdist_wheel

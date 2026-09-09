@@ -3,15 +3,15 @@
 """
 SSL keys and certificates.
 """
-from __future__ import absolute_import, unicode_literals
-
 import os
+from datetime import datetime, timedelta, timezone
+from ipaddress import ip_address
 from random import randint
 
-import six
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
 from OpenSSL import crypto
 
-from chevah_keycert import native_string
 from chevah_keycert.exceptions import KeyCertException
 
 _DEFAULT_SSL_KEY_CYPHER = "aes-256-cbc"
@@ -30,10 +30,10 @@ _KEY_USAGE_STANDARD = {
     "decipher-only": b"decipherOnly",
 }
 _KEY_USAGE_EXTENDED = {
-    "server-authentication": b"serverAuth",
-    "client-authentication": b"clientAuth",
-    "code-signing": b"codeSigning",
-    "email-protection": b"emailProtection",
+    "server-authentication": x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,
+    "client-authentication": x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH,
+    "code-signing": x509.oid.ExtendedKeyUsageOID.CODE_SIGNING,
+    "email-protection": x509.oid.ExtendedKeyUsageOID.EMAIL_PROTECTION,
 }
 
 
@@ -195,71 +195,151 @@ def generate_csr(options):
     """
     try:
         return _generate_csr(options)
-    except crypto.Error as error:
-        try:
-            message = error[0][0][2].decode("utf-8", errors="replace")
-        except IndexError:  # pragma: no cover
-            message = "no error details."
+    except (crypto.Error, ValueError, TypeError) as error:
+        if isinstance(error, crypto.Error):
+            try:
+                message = error[0][0][2].decode("utf-8", errors="replace")
+            except IndexError:  # pragma: no cover
+                message = "no error details."
+        else:
+            message = str(error)
         raise KeyCertException(message)
 
 
-def _set_subject_and_extensions(target, options):
+def _parse_email(options):
     """
-    Set the subject and option for `target` CRS or certificate.
+    Return a normalized email value or None.
+    """
+    email = getattr(options, "email", "")
+    if not email:
+        return None
+
+    try:
+        address, domain = email.split("@", 1)
+    except ValueError:
+        raise KeyCertException("Invalid email address.")
+
+    return "%s@%s" % (
+        address,
+        domain.encode("idna").decode("ascii"),
+    )
+
+
+def _build_subject(options):
+    """
+    Build and return the x509.Name for CSR/certificate.
     """
     common_name = options.common_name
-    constraints = getattr(options, "constraints", "")
-    key_usage = getattr(options, "key_usage", "").lower()
-    email = getattr(options, "email", "")
-    alternative_name = getattr(options, "alternative_name", "")
     country = getattr(options, "country", "")
     state = getattr(options, "state", "")
     locality = getattr(options, "locality", "")
     organization = getattr(options, "organization", "")
     organization_unit = getattr(options, "organization_unit", "")
-
-    # RFC 2459 defines it as optional, and pyopenssl set it to `0` anyway.
-    # But we got reports that Windows 2003 and Windows 2008 Servers
-    # can not parse CSR generated using this tool.
-    # PyOpenSSL 24.0.0 only supports version 0.
-    target.set_version(0)
-
-    subject = target.get_subject()
-
-    subject.CN = common_name.encode("idna")
+    email = _parse_email(options)
 
     if country:
         if len(country) != 2:
             raise KeyCertException("Invalid country code.")
 
-        subject.C = country
+    attributes = [
+        x509.NameAttribute(
+            x509.oid.NameOID.COMMON_NAME, common_name.encode("idna").decode()
+        ),
+    ]
+
+    if country:
+        attributes.append(x509.NameAttribute(x509.oid.NameOID.COUNTRY_NAME, country))
 
     if state:
-        subject.ST = state
+        attributes.append(
+            x509.NameAttribute(x509.oid.NameOID.STATE_OR_PROVINCE_NAME, state)
+        )
 
     if locality:
-        subject.L = locality
+        attributes.append(x509.NameAttribute(x509.oid.NameOID.LOCALITY_NAME, locality))
 
     if organization:
-        subject.O = organization
+        attributes.append(
+            x509.NameAttribute(x509.oid.NameOID.ORGANIZATION_NAME, organization)
+        )
 
     if organization_unit:
-        subject.OU = organization_unit
+        attributes.append(
+            x509.NameAttribute(
+                x509.oid.NameOID.ORGANIZATIONAL_UNIT_NAME, organization_unit
+            )
+        )
 
     if email:
-        try:
-            address, domain = options.email.split("@", 1)
-        except ValueError:
-            raise KeyCertException("Invalid email address.")
-
-        subject.emailAddress = "%s@%s" % (
-            address,
-            domain.encode("idna").decode("ascii"),
+        attributes.append(
+            x509.NameAttribute(
+                x509.oid.NameOID.EMAIL_ADDRESS,
+                email,
+            )
         )
+
+    return x509.Name(attributes)
+
+
+def _parse_constraints(constraints):
+    """
+    Parse basic constraints option.
+    """
+    ca = None
+    pathlen = None
+    for part in constraints.split(","):
+        item = part.strip()
+        if not item:
+            continue
+        if ":" not in item:
+            continue
+        key, value = item.split(":", 1)
+        name = key.strip().lower()
+        raw = value.strip()
+        if name == "ca":
+            ca = raw.upper() == "TRUE"
+        elif name == "pathlen":
+            pathlen = int(raw)
+
+    if ca is None:
+        raise KeyCertException("Invalid constraints value.")
+    if not ca and pathlen is not None:
+        raise KeyCertException("Invalid constraints value.")
+    return x509.BasicConstraints(ca=ca, path_length=pathlen)
+
+
+def _parse_alternative_name(alternative_name):
+    """
+    Build a SubjectAlternativeName extension from text input.
+    """
+    names = []
+    for entry in alternative_name.split(","):
+        item = entry.strip()
+        if not item:
+            continue
+        kind, value = item.split(":", 1)
+        key = kind.upper().strip()
+        target = value.strip()
+        if key == "DNS":
+            names.append(x509.DNSName(target.encode("idna").decode("ascii")))
+        elif key == "IP":
+            names.append(x509.IPAddress(ip_address(target)))
+        else:
+            raise KeyCertException("Invalid alternative name.")
+    return x509.SubjectAlternativeName(names)
+
+
+def _build_extensions(options):
+    """
+    Build x509 extensions from command options.
+    """
+    constraints = getattr(options, "constraints", "")
+    key_usage = getattr(options, "key_usage", "").lower()
+    alternative_name = getattr(options, "alternative_name", "")
 
     critical_constraints = False
     critical_usage = False
-    standard_usage = []
+    standard_usage = set()
     extended_usage = []
     extensions = []
 
@@ -276,61 +356,58 @@ def _set_subject_and_extensions(target, options):
         if not usage:
             continue
         if usage in _KEY_USAGE_STANDARD:
-            standard_usage.append(_KEY_USAGE_STANDARD[usage])
+            standard_usage.add(usage)
         if usage in _KEY_USAGE_EXTENDED:
             extended_usage.append(_KEY_USAGE_EXTENDED[usage])
 
     if constraints:
         extensions.append(
-            crypto.X509Extension(
-                b"basicConstraints",
+            (
+                _parse_constraints(constraints),
                 critical_constraints,
-                constraints.encode("ascii"),
             )
         )
 
     if standard_usage:
+        key_agreement = "key-agreement" in standard_usage
         extensions.append(
-            crypto.X509Extension(
-                b"keyUsage",
+            (
+                x509.KeyUsage(
+                    digital_signature="digital-signature" in standard_usage,
+                    content_commitment="non-repudiation" in standard_usage,
+                    key_encipherment="key-encipherment" in standard_usage,
+                    data_encipherment="data-encipherment" in standard_usage,
+                    key_agreement=key_agreement,
+                    key_cert_sign="key-cert-sign" in standard_usage,
+                    crl_sign="crl-sign" in standard_usage,
+                    encipher_only=(
+                        "encipher-only" in standard_usage if key_agreement else None
+                    ),
+                    decipher_only=(
+                        "decipher-only" in standard_usage if key_agreement else None
+                    ),
+                ),
                 critical_usage,
-                b",".join(standard_usage),
             )
         )
 
     if extended_usage:
         extensions.append(
-            crypto.X509Extension(
-                b"extendedKeyUsage",
+            (
+                x509.ExtendedKeyUsage(extended_usage),
                 critical_usage,
-                b",".join(extended_usage),
             )
         )
 
     # Alternate name is optional.
     if alternative_name:
         extensions.append(
-            crypto.X509Extension(
-                b"subjectAltName", False, alternative_name.encode("idna")
+            (
+                _parse_alternative_name(alternative_name),
+                False,
             )
         )
-    target.add_extensions(extensions)
-
-
-def _sign_cert_or_csr(target, key, options):
-    """
-    Sign the certificate or CSR.
-    """
-    sign_algorithm = getattr(options, "sign_algorithm", "sha256")
-
-    if sign_algorithm not in _SUPPORTED_SIGN_ALGORITHMS:
-        raise KeyCertException(
-            "Invalid signing algorithm. Supported values: %s."
-            % (", ".join(_SUPPORTED_SIGN_ALGORITHMS))
-        )
-
-    target.set_pubkey(key)
-    target.sign(key, native_string(sign_algorithm))
+    return extensions
 
 
 def _generate_csr(options):
@@ -342,11 +419,8 @@ def _generate_csr(options):
     if key_size < 512:
         raise KeyCertException("Key size must be greater or equal to 512.")
 
-    key_type = crypto.TYPE_RSA
-
-    csr = crypto.X509Req()
-
-    _set_subject_and_extensions(csr, options)
+    subject = _build_subject(options)
+    extensions = _build_extensions(options)
 
     key_pem = None
     private_key = options.key
@@ -358,19 +432,22 @@ def _generate_csr(options):
         key_pem = private_key
         key = crypto.load_privatekey(crypto.FILETYPE_PEM, private_key)
     else:
-        # Generate new Key.
         key = crypto.PKey()
-        key.generate_key(key_type, key_size)
+        key.generate_key(crypto.TYPE_RSA, key_size)
 
-    _sign_cert_or_csr(csr, key, options)
-
-    csr_pem = crypto.dump_certificate_request(crypto.FILETYPE_PEM, csr)
+    crypto_key = key.to_cryptography_key()
+    csr_builder = x509.CertificateSigningRequestBuilder().subject_name(subject)
+    for extension, critical in extensions:
+        csr_builder = csr_builder.add_extension(extension, critical)
+    csr = csr_builder.sign(
+        private_key=crypto_key,
+        algorithm=_get_sign_hash(options),
+    )
+    csr_pem = csr.public_bytes(encoding=serialization.Encoding.PEM)
 
     if not key_pem:
         if options.key_password:
             cipher = _DEFAULT_SSL_KEY_CYPHER
-            if six.PY2:
-                cipher = cipher.encode("ascii")
             key_pem = crypto.dump_privatekey(
                 crypto.FILETYPE_PEM,
                 key,
@@ -383,9 +460,30 @@ def _generate_csr(options):
     return {
         "csr_pem": csr_pem,
         "key_pem": key_pem,
-        "csr": csr,
+        "csr": x509.load_pem_x509_csr(csr_pem),
         "key": key,
     }
+
+
+def _get_sign_hash(options):
+    """
+    Return hashing algorithm object for signing.
+    """
+    sign_algorithm = getattr(options, "sign_algorithm", "sha256")
+    sign_algorithms = {
+        "md5": hashes.MD5,
+        "sha1": hashes.SHA1,
+        "sha256": hashes.SHA256,
+        "sha512": hashes.SHA512,
+    }
+
+    if sign_algorithm not in sign_algorithms:
+        raise KeyCertException(
+            "Invalid signing algorithm. Supported values: %s."
+            % (", ".join(_SUPPORTED_SIGN_ALGORITHMS))
+        )
+
+    return sign_algorithms[sign_algorithm]()
 
 
 def generate_ssl_self_signed_certificate(options):
@@ -400,20 +498,28 @@ def generate_ssl_self_signed_certificate(options):
 
     key = crypto.PKey()
     key.generate_key(crypto.TYPE_RSA, key_size)
+    generated_key = key.to_cryptography_key()
+    subject = _build_subject(options)
+    issuer = subject
+    now = datetime.now(timezone.utc)
 
-    cert = crypto.X509()
+    cert_builder = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(generated_key.public_key())
+        .serial_number(serial)
+        .not_valid_before(now)
+        .not_valid_after(now + timedelta(days=10 * 365))
+    )
+    for extension, critical in _build_extensions(options):
+        cert_builder = cert_builder.add_extension(extension, critical)
 
-    _set_subject_and_extensions(cert, options)
-
-    cert.set_serial_number(serial)
-    cert.gmtime_adj_notBefore(0)
-    cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
-
-    cert.set_issuer(cert.get_subject())
-
-    _sign_cert_or_csr(cert, key, options)
-
-    certificate_pem = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
+    cert = cert_builder.sign(
+        private_key=generated_key,
+        algorithm=_get_sign_hash(options),
+    )
+    certificate_pem = cert.public_bytes(encoding=serialization.Encoding.PEM)
     key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
     return (certificate_pem.decode("utf-8"), key_pem.decode("utf-8"))
 

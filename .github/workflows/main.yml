@@ -20,13 +20,13 @@ concurrency:
 
 
 env:
-  CHEVAH_BUILD: "build-py3"
+  CHEVAH_BUILD: "build"
 
 jobs:
 
   ubuntu:
     # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -37,25 +37,17 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          build-py3
+          build
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
       run: |
         ./pythia.sh deps
 
-    - name: Rename build to unicode
-      run: mv build-py3 build-py3-ț
-
     - name: Test
       run: ./pythia.sh test
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        CHEVAH_BUILD: 'build-py3-ț'
-
-    - name: Rename build from unicode for cache
-      run: mv build-py3-ț build-py3
-
 
   macos:
     runs-on: macos-latest
@@ -66,7 +58,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          build-py3
+          build
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
@@ -87,7 +79,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          build-by3
+          build
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
@@ -100,7 +92,7 @@ jobs:
 
 
   keys-interop:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -117,7 +109,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          build-py3
+          build
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
@@ -139,7 +131,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          build-py3
+          build
         key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
 
     - name: Deps
